@@ -18,6 +18,10 @@ FF_PWD_DIR=$(pwd)
 FF_PREFIX=${FF_PWD_DIR}/output
 
 FF_ACT_ARCHS_ALL="armv7a arm64 x86 x86_64"
+
+#为方便调试，先默认输出两种abi : armv7a x86
+FF_ACT_ARCHS_32="armv7a x86"
+
 echo_archs() {
     echo "===================="
     echo "[*] check archs"
@@ -39,9 +43,17 @@ echo_nextstep_help() {
 
 #----------
 case "$FF_TARGET" in
+#    "")
+#        echo_archs armv7a
+#        sh ./do-compile-ffmpeg.sh armv7a
+#    ;;
     "")
-        echo_archs armv7a
-        sh ./do-compile-ffmpeg.sh armv7a
+        echo_archs ${FF_ACT_ARCHS_32}
+        for ARCH in ${FF_ACT_ARCHS_32}
+        do
+            sh ./do-compile-ffmpeg.sh ${ARCH} ${FF_TARGET_EXTRA}
+        done
+        echo_nextstep_help
     ;;
     armv5|armv7a|arm64|x86|x86_64)
         echo_archs ${FF_TARGET} ${FF_TARGET_EXTRA}

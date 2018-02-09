@@ -26,9 +26,10 @@ fi
 # 当前目录
 FF_PWD_DIR=$(pwd)
 # ffmpeg源码根目录
-FF_FFMPEG_SOURCE=./ffmpeg
+FF_FFMPEG_SOURCE=./ffmpeg-armv7a
 # 输出目录
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
+FF_SHARED_PREFIX=${FF_PWD_DIR}/../libs/${FF_ARCH}
 
 # 编译平台版本
 FF_ANDROID_PLATFORM=android-9
@@ -129,9 +130,10 @@ FF_EXTRA_CFLAGS="-O3 -Wall -pipe \
     -DANDROID -DNDEBUG $FF_EXTRA_CFLAGS"
 
 # 导入ffmpeg配置
-export COMMON_FF_CONFIGURE_FLAGS=
+export COMMON_FF_CFG_FLAGS=
 . ./module.sh
-FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS $COMMON_FF_CONFIGURE_FLAGS"
+
+FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS $COMMON_FF_CFG_FLAGS"
 
 # 交叉编译链
 FF_CROSS_PREFIX=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/bin/${FF_GCC_NAME}-
@@ -184,7 +186,25 @@ echo "--------------------"
 cp config.* ${FF_PREFIX}
 make -j4
 make install
-#mkdir -p $FF_PREFIX/include/libffmpeg
-#cp -f config.h $FF_PREFIX/include/libffmpeg/config.h
+
+mkdir -p ${FF_PREFIX}/include/libffmpeg
+cp -f config.h ${FF_PREFIX}/include/libffmpeg/config.h
 
 
+${FF_CROSS_PREFIX}ld \
+-rpath-link=${FF_SYSROOT}usr/lib \
+-L${FF_SYSROOT}/usr/lib \
+-L${FF_PREFIX}/lib \
+-soname libffmpeg.so -shared -nostdlib -Bsymbolic --whole-archive --no-undefined -o \
+${FF_SHARED_PREFIX}/libffmpeg.so \
+    libavcodec/libavcodec.a \
+    libavfilter/libavfilter.a \
+    libswresample/libswresample.a \
+    libavformat/libavformat.a \
+    libavutil/libavutil.a \
+    libswscale/libswscale.a \
+    -lc -lm -lz -ldl -llog --dynamic-linker=/system/bin/linker \
+    ${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9/libgcc.a \
+
+
+make clean

@@ -12,7 +12,21 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags ""
+                //指定为此要编译和打包的本地库
+                targets "cpufeatures",
+                        "ijkj4a",
+                        "yuv_static",
+                        "ijksdl",
+                        "android-ndk-profiler",
+                        "ijksoundtouch",
+                        "ijkplayer"
             }
+
+        }
+        ndk {
+//          'armeabi' 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64', 'mips', 'mips64'
+            abiFilters  'armeabi-v7a'//,'x86'
+
         }
     }
     buildTypes {

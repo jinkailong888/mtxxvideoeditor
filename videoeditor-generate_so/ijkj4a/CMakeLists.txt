@@ -10,35 +10,76 @@ elseif(${ANDROID_ABI} STREQUAL "x86_64")
    set(abi_library_name x86_64)
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
-       ${CMAKE_SOURCE_DIR}/libs/${abi_library_name})
+#获取当前目录
+set(pwd_dir  ${CMAKE_SOURCE_DIR}/ijkj4a)
+#设置库名称
+set(lib_name ijkj4a)
+#获取库输出目录
+set(lib_output_dir
+    ${CMAKE_SOURCE_DIR}/libs/${abi_library_name}
+)
+#设置静态库输出目录(参考googlesamples/android-ndk)
+set(static_output
+    "true"
+)
+#设置头文件
+set(include_dir
+    ${pwd_dir}
+)
+#将若干库链接到目标库文件
+set(link_lib
+    log
+)
+#设置编译选项
+set(cxx_flag
 
-set(j4a_dir
-       ${CMAKE_SOURCE_DIR}/ijkj4a)
-
-include_directories(
-        ${j4a_dir}
+)
+#设置要编译的源文件
+set(source_files
+    ${pwd_dir}/j4a/j4a_allclasses.c
+    ${pwd_dir}/j4a/j4a_base.c
+    ${pwd_dir}/j4a/class/android/media/AudioTrack.c
+    ${pwd_dir}/j4a/class/android/media/MediaCodec.c
+    ${pwd_dir}/j4a/class/android/media/MediaFormat.c
+    ${pwd_dir}/j4a/class/android/media/PlaybackParams.c
+    ${pwd_dir}/j4a/class/android/os/Build.c
+    ${pwd_dir}/j4a/class/android/os/Bundle.c
+    ${pwd_dir}/j4a/class/java/nio/Buffer.c
+    ${pwd_dir}/j4a/class/java/nio/ByteBuffer.c
+    ${pwd_dir}/j4a/class/java/util/ArrayList.c
+    ${pwd_dir}/j4a/class/tv/danmaku/ijk/media/player/misc/IMediaDataSource.c
+    ${pwd_dir}/j4a/class/tv/danmaku/ijk/media/player/misc/IAndroidIO.c
+    ${pwd_dir}/j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.c
+    ${pwd_dir}/j4au/class/android/media/AudioTrack.util.c
+    ${pwd_dir}/j4au/class/java/nio/ByteBuffer.util.c
 )
 
-add_library(j4a SHARED
-            ${j4a_dir}/j4a/j4a_allclasses.c
-            ${j4a_dir}/j4a/j4a_base.c
-            ${j4a_dir}/j4a/class/android/media/AudioTrack.c
-            ${j4a_dir}/j4a/class/android/media/MediaCodec.c
-            ${j4a_dir}/j4a/class/android/media/MediaFormat.c
-            ${j4a_dir}/j4a/class/android/media/PlaybackParams.c
-            ${j4a_dir}/j4a/class/android/os/Build.c
-            ${j4a_dir}/j4a/class/android/os/Bundle.c
-            ${j4a_dir}/j4a/class/java/nio/Buffer.c
-            ${j4a_dir}/j4a/class/java/nio/ByteBuffer.c
-            ${j4a_dir}/j4a/class/java/util/ArrayList.c
-            ${j4a_dir}/j4a/class/tv/danmaku/ijk/media/player/misc/IMediaDataSource.c
-            ${j4a_dir}/j4a/class/tv/danmaku/ijk/media/player/misc/IAndroidIO.c
-            ${j4a_dir}/j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.c
-            ${j4a_dir}/j4au/class/android/media/AudioTrack.util.c
-            ${j4a_dir}/j4au/class/java/nio/ByteBuffer.util.c
-            )
+#其他配置
+#include(AndroidNdkModules)
+#android_ndk_import_module_cpufeatures()
+#set(link_lib
+#    ${link_lib}
+#    cpufeatures
+#)
 
-target_link_libraries(j4a
-log
-)
+#以下为固定语法，无需修改
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${lib_output_dir})
+include_directories(${include_dir})
+set(CMAKE_CXX_FLAGS_DEBUG ${cxx_flag})
+add_library(${lib_name} STATIC ${source_files})
+target_link_libraries(${lib_name} ${link_lib})
+
+if(${static_output} STREQUAL "true")
+set_target_properties(${lib_name}
+                      PROPERTIES
+                      ARCHIVE_OUTPUT_DIRECTORY
+                      ${lib_output_dir})
+endif()
+
+
+
+
+
+
+
+

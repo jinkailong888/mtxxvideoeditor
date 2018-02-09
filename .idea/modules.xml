@@ -3,13 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/MTXXVideoEditor.iml" filepath="$PROJECT_DIR$/MTXXVideoEditor.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videoeditor-armv64/videoeditor-armv64.iml" filepath="$PROJECT_DIR$/videoeditor-armv64/videoeditor-armv64.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" filepath="$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-example/videoeditor-example.iml" filepath="$PROJECT_DIR$/videoeditor-example/videoeditor-example.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-generate_so/videoeditor-generate_so.iml" filepath="$PROJECT_DIR$/videoeditor-generate_so/videoeditor-generate_so.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-java/videoeditor-java.iml" filepath="$PROJECT_DIR$/videoeditor-java/videoeditor-java.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-x86/videoeditor-x86.iml" filepath="$PROJECT_DIR$/videoeditor-x86/videoeditor-x86.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videoeditor-x86_64/videoeditor-x86_64.iml" filepath="$PROJECT_DIR$/videoeditor-x86_64/videoeditor-x86_64.iml" />
     </modules>
   </component>
 </project>
