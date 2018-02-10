@@ -26,7 +26,7 @@ fi
 # 当前目录
 FF_PWD_DIR=$(pwd)
 # ffmpeg源码根目录
-FF_FFMPEG_SOURCE=./ffmpeg-armv7a
+FF_FFMPEG_SOURCE=./ffmpeg_armv7a
 # 输出目录
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/../libs/${FF_ARCH}
