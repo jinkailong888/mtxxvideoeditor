@@ -43,17 +43,9 @@ echo_nextstep_help() {
 
 #----------
 case "$FF_TARGET" in
-#    "")
-#        echo_archs armv7a
-#        sh ./do-compile-ffmpeg.sh armv7a
-#    ;;
     "")
-        echo_archs ${FF_ACT_ARCHS_32}
-        for ARCH in ${FF_ACT_ARCHS_32}
-        do
-            sh ./do-compile-ffmpeg.sh ${ARCH} ${FF_TARGET_EXTRA}
-        done
-        echo_nextstep_help
+        echo_archs armv7a
+        sh ./do-compile-ffmpeg.sh armv7a
     ;;
     armv5|armv7a|arm64|x86|x86_64)
         echo_archs ${FF_TARGET} ${FF_TARGET_EXTRA}
