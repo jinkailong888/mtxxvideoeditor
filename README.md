@@ -1,4 +1,5 @@
 1. cd MTXXVideoEditor/videoeditor-generate_so/ffmpeg
+
    sh compile.sh
 
 2. build project

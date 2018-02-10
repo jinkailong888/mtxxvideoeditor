@@ -190,6 +190,16 @@ make install
 mkdir -p ${FF_PREFIX}/include/libffmpeg
 cp -f config.h ${FF_PREFIX}/include/libffmpeg/config.h
 
+cp -f ${FF_PWD_DIR}/ffmpeg-armv7a/libavutil/application.h ${FF_PREFIX}/include/libavformat/application.h
+
+
+
+
+mkdir -p ${FF_PWD_DIR}/../../videoeditor-armv7a/libs/armeabi-v7a
+mkdir -p ${FF_PWD_DIR}/../../videoeditor-x86/libs/armeabi-v7a
+
+
+mkdir -p ${FF_SHARED_PREFIX}
 
 ${FF_CROSS_PREFIX}ld \
 -rpath-link=${FF_SYSROOT}usr/lib \
@@ -207,4 +217,3 @@ ${FF_SHARED_PREFIX}/libffmpeg.so \
     ${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9/libgcc.a \
 
 
-make clean

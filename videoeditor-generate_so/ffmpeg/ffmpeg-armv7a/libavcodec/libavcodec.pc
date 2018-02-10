@@ -1,4 +1,4 @@
-prefix=/home/yhao/meitu/MTXXVideoEditor/videoeditor-generate_so/ffmpeg/output/armv7a
+prefix=/home/yhao/mtxxvideoeditor/videoeditor-generate_so/ffmpeg/output/armv7a
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
