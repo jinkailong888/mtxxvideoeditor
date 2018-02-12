@@ -17,7 +17,7 @@ set(global_lib_output_dir
 )
 #初步生成的ffmpeg动态库地址
 set(ffmpeg_output_shared_lib
-    ${CMAKE_SOURCE_DIR}/ffmpeg/ndkbuild/libs/${ANDROID_ABI}/libffmpeg.so
+    ${CMAKE_SOURCE_DIR}/ffmpeg/ndkbuild/libs/${ANDROID_ABI}/libijkffmpeg.so
     CACHE INTERNAL "ffmpeg_output_shared_lib"
 )
 #初步生成的ffmpeg头文件

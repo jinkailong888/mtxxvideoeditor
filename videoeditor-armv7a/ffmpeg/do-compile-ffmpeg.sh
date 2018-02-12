@@ -251,4 +251,6 @@ cp -f ./../libs/armeabi-v7a/libffmpeg.so ./../libs/armeabi-v7a/libijkffmpeg.so
 
 cp -f ./../libs/armeabi-v7a/libffmpeg.so ${FF_SO_PREFIX}/libijkffmpeg.so
 
+rm -f  ./../libs/armeabi-v7a/libffmpeg.so
+
 
