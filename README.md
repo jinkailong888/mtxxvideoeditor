@@ -1,8 +1,22 @@
-1. cd MTXXVideoEditor/videoeditor-generate_so/ffmpeg
+第1步. cd videoeditor-armv7a/ffmpeg
 
-   sh compile.sh
+      sh compile.sh
 
-2. build project
+第2步. run videoeditor-example
 
 
-然后就可以在 videoeditor-armv7a/libs 下看到生成的so库
+
+run videoeditor-example 操作会触发 videoeditor-armv7a 的编译工作，所以可直接运行，无需 build.
+
+目前 libijkplayer.so 和 libijksdl.so 由 cmake 自动打包进 apk, libijkffmpeg.so 手动指向。
+
+
+
+
+
+
+
+
+
+
+
