@@ -29,7 +29,8 @@ FF_PWD_DIR=$(pwd)
 FF_FFMPEG_SOURCE=./ffmpeg-armv7a
 # 输出目录
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
-FF_SHARED_PREFIX=${FF_PWD_DIR}/../libs/${FF_ARCH}
+FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
+FF_SO_PREFIX=${FF_PWD_DIR}/../libs/${FF_ARCH}
 
 # 编译平台版本
 FF_ANDROID_PLATFORM=android-9
@@ -194,9 +195,31 @@ cp -f ${FF_PWD_DIR}/ffmpeg-armv7a/libavutil/application.h ${FF_PREFIX}/include/l
 
 
 
+#--------------------
+echo ""
+echo "--------------------"
+echo "[*] compile libffmpeg.so"
+echo "--------------------"
 
-mkdir -p ${FF_PWD_DIR}/../../videoeditor-armv7a/libs/armeabi-v7a
-mkdir -p ${FF_PWD_DIR}/../../videoeditor-x86/libs/armeabi-v7a
+
+FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9
+
+if [ ! -d ${FF_LIB_GCC_DIR} ]; then
+    echo ""
+    echo "!! Can not find 4.9 directory for libgcc.a"
+    echo "!! change to 4.9.x directory"
+    echo ""
+    FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9.x
+fi
+
+if [ ! -d ${FF_LIB_GCC_DIR} ]; then
+    echo ""
+    echo "!! ERROR"
+    echo "!! Can not find 4.9.x directory for libgcc.a"
+    echo "!! exit"
+    echo ""
+    exit 1
+fi
 
 
 mkdir -p ${FF_SHARED_PREFIX}
@@ -215,5 +238,13 @@ ${FF_SHARED_PREFIX}/libffmpeg.so \
     libswscale/libswscale.a \
     -lc -lm -lz -ldl -llog --dynamic-linker=/system/bin/linker \
     ${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9/libgcc.a \
+
+
+
+cd ./../ndkbuild/jni
+
+ndk-build
+
+cp -f ./../libs/armeabi-v7a/libffmpeg.so ${FF_SO_PREFIX}/libijkffmpeg.so
 
 

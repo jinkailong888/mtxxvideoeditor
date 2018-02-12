@@ -11,8 +11,6 @@
             <option value="$PROJECT_DIR$/videoeditor-armv7a" />
             <option value="$PROJECT_DIR$/videoeditor-example" />
             <option value="$PROJECT_DIR$/videoeditor-generate_so" />
-            <option value="$PROJECT_DIR$/videoeditor-java" />
-            <option value="$PROJECT_DIR$/videoeditor-x86" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

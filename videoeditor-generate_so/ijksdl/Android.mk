@@ -20,14 +20,49 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE := ijkffmpeg
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../libffmpeg.so
+#LOCAL_SRC_FILES := /home/yhao/ijkplayer-android/android/contrib/build/ffmpeg-armv7a/output/libijkffmpeg.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := cpufeatures
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../libcpufeatures.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := yuv_static
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../libyuv_static.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := ijkj4a
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../libijkj4a.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_CFLAGS += -std=c99
 LOCAL_LDLIBS += -llog -landroid -lOpenSLES -lEGL -lGLESv2
 
-LOCAL_C_INCLUDES += $(LOCAL_PATH)
-LOCAL_C_INCLUDES += $(realpath $(LOCAL_PATH)/..)
-LOCAL_C_INCLUDES += $(MY_APP_FFMPEG_INCLUDE_PATH)
-LOCAL_C_INCLUDES += $(realpath $(LOCAL_PATH)/../ijkyuv/include)
-LOCAL_C_INCLUDES += $(realpath $(LOCAL_PATH)/../ijkj4a)
+sdl_dir=/home/yhao/mtxxvideoeditor/videoeditor-generate_so/ijksdl
+ffmpeg_include_dir=/home/yhao/mtxxvideoeditor/videoeditor-generate_so/ffmpeg/output/armv7a/include
+ijkyuv_include_dir=/home/yhao/mtxxvideoeditor/videoeditor-generate_so/ijkyuv/include
+ijkj4a_include_dir=/home/yhao/mtxxvideoeditor/videoeditor-generate_so/ijkj4a
+
+
+#sdl_dir=/home/yhao/ijkplayer-android/ijkmedia/ijksdl
+#ffmpeg_include_dir=/home/yhao/ijkplayer-android/android/contrib/build/ffmpeg-armv7a/output/include
+#ijkyuv_include_dir=/home/yhao/ijkplayer-android/ijkmedia/ijkyuv/include
+#ijkj4a_include_dir=/home/yhao/ijkplayer-android/ijkmedia/ijkj4a
+
+
+
+LOCAL_C_INCLUDES += $(sdl_dir)
+LOCAL_C_INCLUDES += $(realpath $(sdl_dir)/..)
+LOCAL_C_INCLUDES += $(ffmpeg_include_dir)
+LOCAL_C_INCLUDES += $(ijkyuv_include_dir)
+LOCAL_C_INCLUDES += $(ijkj4a_include_dir)
 
 LOCAL_SRC_FILES += ijksdl_aout.c
 LOCAL_SRC_FILES += ijksdl_audio.c
@@ -78,4 +113,3 @@ LOCAL_STATIC_LIBRARIES := cpufeatures yuv_static ijkj4a
 LOCAL_MODULE := ijksdl
 include $(BUILD_SHARED_LIBRARY)
 
-$(call import-module,android/cpufeatures)

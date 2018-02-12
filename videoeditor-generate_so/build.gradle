@@ -1,18 +1,36 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
+
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
     defaultConfig {
         applicationId "com.meitu.library.mtxxvideoeditor"
-        minSdkVersion 15
-        targetSdkVersion 26
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags ""
-                //指定为此要编译和打包的本地库
+                cppFlags " -O3 -Wall -pipe " +
+                        " -ffast-math " +
+                        " -fstrict-aliasing -Werror=strict-aliasing" +
+                        " -Wno-psabi -Wa,--noexecstack " +
+                        " -DANDROID -DNDEBUG"
+
+                cFlags " -O3 -Wall -pipe " +
+                        " -ffast-math " +
+                        " -fstrict-aliasing -Werror=strict-aliasing" +
+                        " -Wno-psabi -Wa,--noexecstack " +
+                        " -DANDROID -DNDEBUG"
+
+                arguments "-DANDROID_PLATFORM=android-9",
+                          "-DANDROID_STL=stlport_static",
+                          "-DANDROID_PIE=OFF",
+                          "-DANDROID_ARM_NEON=TRUE"
+
                 targets "cpufeatures",
                         "ijkj4a",
                         "yuv_static",
@@ -26,9 +44,10 @@ android {
         ndk {
 //          'armeabi' 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64', 'mips', 'mips64'
             abiFilters  'armeabi-v7a'//,'x86'
-
         }
     }
+
+
     buildTypes {
         release {
             minifyEnabled false

@@ -1,20 +1,11 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-if(${ANDROID_ABI} STREQUAL "armeabi-v7a")
-   set(abi_library_name armv7a)
-elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-   set(abi_library_name arm64)
-elseif(${ANDROID_ABI} STREQUAL "x86")
-   set(abi_library_name x86)
-elseif(${ANDROID_ABI} STREQUAL "x86_64")
-   set(abi_library_name x86_64)
-endif()
 
 #获取当前目录
 set(pwd_dir  ${CMAKE_SOURCE_DIR}/cpufeatures)
 #设置库名称
 set(lib_name cpufeatures)
-#库输出目录
+#获取库输出目录
 set(lib_output_dir
     ${CMAKE_SOURCE_DIR}/libs/${abi_library_name}
 )
@@ -28,11 +19,15 @@ set(include_dir
 )
 #将若干库链接到目标库文件
 set(link_lib
-    log
+    dl
 )
 #设置编译选项
-set(cxx_flag
-   -Wall -Wextra -Werror
+set(cmake_c_flag_debug
+
+
+)
+set(cmake_cxx_flag_debug
+    -Wall -Wextra -Werror
 )
 #设置要编译的源文件
 set(source_files
@@ -44,7 +39,8 @@ set(source_files
 #以下为固定语法，无需修改
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${lib_output_dir})
 include_directories(${include_dir})
-set(CMAKE_CXX_FLAGS_DEBUG ${cxx_flag})
+set(CMAKE_C_FLAGS_DEBUG "${cmake_c_flag_debug} -s")
+set(CMAKE_CXX_FLAGS_DEBUG "${cmake_cxx_flag_debug} -s")
 add_library(${lib_name} STATIC ${source_files})
 target_link_libraries(${lib_name} ${link_lib})
 

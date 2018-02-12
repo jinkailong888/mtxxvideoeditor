@@ -1,15 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-if(${ANDROID_ABI} STREQUAL "armeabi-v7a")
-   set(abi_library_name armv7a)
-elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-   set(abi_library_name arm64)
-elseif(${ANDROID_ABI} STREQUAL "x86")
-   set(abi_library_name x86)
-elseif(${ANDROID_ABI} STREQUAL "x86_64")
-   set(abi_library_name x86_64)
-endif()
-
 #获取当前目录
 set(pwd_dir  ${CMAKE_SOURCE_DIR}/ijkplayer)
 #设置库名称
@@ -26,7 +16,7 @@ set(static_output
 set(include_dir
     ${pwd_dir}
     ${pwd_dir}/..
-    ${CMAKE_SOURCE_DIR}/ffmpeg/output/${abi_library_name}/include
+    ${ffmpeg_output_include_dir}
     ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg
     ${CMAKE_SOURCE_DIR}/ijkj4a
 )
@@ -36,7 +26,10 @@ set(link_lib
     android
 )
 #设置编译选项
-set(cxx_flag
+set(cmake_c_flag_debug
+
+)
+set(cmake_cxx_flag_debug
 
 )
 #设置要编译的源文件
@@ -91,7 +84,7 @@ set_target_properties(android-ndk-profiler-lib PROPERTIES IMPORTED_LOCATION
                        ${lib_output_dir}/libandroid-ndk-profiler.a)
 add_library(ffmpeg-lib SHARED IMPORTED)
 set_target_properties(ffmpeg-lib PROPERTIES IMPORTED_LOCATION
-                       ${lib_output_dir}/libffmpeg.so)
+                       ${ffmpeg_output_shared_lib})
 add_library(ijksdl-lib SHARED IMPORTED)
 set_target_properties(ijksdl-lib PROPERTIES IMPORTED_LOCATION
                        ${lib_output_dir}/libijksdl.so)
@@ -106,7 +99,8 @@ set(link_lib
 #以下为固定语法，无需修改
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${lib_output_dir})
 include_directories(${include_dir})
-set(CMAKE_CXX_FLAGS_DEBUG ${cxx_flag})
+set(CMAKE_C_FLAGS_DEBUG "${cmake_c_flag_debug} -s")
+set(CMAKE_CXX_FLAGS_DEBUG "${cmake_cxx_flag_debug} -s")
 add_library(${lib_name} SHARED ${source_files})
 target_link_libraries(${lib_name} ${link_lib})
 
@@ -136,21 +130,20 @@ set(so_output_dir
 add_custom_command(TARGET ${lib_name}
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  ${lib_output_dir}/libffmpeg.so
-  ${so_output_dir})
+  ${ffmpeg_output_shared_lib}
+  ${so_output_dir}/libijkffmpeg.so)
 
 add_custom_command(TARGET ${lib_name}
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   ${lib_output_dir}/libijksdl.so
-  ${so_output_dir})
+  ${so_output_dir}/libijksdl.so)
 
 add_custom_command(TARGET ${lib_name}
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   ${lib_output_dir}/libijkplayer.so
-  ${so_output_dir})
-
+  ${so_output_dir}/libijkplayer.so)
 
 
 

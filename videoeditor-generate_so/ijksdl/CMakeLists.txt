@@ -1,15 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-if(${ANDROID_ABI} STREQUAL "armeabi-v7a")
-   set(abi_library_name armv7a)
-elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-   set(abi_library_name arm64)
-elseif(${ANDROID_ABI} STREQUAL "x86")
-   set(abi_library_name x86)
-elseif(${ANDROID_ABI} STREQUAL "x86_64")
-   set(abi_library_name x86_64)
-endif()
-
 #获取当前目录
 set(pwd_dir  ${CMAKE_SOURCE_DIR}/ijksdl)
 #设置库名称
@@ -26,38 +16,47 @@ set(static_output
 set(include_dir
     ${pwd_dir}
     ${pwd_dir}/..
-    ${CMAKE_SOURCE_DIR}/ffmpeg/output/${abi_library_name}/include
+    ${ffmpeg_output_include_dir}
     ${CMAKE_SOURCE_DIR}/ijkyuv/include
     ${CMAKE_SOURCE_DIR}/ijkj4a
 )
 #添加预编译库
+set(ijk_test_dir
+    ${CMAKE_SOURCE_DIR}/test
+)
 add_library(cpufeatures-lib STATIC IMPORTED)
 set_target_properties(cpufeatures-lib PROPERTIES IMPORTED_LOCATION
-                       ${lib_output_dir}/libcpufeatures.a)
+                       ${ijk_test_dir}/libcpufeatures.a)
 add_library(yuv_static-lib STATIC IMPORTED)
 set_target_properties(yuv_static-lib PROPERTIES IMPORTED_LOCATION
-                       ${lib_output_dir}/libyuv_static.a)
+                       ${ijk_test_dir}/libyuv_static.a)
 add_library(ijkj4a-lib STATIC IMPORTED)
 set_target_properties(ijkj4a-lib PROPERTIES IMPORTED_LOCATION
-                       ${lib_output_dir}/libijkj4a.a)
+                       ${ijk_test_dir}/libijkj4a.a)
+
 add_library(ffmpeg-lib SHARED IMPORTED)
 set_target_properties(ffmpeg-lib PROPERTIES IMPORTED_LOCATION
-                       ${lib_output_dir}/libffmpeg.so)
+                      ${ijk_test_dir}/libijkffmpeg.so)
 #将若干库链接到目标库文件
 set(link_lib
-    ffmpeg-lib
-    cpufeatures-lib
-    yuv_static-lib
-    ijkj4a-lib
+
     log
     android
     OpenSLES
     EGL
     GLESv2
+    ffmpeg-lib
+    cpufeatures-lib
+    yuv_static-lib
+    ijkj4a-lib
+
 )
 #设置编译选项
-set(cxx_flag
-   -std=c99
+set(cmake_c_flag_debug
+    -std=c99
+)
+set(cmake_cxx_flag_debug
+
 )
 #设置要编译的源文件
 set(source_files
@@ -103,19 +102,13 @@ set(source_files
 )
 
 #其他配置
-#include(AndroidNdkModules)
-#android_ndk_import_module_cpufeatures()
-#set(link_lib
-#    ${link_lib}
-#    cpufeatures
-#)
-
 
 
 #以下为固定语法，无需修改
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${lib_output_dir})
 include_directories(${include_dir})
-set(CMAKE_CXX_FLAGS_DEBUG ${cxx_flag})
+set(CMAKE_C_FLAGS_DEBUG "${cmake_c_flag_debug} -s")
+set(CMAKE_CXX_FLAGS_DEBUG "${cmake_cxx_flag_debug} -s")
 add_library(${lib_name} SHARED ${source_files})
 target_link_libraries(${lib_name} ${link_lib})
 
