@@ -10,9 +10,9 @@ elseif(${ANDROID_ABI} STREQUAL "x86")
 elseif(${ANDROID_ABI} STREQUAL "x86_64")
    set(abi_library_name x86_64 CACHE INTERNAL "abi_library_name")
 endif()
-#初步生成的ffmpeg动态库地址
+#库输出目录
 set(global_lib_output_dir
-    ${CMAKE_SOURCE_DIR}/obj/${ANDROID_ABI}
+    ${CMAKE_SOURCE_DIR}/obj/${abi_library_name}
     CACHE INTERNAL "global_lib_output_dir"
 )
 #初步生成的ffmpeg动态库地址
