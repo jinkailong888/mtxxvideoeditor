@@ -2,6 +2,22 @@
 #
 #设置错误检查,如果语句出错立即退出
 set -e
+# 当前操作系统
+UNAME_S=$(uname -s)
+# 默认为linux
+FF_NDK_OS_NAME=linux-x86_64
+echo "运行环境：$UNAME_S"
+case "$UNAME_S" in
+    Darwin)
+
+    ;;
+    CYGWIN_NT-*)
+       FF_NDK_OS_NAME=windows-x86_64
+    ;;
+    MINGW64_NT-*)
+       FF_NDK_OS_NAME=windows-x86_64
+    ;;
+esac
 # cpu架构
 FF_ARCH=$1
 # 编译选项
@@ -15,7 +31,7 @@ if [ -z "$FF_ARCH" ]; then
     exit 1
 fi
 # ndk
-FF_NDK=${ANDROID_NDK}
+FF_NDK=${ANDROID_NDK}/
 echo "ANDROID_NDK=$FF_NDK"
 if [ -z "$FF_NDK" ]; then
     echo "You must define ANDROID_NDK before starting."
@@ -31,7 +47,6 @@ FF_FFMPEG_SOURCE=./ffmpeg-armv7a
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
 FF_SO_PREFIX=${FF_PWD_DIR}/../obj/${FF_ARCH}
-
 # 编译平台版本
 FF_ANDROID_PLATFORM=android-9
 # 交叉编译环境
@@ -137,7 +152,7 @@ export COMMON_FF_CFG_FLAGS=
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS $COMMON_FF_CFG_FLAGS"
 
 # 交叉编译链
-FF_CROSS_PREFIX=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/bin/${FF_GCC_NAME}-
+FF_CROSS_PREFIX=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/bin/${FF_GCC_NAME}-
 
 #--------------------
 # FFmpeg 配置:
@@ -202,14 +217,14 @@ echo "[*] compile libffmpeg.so"
 echo "--------------------"
 
 
-FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9
+FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9
 
 if [ ! -d ${FF_LIB_GCC_DIR} ]; then
     echo ""
     echo "!! Can not find 4.9 directory for libgcc.a"
     echo "!! change to 4.9.x directory"
     echo ""
-    FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9.x
+    FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9.x
 fi
 
 if [ ! -d ${FF_LIB_GCC_DIR} ]; then
@@ -239,7 +254,7 @@ ${FF_SHARED_PREFIX}/libijkffmpeg.so \
     libavutil/libavutil.a \
     libswscale/libswscale.a \
     -lc -lm -lz -ldl -llog --dynamic-linker=/system/bin/linker \
-    ${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/linux-x86_64/lib/gcc/${FF_GCC_NAME}/4.9/libgcc.a \
+    ${FF_LIB_GCC_DIR}/libgcc.a \
 
 
 
