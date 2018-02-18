@@ -1922,8 +1922,7 @@ typedef struct AVFormatContext {
      * - decoding: set by user
      */
     int max_streams;
-} AVFormatContext;//描述了媒体文件的构成及基本信息，是统领全局的基本结构体，贯穿程序始终，很多函数都要用它作为参数
-
+} AVFormatContext;
 
 /**
  * Accessors for some AVFormatContext fields. These used to be provided for ABI
