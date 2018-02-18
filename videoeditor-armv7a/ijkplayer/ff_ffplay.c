@@ -63,6 +63,7 @@
 # include "libavfilter/buffersrc.h"
 #endif
 
+
 #include "ijksdl/ijksdl_log.h"
 #include "ijkavformat/ijkavformat.h"
 #include "ff_cmdutils.h"
@@ -1697,7 +1698,7 @@ static int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
     int ret, i;
     int nb_filters = graph->nb_filters;
     AVFilterInOut *outputs = NULL, *inputs = NULL;
-
+    av_log(NULL, AV_LOG_DEBUG, "***********configure_filtergraph   filtergraph:%s" , filtergraph);
     if (filtergraph) {
         outputs = avfilter_inout_alloc();
         inputs  = avfilter_inout_alloc();
@@ -1716,6 +1717,8 @@ static int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
         inputs->pad_idx     = 0;
         inputs->next        = NULL;
 
+        //todo 对于水印来说 filtergraph 形如：
+        //todo const char *filter_descr = "movie=my_logo.png[wm];[in][wm]overlay=5:5[out]";
         if ((ret = avfilter_graph_parse_ptr(graph, filtergraph, &inputs, &outputs, NULL)) < 0)
             goto fail;
     } else {
@@ -1828,6 +1831,9 @@ static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoSta
     }
 #endif
 
+    //todo 软解才会走这里
+    av_log(NULL, AV_LOG_DEBUG, "yhao configure_video_filters   vfilter0:%s" , vfilters);
+
     if ((ret = configure_filtergraph(graph, vfilters, filt_src, last_filter)) < 0)
         goto fail;
 
@@ -1917,6 +1923,8 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
         av_strlcatf(afilters_args, sizeof(afilters_args), "atempo=%f", ffp->pf_playback_rate);
     }
 #endif
+
+    av_log(NULL, AV_LOG_DEBUG, "yhao configure_audio_filters" );
 
     if ((ret = configure_filtergraph(is->agraph, afilters_args[0] ? afilters_args : NULL, filt_asrc, filt_asink)) < 0)
         goto end;
@@ -2131,8 +2139,12 @@ static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *n
     return 0;
 }
 
-static int ffplay_video_thread(void *arg)
-{
+static int ffplay_video_thread(void *arg) {
+
+    //todo 程序没走这里，是因为是硬解？
+    av_log(NULL, AV_LOG_DEBUG, "ffplay_video_thread");
+
+
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
     AVFrame *frame = av_frame_alloc();
@@ -2238,7 +2250,13 @@ static int ffplay_video_thread(void *arg)
                    (const char *)av_x_if_null(av_get_pix_fmt_name(frame->format), "none"), is->viddec.pkt_serial);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
-            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilters_list ? ffp->vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
+//            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilters_list ? ffp->vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
+
+
+            //todo 程序没走这里
+            ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
+            av_log(NULL, AV_LOG_DEBUG, "yhao set   ffp->vfilter0");
+            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilter0, frame)) < 0) {
                 // FIXME: post error
                 SDL_UnlockMutex(ffp->vf_mutex);
                 goto the_end;
@@ -2771,7 +2789,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         goto fail;
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
 
-    //todo 打开ffmpeg 解码器
+    // 打开ffmpeg 解码器
     codec = avcodec_find_decoder(avctx->codec_id);
 
     switch (avctx->codec_type) {
@@ -2831,6 +2849,8 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
+
+//如果定义avfilter
 #if CONFIG_AVFILTER
         {
             AVFilterContext *sink;
@@ -2890,7 +2910,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         is->video_st = ic->streams[stream_index];
 
         decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
-        //todo 创建视频解码器  ----->  ff_ffpipeline.c
+        // 创建视频解码器
         ffp->node_vdec = ffpipeline_open_video_decoder(ffp->pipeline, ffp);
 
         if (!ffp->node_vdec)
@@ -3019,14 +3039,14 @@ static int read_thread(void *arg)
     is->last_subtitle_stream = is->subtitle_stream = -1;
     is->eof = 0;
 
-    //todo 创建输入上下文,最上层的结构体
+    //创建 AVFormatContext
     ic = avformat_alloc_context();
     if (!ic) {
         av_log(NULL, AV_LOG_FATAL, "Could not allocate context.\n");
         ret = AVERROR(ENOMEM);
         goto fail;
     }
-    //todo 设置中断函数，如果出错或者退出，就可以立刻退出
+    // 设置中断函数，如果出错或者退出，就可以立刻退出
     ic->interrupt_callback.callback = decode_interrupt_cb;
     ic->interrupt_callback.opaque = is;
     if (!av_dict_get(ffp->format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)) {
@@ -3047,7 +3067,7 @@ static int read_thread(void *arg)
 
     if (ffp->iformat_name)
         is->iformat = av_find_input_format(ffp->iformat_name);
-    //todo 打开文件,探测协议类型，如果是网络文件则创建网络链接
+    // 打开文件,探测协议类型，如果是网络文件则创建网络链接
     err = avformat_open_input(&ic, is->filename, is->iformat, &ffp->format_opts);
     if (err < 0) {
         print_error(is->filename, err);
@@ -3087,7 +3107,7 @@ static int read_thread(void *arg)
                 break;
             }
         }
-        //todo 探测媒体类型，可得到当前文件的封装格式，音视频编码参数等信息
+        //探测媒体类型，可得到当前文件的封装格式，音视频编码参数等信息
         err = avformat_find_stream_info(ic, opts);
     } while(0);
     ffp_notify_msg1(ffp, FFP_MSG_FIND_STREAM_INFO);
@@ -3196,20 +3216,20 @@ static int read_thread(void *arg)
 
     /* open the streams */
     if (st_index[AVMEDIA_TYPE_AUDIO] >= 0) {
-        //todo 打开音频解码器,并创建音频解码线程
+        // 打开音频解码器,并创建音频解码线程
         stream_component_open(ffp, st_index[AVMEDIA_TYPE_AUDIO]);
     }
 
     ret = -1;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
-        //todo 打开视频解码器,并创建视频解码线程 -->stream_component_open(FFPlayer *ffp, int stream_index)
+        // 打开视频解码器,并创建视频解码线程 -->stream_component_open(FFPlayer *ffp, int stream_index)
         ret = stream_component_open(ffp, st_index[AVMEDIA_TYPE_VIDEO]);
     }
     if (is->show_mode == SHOW_MODE_NONE)
         is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
 
     if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0) {
-        //todo 打开字幕解码器,并创建字幕解码线程
+        // 打开字幕解码器,并创建字幕解码线程
         stream_component_open(ffp, st_index[AVMEDIA_TYPE_SUBTITLE]);
     }
     ffp_notify_msg1(ffp, FFP_MSG_COMPONENT_OPEN);
@@ -3578,7 +3598,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
 #endif
 
     /* start video display */
-    //todo 创建音视频解码后的队列
+    // 创建音视频解码后的队列
     if (frame_queue_init(&is->pictq, &is->videoq, ffp->pictq_size, 1) < 0)
         goto fail;
     if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
@@ -3586,7 +3606,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
         goto fail;
 
-    // todo 创建音视频解码前的队列
+    //  创建音视频解码前的队列
     if (packet_queue_init(&is->videoq) < 0 ||
         packet_queue_init(&is->audioq) < 0 ||
         packet_queue_init(&is->subtitleq) < 0)
@@ -3626,14 +3646,14 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     ffp->is = is;
     is->pause_req = !ffp->start_on_prepared;
 
-    //todo 创建显示线程
+    //创建显示线程
     is->video_refresh_tid = SDL_CreateThreadEx(&is->_video_refresh_tid, video_refresh_thread, ffp, "ff_vout");
     if (!is->video_refresh_tid) {
         av_freep(&ffp->is);
         return NULL;
     }
 
-    //todo 创建数据读取线程  --> read_thread(void *arg)
+    // 创建数据读取线程  --> read_thread(void *arg)
     is->read_tid = SDL_CreateThreadEx(&is->_read_tid, read_thread, ffp, "ff_read");
     if (!is->read_tid) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateThread(): %s\n", SDL_GetError());
@@ -3774,8 +3794,11 @@ static void ffp_log_callback_report(void *ptr, int level, const char *fmt, va_li
 }
 
 int ijkav_register_all(void);
-void ffp_global_init()
-{
+
+/**
+ * JNI_OnLoad时调用，进行全局初始化工作
+ */
+void ffp_global_init() {
     if (g_ffmpeg_global_inited)
         return;
 
@@ -3802,6 +3825,9 @@ void ffp_global_init()
     g_ffmpeg_global_inited = true;
 }
 
+/**
+ * JNI_OnUnload时调用，销毁资源
+ */
 void ffp_global_uninit()
 {
     if (!g_ffmpeg_global_inited)
@@ -4158,10 +4184,10 @@ static void ffp_show_version_int(FFPlayer *ffp, const char *module, unsigned ver
            (unsigned int)IJKVERSION_GET_MICRO(version));
 }
 
-//todo 播放入口
+// 播放入口
+int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
 
-int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name)
-{
+
     assert(ffp);
     assert(!ffp->is);
     assert(file_name);
@@ -4206,13 +4232,15 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name)
     }
 
 #if CONFIG_AVFILTER
+    ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
+
     if (ffp->vfilter0) {
         GROW_ARRAY(ffp->vfilters_list, ffp->nb_vfilters);
         ffp->vfilters_list[ffp->nb_vfilters - 1] = ffp->vfilter0;
     }
 #endif
 
-    //todo stream_open 创建音视频解码前后队列， 创建数据读取和视频显示线程
+    //创建音视频解码前后队列， 创建数据读取和视频显示线程
     VideoState *is = stream_open(ffp, file_name, NULL);
     if (!is) {
         av_log(NULL, AV_LOG_WARNING, "ffp_prepare_async_l: stream_open failed OOM");

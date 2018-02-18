@@ -58,6 +58,7 @@
 # include "libavfilter/buffersrc.h"
 #endif
 
+
 #include <stdbool.h>
 #include "ijkavformat/ijkiomanager.h"
 #include "ijkavformat/ijkioapplication.h"
@@ -391,7 +392,7 @@ typedef struct VideoState {
 
     /* extra fields */
     SDL_mutex  *play_mutex; // only guard state, do not block any long operation
-    //todo 视频播放刷新线程，定时播放下一帧
+    //视频播放刷新线程，定时播放下一帧
     SDL_Thread *video_refresh_tid;
     SDL_Thread _video_refresh_tid;
 

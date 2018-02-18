@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <jni.h>
 #include <unistd.h>
+#include <ijkplayer_internal.h>
 #include "j4a/class/java/util/ArrayList.h"
 #include "j4a/class/android/os/Bundle.h"
 #include "j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.h"
@@ -261,6 +262,9 @@ IjkMediaPlayer_prepareAsync(JNIEnv *env, jobject thiz)
     int retval = 0;
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
     JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: prepareAsync: null mp", LABEL_RETURN);
+
+//    mp->ffplayer->vfilters_list[0] = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
+    mp->ffplayer->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
 
     retval = ijkmp_prepare_async(mp);
     IJK_CHECK_MPRET_GOTO(retval, env, LABEL_RETURN);

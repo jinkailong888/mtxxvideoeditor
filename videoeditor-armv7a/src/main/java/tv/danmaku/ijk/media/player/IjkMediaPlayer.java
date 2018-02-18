@@ -378,7 +378,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
             }
         }
 
-        Log.d(TAG, "Couldn't open file on client side, trying server side");
+        Log.d(TAG, "Couldn't open file on client side, trying server side uri:"+uri.toString());
 
         setDataSource(uri.toString(), headers);
     }

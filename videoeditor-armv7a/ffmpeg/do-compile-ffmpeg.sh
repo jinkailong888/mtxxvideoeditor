@@ -31,7 +31,7 @@ if [ -z "$FF_ARCH" ]; then
     exit 1
 fi
 # ndk
-FF_NDK=${ANDROID_NDK}/
+FF_NDK=${ANDROID_NDK}
 echo "ANDROID_NDK=$FF_NDK"
 if [ -z "$FF_NDK" ]; then
     echo "You must define ANDROID_NDK before starting."
@@ -48,7 +48,7 @@ FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
 FF_SO_PREFIX=${FF_PWD_DIR}/../obj/${FF_ARCH}
 # 编译平台版本
-FF_ANDROID_PLATFORM=android-9
+FF_ANDROID_PLATFORM=android-14
 # 交叉编译环境
 FF_SYSROOT=
 # 交叉编译工具链
