@@ -243,7 +243,7 @@ static av_cold int movie_common_init(AVFilterContext *ctx)
     movie->format_ctx = NULL;
     if ((ret = avformat_open_input(&movie->format_ctx, movie->file_name, iformat, NULL)) < 0) {
         av_log(ctx, AV_LOG_ERROR,
-               "Failed to avformat_open_input '%s'\n", movie->file_name);
+               "Failed to avformat_open_input '%s',ret=%d \n", movie->file_name,ret);
         return ret;
     }
     if ((ret = avformat_find_stream_info(movie->format_ctx, NULL)) < 0)

@@ -1675,7 +1675,7 @@ typedef struct AVPacket {
     attribute_deprecated
     int64_t convergence_duration;
 #endif
-} AVPacket;// 存放编码后、解码前的压缩数据，即ES数据
+} AVPacket;
 #define AV_PKT_FLAG_KEY     0x0001 ///< The packet contains a keyframe
 #define AV_PKT_FLAG_CORRUPT 0x0002 ///< The packet content is corrupted
 /**
@@ -3635,7 +3635,7 @@ typedef struct AVCodecContext {
      *             AVCodecContext.get_format callback)
      */
     int hwaccel_flags;
-} AVCodecContext;//描述编解码器上下文的数据结构，包含了众多编解码器需要的参数信息
+} AVCodecContext;
 
 AVRational av_codec_get_pkt_timebase         (const AVCodecContext *avctx);
 void       av_codec_set_pkt_timebase         (AVCodecContext *avctx, AVRational val);
@@ -3779,7 +3779,7 @@ typedef struct AVCodec {
      * See FF_CODEC_CAP_* in internal.h
      */
     int caps_internal;
-} AVCodec;//编解码器对象，每种编解码格式(例如H.264、AAC等）对应一个该结构体，如libavcodec/aacdec.c的ff_aac_decoder。每个AVCodecContext中含有一个AVCodec
+} AVCodec;
 
 int av_codec_get_max_lowres(const AVCodec *codec);
 
