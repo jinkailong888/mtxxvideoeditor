@@ -55,9 +55,8 @@
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
 #include "libswresample/swresample.h"
-
+#include "libavcodec/avcodec.h"
 #if CONFIG_AVFILTER
-# include "libavcodec/avcodec.h"
 # include "libavfilter/avfilter.h"
 # include "libavfilter/buffersink.h"
 # include "libavfilter/buffersrc.h"
@@ -1698,7 +1697,7 @@ static int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
     int ret, i;
     int nb_filters = graph->nb_filters;
     AVFilterInOut *outputs = NULL, *inputs = NULL;
-    av_log(NULL, AV_LOG_DEBUG, "***********configure_filtergraph   filtergraph:%s" , filtergraph);
+    av_log(NULL, AV_LOG_DEBUG, "configure_filtergraph   filtergraph:%s" , filtergraph);
     if (filtergraph) {
         outputs = avfilter_inout_alloc();
         inputs  = avfilter_inout_alloc();
@@ -1717,8 +1716,7 @@ static int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
         inputs->pad_idx     = 0;
         inputs->next        = NULL;
 
-        //todo 对于水印来说 filtergraph 形如：
-        //todo const char *filter_descr = "movie=my_logo.png[wm];[in][wm]overlay=5:5[out]";
+        // 对于水印来说 filtergraph 形如 "movie=my_logo.png[wm];[in][wm]overlay=5:5[out]";
         if ((ret = avfilter_graph_parse_ptr(graph, filtergraph, &inputs, &outputs, NULL)) < 0)
             goto fail;
     } else {
@@ -1923,9 +1921,6 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
         av_strlcatf(afilters_args, sizeof(afilters_args), "atempo=%f", ffp->pf_playback_rate);
     }
 #endif
-
-    av_log(NULL, AV_LOG_DEBUG, "yhao configure_audio_filters" );
-
     if ((ret = configure_filtergraph(is->agraph, afilters_args[0] ? afilters_args : NULL, filt_asrc, filt_asink)) < 0)
         goto end;
 
@@ -2141,8 +2136,8 @@ static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *n
 
 static int ffplay_video_thread(void *arg) {
 
-    //todo 程序没走这里，是因为是硬解？
-    av_log(NULL, AV_LOG_DEBUG, "ffplay_video_thread");
+    //todo 硬解ze程序没走这里
+    av_log(NULL, AV_LOG_DEBUG, "***ffplay_video_thread***");
 
 
     FFPlayer *ffp = arg;
@@ -2250,11 +2245,7 @@ static int ffplay_video_thread(void *arg) {
                    (const char *)av_x_if_null(av_get_pix_fmt_name(frame->format), "none"), is->viddec.pkt_serial);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
-//            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilters_list ? ffp->vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
-
-
             //todo 程序没走这里
-            ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
             av_log(NULL, AV_LOG_DEBUG, "yhao set   ffp->vfilter0");
             if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilter0, frame)) < 0) {
                 // FIXME: post error
@@ -4232,7 +4223,8 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
     }
 
 #if CONFIG_AVFILTER
-    ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png'[wm];[in][wm]overlay=5:5[out]";
+
+    ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
 
     if (ffp->vfilter0) {
         GROW_ARRAY(ffp->vfilters_list, ffp->nb_vfilters);
