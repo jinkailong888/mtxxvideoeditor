@@ -88,6 +88,7 @@ void      ffp_frame_queue_push(FrameQueue *f);
 
 int       ffp_queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial);
 
+
 int       ffp_get_master_sync_type(VideoState *is);
 double    ffp_get_master_clock(VideoState *is);
 
@@ -117,5 +118,8 @@ void      ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value);
 
 // must be freed with free();
 struct IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp);
+
+int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame);
+
 
 #endif

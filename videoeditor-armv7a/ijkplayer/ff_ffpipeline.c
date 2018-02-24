@@ -65,8 +65,8 @@ void ffpipeline_free_p(IJKFF_Pipeline **pipeline)
 
 IJKFF_Pipenode* ffpipeline_open_video_decoder(IJKFF_Pipeline *pipeline, FFPlayer *ffp)
 {
-    //todo --> hanshu zhizhen
-        return pipeline->func_open_video_decoder(pipeline, ffp);
+    // 初始化播放器即IjkMediaPlayer_native_setup时就指向了ffpipeline_android.c的func_open_video_decoder方法
+    return pipeline->func_open_video_decoder(pipeline, ffp);
 }
 
 SDL_Aout *ffpipeline_open_audio_output(IJKFF_Pipeline *pipeline, FFPlayer *ffp)

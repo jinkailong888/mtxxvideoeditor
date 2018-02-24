@@ -70,7 +70,7 @@ static IJKFF_Pipenode *func_open_video_decoder(IJKFF_Pipeline *pipeline, FFPlaye
     IJKFF_Pipeline_Opaque *opaque = pipeline->opaque;
     IJKFF_Pipenode        *node = NULL;
 
-   //todo tiaojian
+   //怎么确定选择硬解还是软解
     if (ffp->mediacodec_all_videos || ffp->mediacodec_avc || ffp->mediacodec_hevc || ffp->mediacodec_mpeg2)
         node = ffpipenode_create_video_decoder_from_android_mediacodec(ffp, pipeline, opaque->weak_vout);
     if (!node) {

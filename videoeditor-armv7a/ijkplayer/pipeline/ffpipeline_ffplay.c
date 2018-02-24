@@ -40,7 +40,6 @@ static void func_destroy(IJKFF_Pipeline *pipeline)
 
 static IJKFF_Pipenode *func_open_video_decoder(IJKFF_Pipeline *pipeline, FFPlayer *ffp)
 {
-    //todo -->  ffpipenode_ffplay_vdec.c
     return ffpipenode_create_video_decoder_from_ffplay(ffp);
 }
 

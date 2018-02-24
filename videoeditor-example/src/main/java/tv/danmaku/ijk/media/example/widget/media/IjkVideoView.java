@@ -1029,12 +1029,10 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             default: {
                 IjkMediaPlayer ijkMediaPlayer = null;
                 if (mUri != null) {
-                    Log.e("YHAO", "new IjkMediaPlayer");
                     ijkMediaPlayer = new IjkMediaPlayer();
                     ijkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
 
                     if (mSettings.getUsingMediaCodec()) {
-                        Log.e("YHAO", "mediacodec 1");
                         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
                         if (mSettings.getUsingMediaCodecAutoRotate()) {
                             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
@@ -1047,9 +1045,8 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-handle-resolution-change", 0);
                         }
                     } else {
-                        Log.e("YHAO", "mediacodec 0");
-                        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
-//                        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
+                        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec",
+                                1);
                     }
 
                     if (mSettings.getUsingOpenSLES()) {

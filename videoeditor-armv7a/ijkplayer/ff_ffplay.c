@@ -1300,9 +1300,9 @@ retry:
             Frame *vp, *lastvp;
 
             /* dequeue the picture */
-            //todo 从帧缓冲队列中读取上一帧
+            // 从帧缓冲队列中读取上一帧
             lastvp = frame_queue_peek_last(&is->pictq);
-            //todo 从帧缓冲队列中读取当前要显示的帧
+            // 从帧缓冲队列中读取当前要显示的帧
             vp = frame_queue_peek(&is->pictq);
 
             if (vp->serial != is->videoq.serial) {
@@ -1317,32 +1317,32 @@ retry:
                 goto display;
 
             /* compute nominal last_duration */
-            //todo lastvp是上一帧，vp是当前帧，
-            //todo last_duration则是根据当前帧和上一帧的pts，计算出来上一帧的显示时间
+            // lastvp是上一帧，vp是当前帧，
+            // last_duration则是根据当前帧和上一帧的pts，计算出来上一帧的显示时间
             last_duration = vp_duration(is, lastvp, vp);
-            //todo 计算出显示当前帧需要等待的时间
+            // 计算出显示当前帧需要等待的时间
             delay = compute_target_delay(ffp, last_duration, is);
 
-            //todo system time
+            // system time
             time= av_gettime_relative()/1000000.0;
             if (isnan(is->frame_timer) || time < is->frame_timer)
                 is->frame_timer = time;
-            //todo frame_timer + delay = 当前帧的播放时间
-            //todo 如果还没到播放时间 直接跳转至display 等待下一次 refresh 显示
+            // frame_timer + delay = 当前帧的播放时间
+            // 如果还没到播放时间 直接跳转至display 等待下一次 refresh 显示
             if (time < is->frame_timer + delay) {
                 *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
                 goto display;
             }
 
-            //todo 如果当前这一帧的播放时间已经过了
-            //todo 并且其和当前系统时间的差值超过了AV_SYNC_THRESHOLD_MAX
+            // 如果当前这一帧的播放时间已经过了
+            // 并且其和当前系统时间的差值超过了AV_SYNC_THRESHOLD_MAX
             is->frame_timer += delay;
             if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
-                //todo 则将当前这一帧的播放时间改为系统时间
+                // 则将当前这一帧的播放时间改为系统时间
                 is->frame_timer = time;
 
 
-            //todo 丢帧
+            // 丢帧
             SDL_LockMutex(is->pictq.mutex);
             if (!isnan(vp->pts))
                 update_video_pts(is, vp->pts, vp->pos, vp->serial);
@@ -1394,7 +1394,7 @@ retry:
 display:
         /* display picture */
         if (!ffp->display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown)
-            //todo 显示帧
+            // 显示帧
             video_display2(ffp);
     }
     is->force_refresh = 0;
@@ -1490,6 +1490,7 @@ static void alloc_picture(FFPlayer *ffp, int frame_format)
     SDL_CondSignal(is->pictq.cond);
     SDL_UnlockMutex(is->pictq.mutex);
 }
+
 
 static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
 {
@@ -1691,7 +1692,7 @@ static int get_video_frame(FFPlayer *ffp, AVFrame *frame)
 }
 
 #if CONFIG_AVFILTER
-static int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
+int configure_filtergraph(AVFilterGraph *graph, const char *filtergraph,
                                  AVFilterContext *source_ctx, AVFilterContext *sink_ctx)
 {
     int ret, i;
@@ -1735,9 +1736,9 @@ fail:
     return ret;
 }
 
-static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame)
+int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame)
 {
-    static const enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_BGRA, AV_PIX_FMT_NONE };
+    const enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_BGRA, AV_PIX_FMT_NONE };
     char sws_flags_str[512] = "";
     char buffersrc_args[256];
     int ret;
@@ -1757,6 +1758,9 @@ static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoSta
 
     graph->scale_sws_opts = av_strdup(sws_flags_str);
 
+    //todo 暂时设为0，参考软解
+    frame->format=0;
+
     snprintf(buffersrc_args, sizeof(buffersrc_args),
              "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
              frame->width, frame->height, frame->format,
@@ -1765,17 +1769,24 @@ static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoSta
     if (fr.num && fr.den)
         av_strlcatf(buffersrc_args, sizeof(buffersrc_args), ":frame_rate=%d/%d", fr.num, fr.den);
 
+    av_log(NULL, AV_LOG_DEBUG, " before   avfilter_graph_create_filter buffersrc_args=%s",buffersrc_args);
+
     if ((ret = avfilter_graph_create_filter(&filt_src,
                                             avfilter_get_by_name("buffer"),
                                             "ffplay_buffer", buffersrc_args, NULL,
                                             graph)) < 0)
         goto fail;
+    av_log(NULL, AV_LOG_DEBUG, " after   avfilter_graph_create_filter");
 
     ret = avfilter_graph_create_filter(&filt_out,
                                        avfilter_get_by_name("buffersink"),
                                        "ffplay_buffersink", NULL, NULL, graph);
     if (ret < 0)
         goto fail;
+
+
+    av_log(NULL, AV_LOG_DEBUG, "pix_fmts   pix_fmts:%p" , pix_fmts);
+
 
     if ((ret = av_opt_set_int_list(filt_out, "pix_fmts", pix_fmts,  AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN)) < 0)
         goto fail;
@@ -1829,11 +1840,13 @@ static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoSta
     }
 #endif
 
-    //todo 软解才会走这里
-    av_log(NULL, AV_LOG_DEBUG, "yhao configure_video_filters   vfilter0:%s" , vfilters);
+    // 软解才会走这里
+    av_log(NULL, AV_LOG_DEBUG, "configure_video_filters configure_filtergraph   vfilters:%s" , vfilters);
 
     if ((ret = configure_filtergraph(graph, vfilters, filt_src, last_filter)) < 0)
         goto fail;
+
+    av_log(NULL, AV_LOG_DEBUG, "configure_video_filters configure_filtergraph   done ");
 
     is->in_video_filter  = filt_src;
     is->out_video_filter = filt_out;
@@ -2123,8 +2136,10 @@ static int audio_thread(void *arg)
     return ret;
 }
 
-static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *name)
-{
+static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *name) {
+
+    av_log(NULL, AV_LOG_DEBUG, "***decoder_start:%s",name);
+
     packet_queue_start(d->queue);
     d->decoder_tid = SDL_CreateThreadEx(&d->_decoder_tid, fn, arg, name);
     if (!d->decoder_tid) {
@@ -2134,11 +2149,11 @@ static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *n
     return 0;
 }
 
+//TODO 软解
 static int ffplay_video_thread(void *arg) {
 
-    //todo 硬解ze程序没走这里
+    //软解才走这里
     av_log(NULL, AV_LOG_DEBUG, "***ffplay_video_thread***");
-
 
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
@@ -2245,7 +2260,7 @@ static int ffplay_video_thread(void *arg) {
                    (const char *)av_x_if_null(av_get_pix_fmt_name(frame->format), "none"), is->viddec.pkt_serial);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
-            //todo 程序没走这里
+            //软解才走这里
             av_log(NULL, AV_LOG_DEBUG, "yhao set   ffp->vfilter0");
             if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilter0, frame)) < 0) {
                 // FIXME: post error
@@ -2262,6 +2277,8 @@ static int ffplay_video_thread(void *arg) {
             frame_rate = av_buffersink_get_frame_rate(filt_out);
             SDL_UnlockMutex(ffp->vf_mutex);
         }
+
+        av_log(NULL, AV_LOG_DEBUG, " av_buffersrc_add_frame filt_in size=%d ;frame size=%d", sizeof(filt_in),sizeof(frame));
 
         ret = av_buffersrc_add_frame(filt_in, frame);
         if (ret < 0)
@@ -2309,7 +2326,10 @@ static int video_thread(void *arg)
     int       ret = 0;
 
     if (ffp->node_vdec) {
+
+        //根据软硬解码设置的不同调用不同的方法
         ret = ffpipenode_run_sync(ffp->node_vdec);
+
     }
     return ret;
 }
@@ -2901,11 +2921,15 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         is->video_st = ic->streams[stream_index];
 
         decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
-        // 创建视频解码器
+
+        // 创建视频解码器,实际上就是根据软/硬解配置指定对应的函数指针，指向不同的解码方法
+        // 下面的decoder_start方法执行
         ffp->node_vdec = ffpipeline_open_video_decoder(ffp->pipeline, ffp);
 
-        if (!ffp->node_vdec)
+        if (!ffp->node_vdec){
             goto fail;
+        }
+        //开始解码
         if ((ret = decoder_start(&is->viddec, video_thread, ffp, "ff_video_dec")) < 0)
             goto out;
         is->queue_attachments_req = 1;
@@ -3442,7 +3466,7 @@ static int read_thread(void *arg)
             }
         }
         pkt->flags = 0;
-        //todo 读取媒体数据，得到的是音视频分离的解码前数据
+        // 读取媒体数据，得到的是音视频分离的解码前数据
         ret = av_read_frame(ic, pkt);
         if (ret < 0) {
             int pb_eof = 0;
@@ -3461,7 +3485,7 @@ static int read_thread(void *arg)
                 pb_error = AVERROR_EXIT;
             }
 
-            //todo 如果文件结束，往queue中 塞空数据
+            //如果文件结束，往queue中 塞空数据
             if (pb_eof) {
                 if (is->video_stream >= 0)
                     packet_queue_put_nullpacket(&is->videoq, is->video_stream);
@@ -3471,7 +3495,7 @@ static int read_thread(void *arg)
                     packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
                 is->eof = 1;
             }
-            //todo 如果出错，往对应的queue中塞 空数据
+            //如果出错，往对应的queue中塞 空数据
             if (pb_error) {
                 if (is->video_stream >= 0)
                     packet_queue_put_nullpacket(&is->videoq, is->video_stream);
@@ -3499,7 +3523,7 @@ static int read_thread(void *arg)
             is->eof = 0;
         }
 
-            //todo 如果中断，对应的queue中 flush
+            // 如果中断，对应的queue中 flush
             if (pkt->flags & AV_PKT_FLAG_DISCONTINUITY) {
             if (is->audio_stream >= 0) {
                 packet_queue_put(&is->audioq, &flush_pkt);
@@ -3513,7 +3537,7 @@ static int read_thread(void *arg)
         }
 
         /* check if packet is in play range specified by user, then queue, otherwise discard */
-        //todo 检查数据包是否在用户指定的播放范围内,如果在就放入队列
+        // 检查数据包是否在用户指定的播放范围内,如果在就放入队列
         stream_start_time = ic->streams[pkt->stream_index]->start_time;
         pkt_ts = pkt->pts == AV_NOPTS_VALUE ? pkt->dts : pkt->pts;
         pkt_in_play_range = ffp->duration == AV_NOPTS_VALUE ||
@@ -3522,14 +3546,12 @@ static int read_thread(void *arg)
                 (double)(ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0) / 1000000
                 <= ((double)ffp->duration / 1000000);
         if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
-            //todo 放入队列
+            // 放入队列
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-            //todo 放入队列
             packet_queue_put(&is->videoq, pkt);
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
-            //todo 放入队列
             packet_queue_put(&is->subtitleq, pkt);
         } else {
             av_packet_unref(pkt);
@@ -3590,6 +3612,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
 
     /* start video display */
     // 创建音视频解码后的队列
+    av_log(NULL, AV_LOG_INFO, "=========创建音视频解码后的队列==========\n");
     if (frame_queue_init(&is->pictq, &is->videoq, ffp->pictq_size, 1) < 0)
         goto fail;
     if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
@@ -3598,6 +3621,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         goto fail;
 
     //  创建音视频解码前的队列
+    av_log(NULL, AV_LOG_INFO, "=========创建音视频解码前的队列==========\n");
     if (packet_queue_init(&is->videoq) < 0 ||
         packet_queue_init(&is->audioq) < 0 ||
         packet_queue_init(&is->subtitleq) < 0)
@@ -3638,6 +3662,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     is->pause_req = !ffp->start_on_prepared;
 
     //创建显示线程
+    av_log(NULL, AV_LOG_INFO, "=========创建显示线程==========\n");
     is->video_refresh_tid = SDL_CreateThreadEx(&is->_video_refresh_tid, video_refresh_thread, ffp, "ff_vout");
     if (!is->video_refresh_tid) {
         av_freep(&ffp->is);
@@ -3645,6 +3670,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     }
 
     // 创建数据读取线程  --> read_thread(void *arg)
+    av_log(NULL, AV_LOG_INFO, "=========创建数据读取线程==========\n");
     is->read_tid = SDL_CreateThreadEx(&is->_read_tid, read_thread, ffp, "ff_read");
     if (!is->read_tid) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateThread(): %s\n", SDL_GetError());
@@ -4223,6 +4249,8 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
     }
 
 #if CONFIG_AVFILTER
+
+    av_log(NULL, AV_LOG_INFO, "=========set ffp->vfilter0==========\n");
 
     ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
 
