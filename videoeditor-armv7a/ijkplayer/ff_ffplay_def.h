@@ -756,10 +756,10 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     av_freep(&ffp->video_codec_name);
     ffp->rdftspeed              = 0.02;
 #if CONFIG_AVFILTER
-    av_freep(&ffp->vfilters_list);
-    ffp->nb_vfilters            = 0;
-    ffp->afilters               = NULL;
-    ffp->vfilter0               = NULL;
+//    av_freep(&ffp->vfilters_list);
+//    ffp->nb_vfilters            = 0;
+//    ffp->afilters               = NULL;
+//    ffp->vfilter0               = NULL;
 #endif
     ffp->autorotate             = 1;
 

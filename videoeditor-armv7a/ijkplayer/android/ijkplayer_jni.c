@@ -27,6 +27,7 @@
 #include <jni.h>
 #include <unistd.h>
 #include <ijkplayer_internal.h>
+#include <ffmpeg/output/armv7a/include/libavcodec/jni.h>
 #include "j4a/class/java/util/ArrayList.h"
 #include "j4a/class/android/os/Bundle.h"
 #include "j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.h"
@@ -1190,6 +1191,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     ijkmp_global_set_inject_callback(inject_callback);
 
     FFmpegApi_global_init(env);
+
+    //来设置java虚拟机（反调mediacodec时会用到）,或者使用解码器之前调用
+    av_jni_set_java_vm(vm, NULL);
 
     return JNI_VERSION_1_4;
 }

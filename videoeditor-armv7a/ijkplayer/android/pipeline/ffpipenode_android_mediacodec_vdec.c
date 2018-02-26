@@ -21,8 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#define CONFIG_MEDIACODEC_DECODE_AVFILTER 1
-#define CONFIG_MEDIACODEC_DECODE_AVFILTER_MY 0
+#define CONFIG_MEDIACODEC_DECODE_AVFILTER 0
 
 
 #include "ffpipenode_android_mediacodec_vdec.h"
@@ -1565,7 +1564,7 @@ static int func_run_sync(IJKFF_Pipenode *node) {
     PacketQueue *q = d->queue;
     int ret = 0;
     int dequeue_count = 0;
-    AVFrame *frame =  av_frame_alloc();;
+    AVFrame *frame = NULL;
     int got_frame = 0;
     AVRational tb = is->video_st->time_base;
     AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
@@ -1598,13 +1597,16 @@ static int func_run_sync(IJKFF_Pipenode *node) {
 
     frame = av_frame_alloc();
     if (!frame) {
-        #if CONFIG_MEDIACODEC_DECODE_AVFILTER
+#if CONFIG_MEDIACODEC_DECODE_AVFILTER
         avfilter_graph_free(&graph);
-        #endif
+#endif
         goto fail;
     }
 
     // 创建数据入队线程
+
+    ALOGE("创建数据入队线程\n");
+
     opaque->enqueue_thread = SDL_CreateThreadEx(&opaque->_enqueue_thread, enqueue_thread_func, node,
                                                 "amediacodec_input_thread");
     if (!opaque->enqueue_thread) {
@@ -1612,6 +1614,8 @@ static int func_run_sync(IJKFF_Pipenode *node) {
         ret = -1;
         goto fail;
     }
+
+    ALOGE("解码\n");
 
     //  解码
     while (!q->abort_request) {
@@ -1669,8 +1673,34 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                     }
                 }
             }
+            if(frame->format == AV_PIX_FMT_NONE) {
+                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
+                              "color_format is AV_PIX_FMT_NONE \n", __func__);
+            } else if(frame->format == AV_PIX_FMT_YUV420P){
+                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
+                              "color_format is AV_PIX_FMT_YUV420P \n", __func__);
+            }else if(frame->format == AV_PIX_FMT_NV21){
+                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
+                              "color_format is AV_PIX_FMT_NV21 \n", __func__);
+            }else{
+                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
+                        "color_format is NONE \n", __func__);
+            }
 
-            av_log(NULL, AV_LOG_DEBUG, "yhao func_run_sync CONFIG_AVFILTER");
+
+            av_log(NULL, AV_LOG_ERROR,"%d",AV_PIX_FMT_NV21);
+
+            av_log(NULL, AV_LOG_ERROR,"frame->format %s ",SDL_AMediaCodec_getColorFormatName(frame->format));
+
+
+            int i, planes;
+            planes = av_pix_fmt_count_planes(frame->format);
+            av_log(NULL, AV_LOG_ERROR,"frame->format %d, planes=%d, frame->data[0] %d ",frame->format,planes,frame->data[0]);
+
+            for (i = 0; i < planes; i++){
+                av_log(NULL, AV_LOG_ERROR," frame->data[%d]= %d ",i,frame->data[0]);
+            }
+
 #if CONFIG_MEDIACODEC_DECODE_AVFILTER
             if (last_w != frame->width
                 || last_h != frame->height
@@ -1711,21 +1741,20 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                 SDL_UnlockMutex(ffp->vf_mutex);
             }
 
-            av_log(NULL, AV_LOG_DEBUG, " av_buffersrc_add_frame filt_in size=%d ;frame size=%d", sizeof(filt_in),sizeof(frame));
+            ALOGE(" before av_buffersrc_add_frame frame->width=%d frame->height=%d", frame->width,frame->height);
 
 
-            //todo 报错返回 -22
+            //todo 报错返回 -22  frame.c:frame_copy_video  data[0]=0
 
-            av_log(NULL, AV_LOG_DEBUG, " before av_buffersrc_add_frame ret=%d",ret);
+            ALOGE(" before av_buffersrc_add_frame ret=%d", ret);
 
             ret = av_buffersrc_add_frame(filt_in, frame);
 
-            av_log(NULL, AV_LOG_DEBUG, " after av_buffersrc_add_frame ret=%d",ret);
+            ALOGE(" after av_buffersrc_add_frame ret=%d", ret);
 
 
             if (ret < 0)
                 goto fail;
-
 
 
             while (ret >= 0) {
@@ -1734,7 +1763,7 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                 av_log(NULL, AV_LOG_DEBUG, " av_buffersink_get_frame_flags");
 
                 ret = av_buffersink_get_frame_flags(filt_out, frame, 0);
-                av_log(NULL, AV_LOG_DEBUG, " av_buffersink_get_frame_flags ret=%d",ret);
+                av_log(NULL, AV_LOG_DEBUG, " av_buffersink_get_frame_flags ret=%d", ret);
 
 
                 if (ret < 0) {
@@ -1750,95 +1779,7 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                     is->frame_last_filter_delay = 0;
                 tb = av_buffersink_get_time_base(filt_out);
 #endif
-
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER_MY
-
-            AVFilterContext *buffersink_ctx;
-            AVFilterContext *buffersrc_ctx;
-            AVFilterGraph *filter_graph;
-            char *filters_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
-            char args[512];
-            int ret;
-            AVFilter *buffersrc  = avfilter_get_by_name("buffer");
-            AVFilter *buffersink = avfilter_get_by_name("buffersink");//新版的ffmpeg库必须为buffersink
-            AVFilterInOut *outputs = avfilter_inout_alloc();
-            AVFilterInOut *inputs  = avfilter_inout_alloc();
-            enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE };
-            AVBufferSinkParams *buffersink_params;
-            AVCodecParameters *codecpar = is->video_st->codecpar;
-
-
-            filter_graph = avfilter_graph_alloc();
-
-            frame->format=0;
-
-            /* buffer video source: the decoded frames from the decoder will be inserted here. */
-            snprintf(args, sizeof(args),
-                     "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-                     frame->width, frame->height, frame->format,
-                     is->video_st->time_base.num,  is->video_st->time_base.den,
-                     codecpar->sample_aspect_ratio.num, codecpar->sample_aspect_ratio.den);
-
-            ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
-                                               args, NULL, filter_graph);
-            if (ret < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Cannot create buffer source\n");
-                return ret;
-            }
-
-            /* buffer video sink: to terminate the filter chain. */
-            buffersink_params = av_buffersink_params_alloc();
-            buffersink_params->pixel_fmts = pix_fmts;
-            ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
-                                               NULL, buffersink_params, filter_graph);
-            av_free(buffersink_params);
-            if (ret < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Cannot create buffer sink\n");
-                return ret;
-            }
-
-            /* Endpoints for the filter graph. */
-            outputs->name       = av_strdup("in");
-            outputs->filter_ctx = buffersrc_ctx;
-            outputs->pad_idx    = 0;
-            outputs->next       = NULL;
-
-            inputs->name       = av_strdup("out");
-            inputs->filter_ctx = buffersink_ctx;
-            inputs->pad_idx    = 0;
-            inputs->next       = NULL;
-
-            // avfilter_link(buffersrc_ctx, 0, buffersink_ctx, 0);
-
-            if ((ret = avfilter_graph_parse_ptr(filter_graph, filters_descr,
-                                                &inputs, &outputs, NULL)) < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Cannot avfilter_graph_parse_ptr\n");
-
-                return ret;
-            }
-
-            if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Cannot avfilter_graph_config\n");
-                return ret;
-            }
-
-            frame->pts = av_frame_get_best_effort_timestamp(frame);
-
-            //* push the decoded frame into the filtergraph
-            ret = av_buffersrc_add_frame(buffersrc_ctx, frame);
-            if (ret < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Could not av_buffersrc_add_frame ret=%d\n",ret);
-                break;
-            }
-            ret = av_buffersink_get_frame(buffersink_ctx, frame);
-            if (ret < 0) {
-                av_log(NULL, AV_LOG_DEBUG, "Could not av_buffersink_get_frame ret=%d\n",ret);
-                break;
-            }
-#endif
-
-            av_log(NULL, AV_LOG_DEBUG, "加入到帧缓冲队列 pts=%lf", pts);
-
+                av_log(NULL, AV_LOG_DEBUG, "加入到帧缓冲队列 pts=%lf", pts);
                 //  加入到帧缓冲队列     pts:时间戳
                 ret = ffp_queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
                                         is->viddec.pkt_serial);
@@ -2087,3 +2028,5 @@ ffpipenode_create_video_decoder_from_android_mediacodec(FFPlayer *ffp, IJKFF_Pip
     ffpipenode_free_p(&node);
     return NULL;
 }
+
+

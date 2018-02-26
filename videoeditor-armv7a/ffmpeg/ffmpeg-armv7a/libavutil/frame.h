@@ -525,6 +525,14 @@ typedef struct AVFrame {
      */
     AVBufferRef *opaque_ref;
 } AVFrame;
+/**
+ * AVFrame表示解码过后的一个数据帧
+ *
+ * AVFrame 通过使用 av_frame_alloc()来创建. 这个函数只是创建了AVFrame结构本身，在结构
+ * 中定义的指向其他内存块的缓冲区指针要用其他方法来分配
+ * 使用 av_frame_free()来释放AVFrame.
+ *
+ */
 
 /**
  * Accessors for some AVFrame fields. These used to be provided for ABI

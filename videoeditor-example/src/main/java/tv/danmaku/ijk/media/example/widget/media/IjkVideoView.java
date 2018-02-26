@@ -1046,7 +1046,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                         }
                     } else {
                         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec",
-                                1);
+                                0);
                     }
 
                     if (mSettings.getUsingOpenSLES()) {

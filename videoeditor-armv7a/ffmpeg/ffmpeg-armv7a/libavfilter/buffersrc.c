@@ -153,22 +153,19 @@ int attribute_align_arg av_buffersrc_add_frame_flags(AVFilterContext *ctx, AVFra
 {
     AVFrame *copy = NULL;
     int ret = 0;
-
     if (frame && frame->channel_layout &&
         av_get_channel_layout_nb_channels(frame->channel_layout) != av_frame_get_channels(frame)) {
         av_log(ctx, AV_LOG_ERROR, "Layout indicates a different number of channels than actually present\n");
         return AVERROR(EINVAL);
     }
-
+    //into
     if (!(flags & AV_BUFFERSRC_FLAG_KEEP_REF) || !frame)
         return av_buffersrc_add_frame_internal(ctx, frame, flags);
-
     if (!(copy = av_frame_alloc()))
         return AVERROR(ENOMEM);
     ret = av_frame_ref(copy, frame);
     if (ret >= 0)
         ret = av_buffersrc_add_frame_internal(ctx, copy, flags);
-
     av_frame_free(&copy);
     return ret;
 }
@@ -241,7 +238,20 @@ static int av_buffersrc_add_frame_internal(AVFilterContext *ctx,
     if (refcounted) {
         av_frame_move_ref(copy, frame);
     } else {
+
+        av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ******\n");
+        if(ret!=-22){
+            av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ret!=-22******\n");
+        }
+
+        //todo return -22
         ret = av_frame_ref(copy, frame);
+
+        av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ******\n");
+        if(ret==-22){
+            av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ret==-22******\n");
+        }
+
         if (ret < 0) {
             av_frame_free(&copy);
             return ret;
@@ -263,6 +273,7 @@ static int av_buffersrc_add_frame_internal(AVFilterContext *ctx,
         if (ret < 0)
             return ret;
     }
+
 
     return 0;
 }

@@ -25,6 +25,7 @@
 #include "imgutils.h"
 #include "mem.h"
 #include "samplefmt.h"
+#include <android/log.h>
 
 
 static AVFrameSideData *frame_new_side_data(AVFrame *frame,
@@ -384,7 +385,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
     return 0;
 }
-
+//todo -22
 int av_frame_ref(AVFrame *dst, const AVFrame *src)
 {
     int i, ret = 0;
@@ -408,11 +409,10 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
         ret = av_frame_get_buffer(dst, 32);
         if (ret < 0)
             return ret;
-
+        //todo ijk hd return-22
         ret = av_frame_copy(dst, src);
         if (ret < 0)
             av_frame_unref(dst);
-
         return ret;
     }
 
@@ -452,6 +452,7 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
             goto fail;
         }
     }
+
 
     /* duplicate extended data */
     if (src->extended_data != src->data) {
@@ -694,9 +695,16 @@ static int frame_copy_video(AVFrame *dst, const AVFrame *src)
         return AVERROR(EINVAL);
 
     planes = av_pix_fmt_count_planes(dst->format);
-    for (i = 0; i < planes; i++)
-        if (!dst->data[i] || !src->data[i])
+
+//    __android_log_print(ANDROID_LOG_INFO,"IJKMEDIA"," planes=%d", planes);
+
+    for (i = 0; i < planes; i++){
+        __android_log_print(ANDROID_LOG_INFO,"IJKMEDIA"," i=%d,dst->data[i] %d ", i,dst->data[i]);
+        __android_log_print(ANDROID_LOG_INFO,"IJKMEDIA"," i=%d,src->data[i] %d ", i,src->data[i]);
+        if (!dst->data[i] || !src->data[i]){
             return AVERROR(EINVAL);
+        }
+    }
 
     memcpy(src_data, src->data, sizeof(src_data));
     av_image_copy(dst->data, dst->linesize,
@@ -730,11 +738,11 @@ static int frame_copy_audio(AVFrame *dst, const AVFrame *src)
     return 0;
 }
 
+//todo return -22
 int av_frame_copy(AVFrame *dst, const AVFrame *src)
 {
     if (dst->format != src->format || dst->format < 0)
         return AVERROR(EINVAL);
-
     if (dst->width > 0 && dst->height > 0)
         return frame_copy_video(dst, src);
     else if (dst->nb_samples > 0 && dst->channels > 0)

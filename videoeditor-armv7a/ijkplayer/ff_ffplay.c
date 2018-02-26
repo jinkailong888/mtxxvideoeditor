@@ -21,12 +21,10 @@
  */
 
 #include "ff_ffplay.h"
-
 /**
  * @file
  * simple media player based on the FFmpeg libraries
  */
-
 #include "config.h"
 #include <inttypes.h>
 #include <math.h>
@@ -54,6 +52,7 @@
 #include "libswscale/swscale.h"
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
+#include "libavcodec/jni.h"
 #include "libswresample/swresample.h"
 #include "libavcodec/avcodec.h"
 #if CONFIG_AVFILTER
@@ -73,6 +72,8 @@
 #include "ijkmeta.h"
 #include "ijkversion.h"
 #include <stdatomic.h>
+#include <ijksdl/android/ijksdl_codec_android_mediadef.h>
+
 #if defined(__ANDROID__)
 #include "ijksoundtouch/ijksoundtouch_wrap.h"
 #endif
@@ -115,7 +116,21 @@ static AVPacket flush_pkt;
 #define IJKVERSION_GET_MINOR(x)     ((x >>  8) & 0xFF)
 #define IJKVERSION_GET_MICRO(x)     ((x      ) & 0xFF)
 
+
+//ssssssssssssssssset
+//水印
+char *filter_descr= "movie='/storage/emulated/0/VideoEditorDir/save.png',"
+        "scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
+char *filter_descr2= "drawtext='fontfile=arial.ttf:x=w-tw:fontcolor=white:fontsize=30:text='%{localtime:%H:%M:%S}'";
+
+
+//若要开启硬解，设置硬解码器即可
+char* hd_video_codec_name= "h264_mediacodec";
+
+
+
 #if CONFIG_AVFILTER
+
 static inline
 int cmp_audio_fmts(enum AVSampleFormat fmt1, int64_t channel_count1,
                    enum AVSampleFormat fmt2, int64_t channel_count2)
@@ -1758,9 +1773,6 @@ int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is,
 
     graph->scale_sws_opts = av_strdup(sws_flags_str);
 
-    //todo 暂时设为0，参考软解
-    frame->format=0;
-
     snprintf(buffersrc_args, sizeof(buffersrc_args),
              "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
              frame->width, frame->height, frame->format,
@@ -1769,25 +1781,17 @@ int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is,
     if (fr.num && fr.den)
         av_strlcatf(buffersrc_args, sizeof(buffersrc_args), ":frame_rate=%d/%d", fr.num, fr.den);
 
-    av_log(NULL, AV_LOG_DEBUG, " before   avfilter_graph_create_filter buffersrc_args=%s",buffersrc_args);
-
     if ((ret = avfilter_graph_create_filter(&filt_src,
                                             avfilter_get_by_name("buffer"),
                                             "ffplay_buffer", buffersrc_args, NULL,
                                             graph)) < 0)
         goto fail;
-    av_log(NULL, AV_LOG_DEBUG, " after   avfilter_graph_create_filter");
 
     ret = avfilter_graph_create_filter(&filt_out,
                                        avfilter_get_by_name("buffersink"),
                                        "ffplay_buffersink", NULL, NULL, graph);
     if (ret < 0)
         goto fail;
-
-
-    av_log(NULL, AV_LOG_DEBUG, "pix_fmts   pix_fmts:%p" , pix_fmts);
-
-
     if ((ret = av_opt_set_int_list(filt_out, "pix_fmts", pix_fmts,  AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN)) < 0)
         goto fail;
 
@@ -1840,7 +1844,6 @@ int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is,
     }
 #endif
 
-    // 软解才会走这里
     av_log(NULL, AV_LOG_DEBUG, "configure_video_filters configure_filtergraph   vfilters:%s" , vfilters);
 
     if ((ret = configure_filtergraph(graph, vfilters, filt_src, last_filter)) < 0)
@@ -2149,7 +2152,6 @@ static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *n
     return 0;
 }
 
-//TODO 软解
 static int ffplay_video_thread(void *arg) {
 
     //软解才走这里
@@ -2243,6 +2245,15 @@ static int ffplay_video_thread(void *arg) {
             continue;
         }
 
+        av_log(NULL, AV_LOG_ERROR," frame->data[0] %d ",frame->data[0]);
+        av_log(NULL, AV_LOG_ERROR," frame->format %d ",frame->format);
+        av_log(NULL, AV_LOG_ERROR,"frame->format %s ",SDL_AMediaCodec_getColorFormatName(frame->format));
+        int i, planes;
+        planes = av_pix_fmt_count_planes(frame->format);
+        av_log(NULL, AV_LOG_ERROR,"frame->format %d, planes=%d, frame->data[0] %d ",frame->format,planes,frame->data[0]);
+
+
+
 #if CONFIG_AVFILTER
         if (   last_w != frame->width
             || last_h != frame->height
@@ -2260,9 +2271,12 @@ static int ffplay_video_thread(void *arg) {
                    (const char *)av_x_if_null(av_get_pix_fmt_name(frame->format), "none"), is->viddec.pkt_serial);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
-            //软解才走这里
-            av_log(NULL, AV_LOG_DEBUG, "yhao set   ffp->vfilter0");
-            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilter0, frame)) < 0) {
+
+            char* filter = filter_descr;
+            av_log(NULL, AV_LOG_DEBUG, "set filter:%s",filter);
+
+//            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilters_list ? ffp->vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
+            if ((ret = configure_video_filters(ffp, graph, is, filter, frame)) < 0) {
                 // FIXME: post error
                 SDL_UnlockMutex(ffp->vf_mutex);
                 goto the_end;
@@ -2278,7 +2292,7 @@ static int ffplay_video_thread(void *arg) {
             SDL_UnlockMutex(ffp->vf_mutex);
         }
 
-        av_log(NULL, AV_LOG_DEBUG, " av_buffersrc_add_frame filt_in size=%d ;frame size=%d", sizeof(filt_in),sizeof(frame));
+        av_log(NULL, AV_LOG_DEBUG, " av_buffersrc_add_frame frame format=%d ", frame->format);
 
         ret = av_buffersrc_add_frame(filt_in, frame);
         if (ret < 0)
@@ -2307,11 +2321,10 @@ static int ffplay_video_thread(void *arg) {
 #if CONFIG_AVFILTER
         }
 #endif
-
         if (ret < 0)
             goto the_end;
     }
- the_end:
+the_end:
 #if CONFIG_AVFILTER
     avfilter_graph_free(&graph);
 #endif
@@ -2803,6 +2816,9 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
     // 打开ffmpeg 解码器
     codec = avcodec_find_decoder(avctx->codec_id);
 
+    //若要开启硬解，设置硬解码器即可
+    ffp->video_codec_name = hd_video_codec_name;
+
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO   : is->last_audio_stream    = stream_index; forced_codec_name = ffp->audio_codec_name; break;
         case AVMEDIA_TYPE_SUBTITLE: is->last_subtitle_stream = stream_index; forced_codec_name = ffp->subtitle_codec_name; break;
@@ -2861,7 +2877,6 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
     switch (avctx->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
 
-//如果定义avfilter
 #if CONFIG_AVFILTER
         {
             AVFilterContext *sink;
@@ -3963,20 +3978,40 @@ void ffp_destroy(FFPlayer *ffp)
         ffp->is = NULL;
     }
 
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 111");
     SDL_VoutFreeP(&ffp->vout);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 222");
+
     SDL_AoutFreeP(&ffp->aout);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 333");
+
     ffpipenode_free_p(&ffp->node_vdec);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 444");
+
     ffpipeline_free_p(&ffp->pipeline);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 555");
+
     ijkmeta_destroy_p(&ffp->meta);
-    ffp_reset_internal(ffp);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 666");
+
+    //TODO 加水印暂停后崩溃问题
+//    ffp_reset_internal(ffp);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 777");
+
 
     SDL_DestroyMutexP(&ffp->af_mutex);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 888");
+
     SDL_DestroyMutexP(&ffp->vf_mutex);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 999");
+
 
     msg_queue_destroy(&ffp->msg_queue);
-
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 101010");
 
     av_free(ffp);
+    av_log(NULL, AV_LOG_ERROR, "ffp_destroy_ffplayer: 111111");
+
 }
 
 void ffp_destroy_p(FFPlayer **pffp)
@@ -4249,11 +4284,6 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
     }
 
 #if CONFIG_AVFILTER
-
-    av_log(NULL, AV_LOG_INFO, "=========set ffp->vfilter0==========\n");
-
-    ffp->vfilter0 = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
-
     if (ffp->vfilter0) {
         GROW_ARRAY(ffp->vfilters_list, ffp->nb_vfilters);
         ffp->vfilters_list[ffp->nb_vfilters - 1] = ffp->vfilter0;

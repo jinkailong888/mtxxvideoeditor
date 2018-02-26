@@ -48,7 +48,7 @@ FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
 FF_SO_PREFIX=${FF_PWD_DIR}/../obj/${FF_ARCH}
 # 编译平台版本
-FF_ANDROID_PLATFORM=android-14
+FF_ANDROID_PLATFORM=android-24
 # 交叉编译环境
 FF_SYSROOT=
 # 交叉编译工具链
@@ -83,7 +83,7 @@ elif [ "$FF_ARCH" = "armv5" ]; then
     FF_CROSS_PREFIX=arm-linux-androideabi
     FF_TOOLCHAIN_NAME=${FF_CROSS_PREFIX}-${FF_GCC_VER}
     FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --arch=arm"
-    FF_EXTRA_CFLAGS="$FF_EXTRA_CFLAGS -march=armv5te -mtune=arm9tdmi -msoft-float"
+#    FF_EXTRA_CFLAGS="$FF_EXTRA_CFLAGS -march=armv5te -mtune=arm9tdmi -msoft-float"
     FF_EXTRA_LDFLAGS="$FF_EXTRA_LDFLAGS"
     FF_SYSROOT=${FF_NDK}/platforms/${FF_ANDROID_PLATFORM}/arch-arm/
     FF_GCC_NAME="arm-linux-androideabi"
@@ -160,7 +160,8 @@ FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --prefix=$FF_PREFIX"
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --cross-prefix=${FF_CROSS_PREFIX}"
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --sysroot=${FF_SYSROOT}"
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --enable-cross-compile"
-FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --target-os=linux"
+#FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --target-os=linux"
+FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --target-os=android"
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --enable-pic"
 
 if [ "$FF_ARCH" = "x86" ]; then

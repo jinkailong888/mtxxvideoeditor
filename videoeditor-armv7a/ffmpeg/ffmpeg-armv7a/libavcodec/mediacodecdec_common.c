@@ -113,6 +113,13 @@ static const struct {
     { 0 }
 };
 
+
+/**
+ 根据mediacodec中的数据格式 映射到对应的 FFmpeg中的数据格式
+
+ @param color_format mediacodec中的数据格式类型
+ @return FFmpeg中数据格式类型
+ */
 static enum AVPixelFormat mcdec_map_color_format(AVCodecContext *avctx,
                                                  MediaCodecDecContext *s,
                                                  int color_format)
@@ -139,6 +146,12 @@ static enum AVPixelFormat mcdec_map_color_format(AVCodecContext *avctx,
 
     return ret;
 }
+
+
+
+
+
+
 
 static void ff_mediacodec_dec_ref(MediaCodecDecContext *s)
 {
