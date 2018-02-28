@@ -419,6 +419,41 @@ typedef struct VideoState {
     SDL_cond  *audio_accurate_seek_cond;
 } VideoState;
 
+/* bg music context */
+typedef struct AudioState {
+
+    SDL_Thread *read_tid;
+    SDL_Thread _read_tid;
+
+    char *filename;
+    bool abort_request;
+
+    //解码后数据
+    FrameQueue sampq;
+    //解码前数据
+    PacketQueue audioq;
+    //soundtouch
+    void *handle;
+
+
+    Clock audclk;
+    SDL_cond *continue_read_thread;
+    SDL_cond *video_accurate_seek_cond;
+    SDL_cond *audio_accurate_seek_cond;
+    int audio_clock_serial;
+    bool pause_req;
+    SDL_mutex *accurate_seek_mutex;
+    SDL_mutex *play_mutex;
+    int av_sync_type;
+    int muted;
+    int audio_volume;
+    SDL_Thread *video_refresh_tid;
+    int audio_stream;
+    AVFormatContext *ic;
+    int last_audio_stream;
+}AudioState;
+
+
 /* options specified by the user */
 #ifdef FFP_MERGE
 static AVInputFormat *file_iformat;
@@ -556,6 +591,9 @@ typedef struct FFPlayer {
     /* ffplay context */
     VideoState *is;
 
+    /* bgmusic context */
+    AudioState *as;
+
     /* format/codec options */
     AVDictionary *format_opts;
     AVDictionary *codec_opts;
@@ -569,6 +607,8 @@ typedef struct FFPlayer {
     AVInputFormat *file_iformat;
 #endif
     char *input_filename;
+    //bg music
+    char *audio_filename;
 #ifdef FFP_MERGE
     const char *window_title;
     int fs_screen_width;
@@ -675,7 +715,7 @@ typedef struct FFPlayer {
     int mediacodec_mpeg4;
     int mediacodec_handle_resolution_change;
     int mediacodec_auto_rotate;
-
+    //1:OpenSLES   0:AudioTrack
     int opensles;
     int soundtouch_enable;
 
