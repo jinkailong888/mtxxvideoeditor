@@ -1,1 +1,1 @@
-include ':videoeditor-armv7a', ':videoeditor-example'
+include ':videoeditor-armv7a', ':videoeditor-example', ':example'

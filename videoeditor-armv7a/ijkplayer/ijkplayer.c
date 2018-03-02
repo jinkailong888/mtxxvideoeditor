@@ -409,8 +409,10 @@ static int ijkmp_prepare_async_l(IjkMediaPlayer *mp)
     mp->msg_thread = SDL_CreateThreadEx(&mp->_msg_thread, ijkmp_msg_loop, mp, "ff_msg_loop");
     // msg_thread is detached inside msg_loop
     // TODO: 9 release weak_thiz if pthread_create() failed;
+    mp->ffplayer->audio_filename = "/storage/emulated/0/VideoEditorDir/paomo_cut_mp3.mp3";
 
     int retval = ffp_prepare_async_l(mp->ffplayer, mp->data_source);
+
     if (retval < 0) {
         ijkmp_change_state_l(mp, MP_STATE_ERROR);
         return retval;

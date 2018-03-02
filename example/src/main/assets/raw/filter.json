@@ -1,0 +1,140 @@
+[
+  {
+    "text": "晨光",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/s3.png",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "小森林",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/477.png",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "蓝调",
+    "inputSource": [
+      {
+        "index": 1,
+        "source": "assets/raw/318_landiao.png"
+      }
+    ],
+    "shaderType": 2
+  },
+  {
+    "text": "流年",
+    "shaderType": 3,
+    "inputSource": [
+      {
+        "source": "assets/raw/blackboard1024.jpg",
+        "index": 3
+      },
+      {
+        "source": "assets/raw/overlayMap.png",
+        "index": 2
+      },
+      {
+        "source": "assets/raw/amaroMap.jpg",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "日系",
+    "inputSource": [
+      {
+        "index": "1",
+        "source": "assets/raw/10_rixi.png"
+      }
+    ],
+    "shaderType": 2
+  },
+  {
+    "text": "沙漏",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/n3.png",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "中央公園",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/436.png",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "可頌",
+    "shaderType": 4
+  },
+  {
+    "text": "Seine",
+    "shaderType": 4
+  },
+  {
+    "text": "黑白",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/BlackLut",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "綠島",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/556.png",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "融雪",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "encrpyted": true,
+        "source": "assets/raw/202Lut",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "薄雾",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "encrpyted": true,
+        "source": "assets/raw/228Lut",
+        "index": 1
+      }
+    ]
+  },
+  {
+    "text": "Pola",
+    "shaderType": 1,
+    "inputSource": [
+      {
+        "source": "assets/raw/p7.png",
+        "index": 1
+      }
+    ]
+  }
+]

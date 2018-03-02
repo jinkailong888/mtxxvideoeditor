@@ -38,6 +38,7 @@ import android.widget.FrameLayout;
 import android.widget.MediaController;
 import android.widget.TableLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -87,6 +88,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     // All the stuff we need for playing and showing a video
     private IRenderView.ISurfaceHolder mSurfaceHolder = null;
     private IMediaPlayer mMediaPlayer = null;
+    private IMediaPlayer mAudioPlayer = null;
     // private int         mAudioSession;
     private int mVideoWidth;
     private int mVideoHeight;
@@ -298,6 +300,11 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
         }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.stop();
+            mAudioPlayer.release();
+            mAudioPlayer = null;
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -312,6 +319,8 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
 
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+
+        playAudio();
 
         try {
             mMediaPlayer = createPlayer(mSettings.getPlayer());
@@ -369,6 +378,29 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
         } finally {
             // REMOVED: mPendingSubtitleTracks.clear();
         }
+    }
+
+    private void playAudio() {
+
+
+        String filePath = "/storage/emulated/0/VideoEditorDir/paomo_cut_mp3.mp3";
+        mAudioPlayer = new IjkMediaPlayer();
+        try {
+            mAudioPlayer.setDataSource(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mAudioPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mAudioPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(IMediaPlayer mp) {
+                mp.start();
+            }
+        });
+        mAudioPlayer.prepareAsync();
+
+
+
     }
 
     public void setMediaController(IMediaController controller) {
@@ -730,6 +762,11 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
         }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.reset();
+            mAudioPlayer.release();
+            mAudioPlayer = null;
+        }
     }
 
     @Override
@@ -801,7 +838,11 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     public void start() {
         if (isInPlaybackState()) {
             mMediaPlayer.start();
+            mAudioPlayer.start();
             mCurrentState = STATE_PLAYING;
+
+
+
         }
         mTargetState = STATE_PLAYING;
     }
@@ -812,6 +853,9 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
                 mCurrentState = STATE_PAUSED;
+            }
+            if (mAudioPlayer.isPlaying()) {
+                mAudioPlayer.pause();
             }
         }
         mTargetState = STATE_PAUSED;
@@ -1030,7 +1074,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                 IjkMediaPlayer ijkMediaPlayer = null;
                 if (mUri != null) {
                     ijkMediaPlayer = new IjkMediaPlayer();
-                    ijkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
+                    IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
 
                     ijkMediaPlayer.setLooping(true);
 

@@ -381,7 +381,8 @@ typedef struct VideoState {
     int vfilter_idx;
     AVFilterContext *in_video_filter;   // the first filter in the video chain
     AVFilterContext *out_video_filter;  // the last filter in the video chain
-    AVFilterContext *in_audio_filter;   // the first filter in the audio chain
+    AVFilterContext *in_audio_filter1;   // the first filter in the audio chain
+    AVFilterContext *in_audio_filter2;   // the first filter in the audio chain
     AVFilterContext *out_audio_filter;  // the last filter in the audio chain
     AVFilterGraph *agraph;              // audio filter graph
 #endif
@@ -451,6 +452,7 @@ typedef struct AudioState {
     int audio_stream;
     AVFormatContext *ic;
     int last_audio_stream;
+    int eof;
 }AudioState;
 
 

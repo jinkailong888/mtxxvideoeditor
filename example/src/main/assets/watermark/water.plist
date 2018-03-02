@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ScreenAnchorPoint</key>
+	<string>{1.0,0.0}</string>
+	<key>ScreenSize</key>
+	<string>{720,1280}</string>
+	<key>InputAnchorPoint</key>
+	<string>{1.0,0.0}</string>
+	<key>InputAnchorPosition</key>
+	<string>{0,0}</string>
+</dict>
+</plist>
