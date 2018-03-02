@@ -320,7 +320,8 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
-        playAudio();
+        //bgmusic
+//        playAudio();
 
         try {
             mMediaPlayer = createPlayer(mSettings.getPlayer());
@@ -838,7 +839,9 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     public void start() {
         if (isInPlaybackState()) {
             mMediaPlayer.start();
-            mAudioPlayer.start();
+            if (mAudioPlayer != null) {
+               mAudioPlayer.start();
+            }
             mCurrentState = STATE_PLAYING;
 
 
@@ -854,7 +857,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                 mMediaPlayer.pause();
                 mCurrentState = STATE_PAUSED;
             }
-            if (mAudioPlayer.isPlaying()) {
+            if (mAudioPlayer!=null&&mAudioPlayer.isPlaying()) {
                 mAudioPlayer.pause();
             }
         }

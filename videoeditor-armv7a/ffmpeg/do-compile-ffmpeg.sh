@@ -193,6 +193,15 @@ cd ${FF_FFMPEG_SOURCE}
 ./configure ${FF_CONFIGURE_FLAGS} \
     --extra-cflags="$FF_EXTRA_CFLAGS" \
     --extra-ldflags="$FF_EXTRA_LDFLAGS"
+
+
+if [ "$FF_BUILD_OPT" = "c" ]; then
+  echo "[*] exit"
+  exit 1;
+fi
+
+
+
 make clean
 
 #--------------------

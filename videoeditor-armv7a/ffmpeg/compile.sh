@@ -2,10 +2,12 @@
 #
 
 #----------
-FF_TARGET=$1
-FF_TARGET_EXTRA=$2
+#FF_TARGET=$1
 
-echo "FF_TARGET=$FF_TARGET"
+# no make ffmpeg : c
+FF_TARGET_EXTRA=$1
+
+echo "FF_TARGET_EXTRA=$FF_TARGET_EXTRA"
 
 # 设置错误检查,如果语句出错立即退出
 set -e
@@ -42,24 +44,29 @@ echo_nextstep_help() {
 
 
 #----------
-case "$FF_TARGET" in
+case "$FF_TARGET_EXTRA" in
     "")
         echo_archs armv7a
         sh ./do-compile-ffmpeg.sh armv7a
     ;;
-    armv5|armv7a|arm64|x86|x86_64)
-        echo_archs ${FF_TARGET} ${FF_TARGET_EXTRA}
-        sh ./do-compile-ffmpeg.sh ${FF_TARGET} ${FF_TARGET_EXTRA}
-        echo_nextstep_help
+
+    "c")
+        echo_archs armv7a
+        sh ./do-compile-ffmpeg.sh armv7a c
     ;;
-    all)
-        echo_archs ${FF_ACT_ARCHS_ALL}
-        for ARCH in ${FF_ACT_ARCHS_ALL}
-        do
-            sh ./do-compile-ffmpeg.sh ${ARCH} ${FF_TARGET_EXTRA}
-        done
-        echo_nextstep_help
-    ;;
+#    armv5|armv7a|arm64|x86|x86_64)
+#        echo_archs ${FF_TARGET} ${FF_TARGET_EXTRA}
+#        sh ./do-compile-ffmpeg.sh ${FF_TARGET} ${FF_TARGET_EXTRA}
+#        echo_nextstep_help
+#    ;;
+#    all)
+#        echo_archs ${FF_ACT_ARCHS_ALL}
+#        for ARCH in ${FF_ACT_ARCHS_ALL}
+#        do
+#            sh ./do-compile-ffmpeg.sh ${ARCH} ${FF_TARGET_EXTRA}
+#        done
+#        echo_nextstep_help
+#    ;;
     clean)
         echo_archs FF_ACT_ARCHS_ALL
         for ARCH in ${FF_ACT_ARCHS_ALL}

@@ -136,9 +136,41 @@ static AVPacket flush_pkt;
 
 
 #if CONFIG_FILTER_VIDEO
-//char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
-//        "scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
-char *filter_video_descr = "boxblur=2:1:cr=0:ar=0";
+char *filter_video_movie = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
+char *filter_video_boxblur = "boxblur=1.5:1";
+char *filter_video_smartblur = "smartblur= 5:0.8:0";
+/**
+t  取值为in或out ，就是类型选择。
+s  开始位置，以帧为单位，默认值是0；
+n  是描述该动画会持续多少帧，单位是帧，而不是秒；
+st 以秒为单位描述起始位置。
+d 也是描述动画持续多久，但是单位是秒
+alpha 透明度的极值；
+color  隐藏时补上的颜色，默认是黑色。
+ */
+char *filter_video_fade1 = "fade=in:0:200";
+char *filter_video_fade2 = "fade=in:st=3:d=1";
+char *filter_video_fade3 = "fade=in:st=3:d=1:alpha=1";
+char *filter_video_unsharp = "unsharp=6:6:-2";
+//设置rgba四个分量的变换关系，共接受16个参数
+//灰阶效果
+char *filter_video_colorchannelmixer1 = "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3";
+//褐色处理
+char *filter_video_colorchannelmixer2 = "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131";
+//降低红色的权重，使r值乘以0.3，效果上就是使视频变冷
+char *filter_video_colorbalance = "colorbalance=rs=.3";
+//x,y,w,h 构成一个Rect，band是模糊强度
+char *filter_video_delogo = "delogo=x=0:y=0:w=10:h=10:band=10";
+//边缘检测
+char *filter_video_edgedetect1 = "edgedetect=mode=colormix:low=0.1:high=0.4";
+char *filter_video_edgedetect2 = "edgedetect=mode=wires:low=0.1:high=0.4";
+//eq 对比度、亮度、饱和度、色彩值、红色色彩值
+char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:gamma_r=3";
+
+
+char *filter_video_descr = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:gamma_r=3";
+//char *filter_video_descr = "split [water][fade];[water] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out] ; [fade] fade=in:0:200";
+
 #else
 char *filter_video_descr= NULL;
 #endif
@@ -1738,7 +1770,7 @@ static int get_video_frame(FFPlayer *ffp, AVFrame *frame) {
     return got_picture;
 }
 
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
 
 int configure_video_filtergraph(AVFilterGraph *graph, const char *filtergraph,
                           AVFilterContext *source_ctx, AVFilterContext *sink_ctx) {
@@ -2308,7 +2340,7 @@ static int ffplay_video_thread(void *arg) {
     int retry_convert_image = 0;
     int convert_frame_count = 0;
 
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
     AVFilterGraph *graph = avfilter_graph_alloc();
     AVFilterContext *filt_out = NULL, *filt_in = NULL;
     int last_w = 0;
@@ -2326,7 +2358,7 @@ static int ffplay_video_thread(void *arg) {
 #endif
 
     if (!frame) {
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
         avfilter_graph_free(&graph);
 #endif
         return AVERROR(ENOMEM);
@@ -2394,7 +2426,7 @@ static int ffplay_video_thread(void *arg) {
                planes, frame->data[0]);
 
 
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
         if (last_w != frame->width
             || last_h != frame->height
             || last_format != frame->format
@@ -2462,14 +2494,14 @@ static int ffplay_video_thread(void *arg) {
             ret = queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
                                 is->viddec.pkt_serial);
             av_frame_unref(frame);
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
         }
 #endif
         if (ret < 0)
             goto the_end;
     }
     the_end:
-#if CONFIG_AVFILTER
+#if CONFIG_FILTER_VIDEO
     avfilter_graph_free(&graph);
 #endif
     av_log(NULL, AV_LOG_INFO, "convert image convert_frame_count = %d\n", convert_frame_count);
