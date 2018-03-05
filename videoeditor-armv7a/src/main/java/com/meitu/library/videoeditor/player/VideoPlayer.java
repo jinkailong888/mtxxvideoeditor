@@ -7,6 +7,10 @@ import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
+import java.util.List;
+
+import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+
 /**
  * Created by wyh3 on 2018/1/23.
  * 播放器
@@ -17,6 +21,11 @@ public interface VideoPlayer {
     /**
      * 操作相关
      */
+
+
+    void setDataSource(List<String> path);
+
+    void setDataSource(String path);
 
     void setShowWidth(int showWidth);
 
@@ -57,6 +66,8 @@ public interface VideoPlayer {
 
     long getRawCurrentPosition();
 
+    IjkMediaPlayer getIjkMediaPlayer();
+
 
     /**
      * 获取帧信息
@@ -65,5 +76,4 @@ public interface VideoPlayer {
 
     void getCurrentFrame(final OnGetFrameListener listener);
 
-    void setPlayerViewController(VideoPlayerViewController videoPlayerViewController);
 }

@@ -132,11 +132,11 @@ static AVPacket flush_pkt;
 //ssssssssssssssssset
 #define CONFIG_FILTER_VIDEO 1
 #define CONFIG_FILTER_AUDIO 0
-#define CONFIG_MEDIACODEC 1
+#define CONFIG_MEDIACODEC 0
 
 
 #if CONFIG_FILTER_VIDEO
-char *filter_video_movie = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out]";
+char *filter_video_movie = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=W-w-5:H-h-5[out]";
 char *filter_video_boxblur = "boxblur=1.5:1";
 char *filter_video_smartblur = "smartblur= 5:0.8:0";
 /**
@@ -168,8 +168,15 @@ char *filter_video_edgedetect2 = "edgedetect=mode=wires:low=0.1:high=0.4";
 char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:gamma_r=3";
 
 
-char *filter_video_descr = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:gamma_r=3";
+//char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)'[out]";
 //char *filter_video_descr = "split [water][fade];[water] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out] ; [fade] fade=in:0:200";
+//char *filter_video_descr = "split [main][tmp]; [tmp] crop=iw:ih/2:0:0, vflip [flip]; [main][flip] overlay=0:H/2";
+//char *filter_video_descr = "crop=iw:ih/2:0:0, vflip [flip]; [in][flip] overlay=0:H/2[out]";
+//char *filter_video_descr = "split [main][tmp]; [tmp] crop=iw:ih/2:0:0, vflip [flip]; [main] smartblur= 5:0.8:0";
+//char *filter_video_descr = "smartblur= 5:0.8:0:enable='between(t,1,2)'";
+//char *filter_video_descr = "edgedetect=mode=wires:low=0.1:high=0.4:enable='between(t,1,2)'";
+//char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)',smartblur= 5:0.8:0:enable='between(t,1,2)'[out]";
+char *filter_video_descr = NULL;
 
 #else
 char *filter_video_descr= NULL;
@@ -180,9 +187,9 @@ char *filter_audio_descr = "[in0][in1]amix=inputs=2[out]";
 char *audio_name1= "in0";
 char *audio_name2= "in1";
 #else
-char *filter_audio_descr= NULL;
-char *audio_name1= NULL;
-char *audio_name2= NULL;
+char *filter_audio_descr = NULL;
+char *audio_name1 = NULL;
+char *audio_name2 = NULL;
 #endif
 
 #if CONFIG_MEDIACODEC
@@ -1773,7 +1780,7 @@ static int get_video_frame(FFPlayer *ffp, AVFrame *frame) {
 #if CONFIG_FILTER_VIDEO
 
 int configure_video_filtergraph(AVFilterGraph *graph, const char *filtergraph,
-                          AVFilterContext *source_ctx, AVFilterContext *sink_ctx) {
+                                AVFilterContext *source_ctx, AVFilterContext *sink_ctx) {
     int ret, i;
     int nb_filters = graph->nb_filters;
     AVFilterInOut *outputs = NULL, *inputs = NULL;
@@ -1817,17 +1824,18 @@ int configure_video_filtergraph(AVFilterGraph *graph, const char *filtergraph,
 }
 
 int configure_audio_filtergraph(AVFilterGraph *graph, const char *filtergraph,
-                          AVFilterContext *source_ctx1,AVFilterContext *source_ctx2, AVFilterContext *sink_ctx) {
+                                AVFilterContext *source_ctx1, AVFilterContext *source_ctx2,
+                                AVFilterContext *sink_ctx) {
     int ret, i;
     int nb_filters = graph->nb_filters;
     AVFilterInOut *outputs1 = NULL, *outputs2 = NULL, *inputs = NULL;
     av_log(NULL, AV_LOG_DEBUG, "configure_audio_filtergraph   filtergraph:%s", filtergraph);
-    AVFilterInOut* filter_outputs[2];
+    AVFilterInOut *filter_outputs[2];
     if (filtergraph) {
         outputs1 = avfilter_inout_alloc();
         outputs2 = avfilter_inout_alloc();
         inputs = avfilter_inout_alloc();
-        if (!outputs1 ||!outputs2|| !inputs) {
+        if (!outputs1 || !outputs2 || !inputs) {
             ret = AVERROR(ENOMEM);
             goto fail;
         }
@@ -1986,7 +1994,7 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
     int sample_rates[2] = {0, -1};
     int64_t channel_layouts[2] = {0, -1};
     int channels[2] = {0, -1};
-    AVFilterContext *filt_asrc1 = NULL, *filt_asrc2 = NULL,*filt_asink = NULL;
+    AVFilterContext *filt_asrc1 = NULL, *filt_asrc2 = NULL, *filt_asink = NULL;
     char aresample_swr_opts[512] = "";
     AVDictionaryEntry *e = NULL;
     char asrc_args1[256];
@@ -2080,8 +2088,9 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
         av_strlcatf(afilters_args, sizeof(afilters_args), "atempo=%f", ffp->pf_playback_rate);
     }
 #endif
-    if ((ret = configure_audio_filtergraph(is->agraph, afilters_args[0] ? afilters_args : NULL, filt_asrc1,filt_asrc2,
-                                     filt_asink)) < 0)
+    if ((ret = configure_audio_filtergraph(is->agraph, afilters_args[0] ? afilters_args : NULL,
+                                           filt_asrc1, filt_asrc2,
+                                           filt_asink)) < 0)
         goto end;
 
     is->in_audio_filter1 = filt_asrc1;
@@ -2282,24 +2291,24 @@ static int audio_thread(void *arg) {
             while ((ret = av_buffersink_get_frame_flags(is->out_audio_filter, frame, 0)) >= 0) {
                 tb = av_buffersink_get_time_base(is->out_audio_filter);
 #endif
-                //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
-                if (!(af = frame_queue_peek_writable(&is->sampq)))
-                    goto the_end;
+            //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
+            if (!(af = frame_queue_peek_writable(&is->sampq)))
+                goto the_end;
 
-                af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-                af->pos = av_frame_get_pkt_pos(frame);
-                af->serial = is->auddec.pkt_serial;
-                af->duration = av_q2d((AVRational) {frame->nb_samples, frame->sample_rate});
-                // 把frame放入到sampq相应位置
-                av_frame_move_ref(af->frame, frame);
-                frame_queue_push(&is->sampq);
+            af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            af->pos = av_frame_get_pkt_pos(frame);
+            af->serial = is->auddec.pkt_serial;
+            af->duration = av_q2d((AVRational) {frame->nb_samples, frame->sample_rate});
+            // 把frame放入到sampq相应位置
+            av_frame_move_ref(af->frame, frame);
+            frame_queue_push(&is->sampq);
 
 #if CONFIG_FILTER_AUDIO
-                if (is->audioq.serial != is->auddec.pkt_serial)
-                    break;
-            }
-            if (ret == AVERROR_EOF)
-                is->auddec.finished = is->auddec.pkt_serial;
+            if (is->audioq.serial != is->auddec.pkt_serial)
+                break;
+        }
+        if (ret == AVERROR_EOF)
+            is->auddec.finished = is->auddec.pkt_serial;
 #endif
         }
     } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
@@ -2372,6 +2381,9 @@ static int ffplay_video_thread(void *arg) {
             continue;
 
         if (ffp->get_frame_mode) {
+
+            av_log(NULL, AV_LOG_DEBUG, "ffplay_video_thread get_frame_mode");
+
             if (!ffp->get_img_info || ffp->get_img_info->count <= 0) {
                 av_frame_unref(frame);
                 continue;
@@ -2388,6 +2400,7 @@ static int ffplay_video_thread(void *arg) {
 
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
             pts = pts * 1000;
+            av_log(NULL, AV_LOG_ERROR, "get_frame_mode pts = %lf\n", pts);
             if (pts >= dst_pts) {
                 while (retry_convert_image <= MAX_RETRY_CONVERT_IMAGE) {
                     ret = convert_image(ffp, frame, (int64_t) pts, frame->width, frame->height);
@@ -2419,11 +2432,11 @@ static int ffplay_video_thread(void *arg) {
             continue;
         }
 
-        int planes = av_pix_fmt_count_planes(frame->format);
-        av_log(NULL, AV_LOG_DEBUG, "frame->format %s ",
-               SDL_AMediaCodec_getColorFormatName(frame->format));
-        av_log(NULL, AV_LOG_DEBUG, "frame->format %d, planes=%d, frame->data[0] %d ", frame->format,
-               planes, frame->data[0]);
+//        int planes = av_pix_fmt_count_planes(frame->format);
+//        av_log(NULL, AV_LOG_DEBUG, "frame->format %s ",
+//               SDL_AMediaCodec_getColorFormatName(frame->format));
+//        av_log(NULL, AV_LOG_DEBUG, "frame->format %d, planes=%d, frame->data[0] %d ", frame->format,
+//               planes, frame->data[0]);
 
 
 #if CONFIG_FILTER_VIDEO
@@ -2465,6 +2478,9 @@ static int ffplay_video_thread(void *arg) {
             frame_rate = av_buffersink_get_frame_rate(filt_out);
             SDL_UnlockMutex(ffp->vf_mutex);
         }
+
+
+        av_log(NULL, AV_LOG_ERROR, "get_video_frame pts = %lli\n", frame->pts);
 
 
         ret = av_buffersrc_add_frame(filt_in, frame);
@@ -3082,36 +3098,36 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
 #if CONFIG_FILTER_AUDIO
-        {
-            AVFilterContext *sink;
-            is->audio_filter_src.freq = avctx->sample_rate;
-            is->audio_filter_src.channels = avctx->channels;
-            is->audio_filter_src.channel_layout = get_valid_channel_layout(avctx->channel_layout,
-                                                                           avctx->channels);
-            is->audio_filter_src.fmt = avctx->sample_fmt;
-            SDL_LockMutex(ffp->af_mutex);
+            {
+                AVFilterContext *sink;
+                is->audio_filter_src.freq = avctx->sample_rate;
+                is->audio_filter_src.channels = avctx->channels;
+                is->audio_filter_src.channel_layout = get_valid_channel_layout(avctx->channel_layout,
+                                                                               avctx->channels);
+                is->audio_filter_src.fmt = avctx->sample_fmt;
+                SDL_LockMutex(ffp->af_mutex);
 
-            char *filter = filter_audio_descr;
-            av_log(NULL, AV_LOG_DEBUG, "set audio filter:%s", filter);
+                char *filter = filter_audio_descr;
+                av_log(NULL, AV_LOG_DEBUG, "set audio filter:%s", filter);
 
-//            if ((ret = configure_audio_filters(ffp, ffp->afilters, 0)) < 0) {
-            if ((ret = configure_audio_filters(ffp, filter, 0)) < 0) {
+    //            if ((ret = configure_audio_filters(ffp, ffp->afilters, 0)) < 0) {
+                if ((ret = configure_audio_filters(ffp, filter, 0)) < 0) {
+                    SDL_UnlockMutex(ffp->af_mutex);
+                    av_log(NULL, AV_LOG_ERROR,
+                           "*********AVMEDIA_TYPE_AUDIO*****configure_audio_filters****");
+                    goto fail;
+                }
+                ffp->af_changed = 0;
                 SDL_UnlockMutex(ffp->af_mutex);
-                av_log(NULL, AV_LOG_ERROR,
-                       "*********AVMEDIA_TYPE_AUDIO*****configure_audio_filters****");
-                goto fail;
+                sink = is->out_audio_filter;
+                sample_rate = av_buffersink_get_sample_rate(sink);
+                nb_channels = av_buffersink_get_channels(sink);
+                channel_layout = av_buffersink_get_channel_layout(sink);
             }
-            ffp->af_changed = 0;
-            SDL_UnlockMutex(ffp->af_mutex);
-            sink = is->out_audio_filter;
-            sample_rate = av_buffersink_get_sample_rate(sink);
-            nb_channels = av_buffersink_get_channels(sink);
-            channel_layout = av_buffersink_get_channel_layout(sink);
-        }
 #else
-        sample_rate = avctx->sample_rate;
-        nb_channels = avctx->channels;
-        channel_layout = avctx->channel_layout;
+            sample_rate = avctx->sample_rate;
+            nb_channels = avctx->channels;
+            channel_layout = avctx->channel_layout;
 #endif
             /* prepare audio output */
             if ((ret = audio_open(ffp, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) <
@@ -3247,8 +3263,6 @@ static int is_realtime(AVFormatContext *s) {
         return 1;
     return 0;
 }
-
-
 
 
 /* this thread gets the stream from the disk or the network */
@@ -4488,7 +4502,6 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
 }
 
 
-
 int ffp_start_from_l(FFPlayer *ffp, long msec) {
     assert(ffp);
     VideoState *is = ffp->is;
@@ -4518,6 +4531,28 @@ int ffp_pause_l(FFPlayer *ffp) {
         return EIJK_NULL_IS_PTR;
 
     toggle_pause(ffp, 1);
+    return 0;
+}
+
+int ffp_watermark_on_l(FFPlayer *ffp) {
+    assert(ffp);
+    VideoState *is = ffp->is;
+    if (!is)
+        return EIJK_NULL_IS_PTR;
+    filter_video_descr = filter_video_movie;
+    ffp->vf_changed = 1;
+    av_log(NULL, AV_LOG_DEBUG, "ffp_watermark_on_l filter_video_descr:%s",
+           filter_video_descr);
+    return 0;
+}
+
+int ffp_watermark_off_l(FFPlayer *ffp) {
+    assert(ffp);
+    VideoState *is = ffp->is;
+    if (!is)
+        return EIJK_NULL_IS_PTR;
+    filter_video_descr = NULL;
+    ffp->vf_changed = 1;
     return 0;
 }
 

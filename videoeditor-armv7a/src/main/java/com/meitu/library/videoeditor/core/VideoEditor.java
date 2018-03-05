@@ -44,12 +44,12 @@ public abstract class VideoEditor {
 
 
     public static class Builder {
-        Context activityContext;
+        public Context activityContext;
         @IdRes
-        int playerViewId;
+        public int playerViewId;
         List<FilterInfo> filterInfoList;
         boolean debuggable;
-        boolean nativeDebuggable;
+        public boolean nativeDebuggable;
         boolean isHardWardSave;
 
         Builder(Context context) {
@@ -296,6 +296,9 @@ public abstract class VideoEditor {
      * @return 水印信息构造器
      */
     public abstract WaterMarkInfoBuilder getWaterMarkBuilder();
+
+    public abstract void showWatermark();
+    public abstract void hideWatermark();
 
 
     // ===========================================================

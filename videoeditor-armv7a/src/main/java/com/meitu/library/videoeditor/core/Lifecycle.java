@@ -63,8 +63,7 @@ import java.lang.ref.SoftReference;
 
         if (needHandle(activity)) {
             Debug.d(TAG, "onActivityPaused");
-            mVideoEditor.onPauseBeforeSuper();
-            mVideoEditor.onPauseAfterSuper();
+            mVideoEditor.onPause();
         }
 
 

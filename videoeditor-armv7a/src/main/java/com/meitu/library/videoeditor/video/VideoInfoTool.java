@@ -1,13 +1,25 @@
 package com.meitu.library.videoeditor.video;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.meitu.library.videoeditor.util.Debug;
+import com.meitu.library.videoeditor.util.DeviceUtils;
 import com.meitu.library.videoeditor.util.Tag;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+
+import tv.danmaku.ijk.media.player.ffmpeg.FFmpegApi;
 
 /**
  * Created by wyh3 on 2018/1/25.
@@ -17,7 +29,7 @@ import java.util.List;
 public class VideoInfoTool {
 
     private static final String TAG = Tag.build("VideoInfoTool");
-
+    private static final String FFconcatHead = "ffconcat version 1.0";
 
     /**
      * 根据多端视频路径路径构造多端视频信息集合
@@ -49,35 +61,63 @@ public class VideoInfoTool {
     /**
      * 获取视频信息
      *
-     * @param context   activity上下文
      * @param videoInfo 视频信息，获取的信息将填充到此对象中
      */
-    public static void fillVideoInfo(Context context, VideoInfo videoInfo) {
-        Debug.d(TAG, "fillVideoInfo path:" + videoInfo.getVideoPath());
-//        MTMVVideoEditor videoEditor;
-//        videoEditor = VideoEditorFactory.obtainVideoEditor(context);
-//        boolean isOpen = videoEditor.open(videoInfo.getVideoPath());
-//        Debug.d(TAG, "fillVideoInfo videoEditor isOpen:" + isOpen);
-//        if (isOpen) {
-//            videoInfo.setDuration((long) (videoEditor.getVideoDuration() * 1000));
+    public static void fillVideoInfo(VideoInfo videoInfo) {
+        boolean isOpen = FFmpegApi.open(videoInfo.getVideoPath());
+        if (isOpen) {
+            videoInfo.setDuration((long) (FFmpegApi.getVideoDuration()));
 //            videoInfo.setShowWidth(videoEditor.getShowWidth());
 //            videoInfo.setShowHeight(videoEditor.getShowHeight());
 //            videoInfo.setWidth(videoEditor.getVideoWidth());//获取不准确且无用
 //            videoInfo.setHeight(videoEditor.getVideoHeight());//获取不准确且无用
-//            Debug.d(TAG, "fillVideoInfo " + videoInfo.toString());
-//            videoEditor.close();
-//        }
+            Debug.d(TAG, "fillVideoInfo " + videoInfo.toString());
+            FFmpegApi.close();
+        }
     }
 
     /**
      * 获取视频信息
      *
-     * @param context activity上下文
      * @param videoInfoList 视频信息集合，获取的信息将填充到此集合中
      */
-    public static void fillVideoInfo(Context context, List<VideoInfo> videoInfoList) {
+
+    public static void fillVideoInfo(List<VideoInfo> videoInfoList) {
         for (VideoInfo videoInfo : videoInfoList) {
-            VideoInfoTool.fillVideoInfo(context, videoInfo);
+            VideoInfoTool.fillVideoInfo(videoInfo);
+        }
+    }
+
+
+    public static String createFFconcatFile(Context activityContext, List<VideoInfo> videoInfoList) {
+        @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+        Calendar calendar = Calendar.getInstance();
+        String fileName = df.format(calendar.getTime()) + ".ffconcat";
+        String outputPath = DeviceUtils.getDiskCacheDir(activityContext) + "/" + fileName;
+        Log.d(TAG, "outputPath:" + outputPath);
+        RandomAccessFile rf = null;
+        try {
+            rf = new RandomAccessFile(outputPath, "rw");
+            rf.writeBytes(FFconcatHead + "\r\n");
+            for (VideoInfo videoInfo : videoInfoList) {
+                rf.writeBytes("file '" + videoInfo.getVideoPath() + "'\r\n");
+                rf.writeBytes("duration " + videoInfo.getDuration() + "\r\n");
+            }
+            rf.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return outputPath;
+    }
+
+
+    public static void deleteFFconcatFile(String path) {
+        File file = new File(path);
+        boolean ret= file.exists() && file.delete();
+        if (ret) {
+            Debug.d(TAG, "deleteFFconcatFile");
+        }else{
+            Debug.e(TAG, "deleteFFconcatFile fail");
         }
     }
 

@@ -1,6 +1,7 @@
 package com.meitu.library.videoeditor.util;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.DisplayMetrics;
 
 /**
@@ -26,5 +27,16 @@ public class DeviceUtils {
         } else {
             return dm.heightPixels;
         }
+    }
+
+    public static String getDiskCacheDir(Context context) {
+        String cachePath = null;
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
+                || !Environment.isExternalStorageRemovable()) {
+            cachePath = context.getExternalCacheDir().getPath();
+        } else {
+            cachePath = context.getCacheDir().getPath();
+        }
+        return cachePath;
     }
 }

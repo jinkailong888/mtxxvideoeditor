@@ -1,20 +1,18 @@
 package com.meitu.library.videoeditor.core;
 
-import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.text.TextUtils;
 
 import com.meitu.library.videoeditor.bgm.BgMusicInfo;
 import com.meitu.library.videoeditor.bgm.BgMusicInfoBuilder;
 import com.meitu.library.videoeditor.filter.FilterInfo;
 import com.meitu.library.videoeditor.player.VideoPlayer;
 import com.meitu.library.videoeditor.player.VideoPlayerImpl;
-import com.meitu.library.videoeditor.player.VideoPlayerView;
-import com.meitu.library.videoeditor.player.VideoPlayerViewController;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
@@ -48,8 +46,6 @@ public class VideoEditorImpl extends VideoEditor {
     private Lifecycle mLifecycle;
     //播放器
     private VideoPlayer mVideoPlayer;
-    // 控制视频播放的GLSurfaceView和盖在上面的ImageView的大小和显示
-    private VideoPlayerViewController mVideoPlayerViewController;
     //是否为多段视频
     private boolean mIsMultipleVideo;
     //分段视频信息
@@ -60,6 +56,8 @@ public class VideoEditorImpl extends VideoEditor {
     private FilterInfo mFilterInfo;
     //整段视频
     private VideoInfo mVideoInfo;
+    //ffconcatFilePath文件
+    private String mFFconcatFilePath;
 
 
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -69,17 +67,10 @@ public class VideoEditorImpl extends VideoEditor {
         Debug.d(TAG, "start init VideoEditor");
         mApplicationContext = builder.activityContext.getApplicationContext();
         mActivityContext = builder.activityContext;
-        if (builder.nativeDebuggable) {
-            IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
-        }
         mLifecycle = new Lifecycle(this, builder.activityContext);
         ((Application) mApplicationContext).registerActivityLifecycleCallbacks(mLifecycle);
         mLifecycle.onActivityCreated();
-        mVideoPlayerViewController = new VideoPlayerViewController(mApplicationContext,
-                (VideoPlayerView) ((Activity) builder.activityContext).findViewById(builder.playerViewId));
-        IjkMediaPlayer ijkMediaPlayer = new IjkMediaPlayer();
-        mVideoPlayer = new VideoPlayerImpl(ijkMediaPlayer);
-        mVideoPlayer.setPlayerViewController(mVideoPlayerViewController);
+        mVideoPlayer = new VideoPlayerImpl(builder);
     }
 
 
@@ -87,12 +78,21 @@ public class VideoEditorImpl extends VideoEditor {
     public void setVideoPathWithFilter(@NonNull List<String> paths, @Nullable List<FilterInfo> filterInfoList) {
         mIsMultipleVideo = true;
         mVideoInfoList = VideoInfoTool.build(paths);
+        VideoInfoTool.fillVideoInfo(mVideoInfoList);
         mFilterInfoList = filterInfoList;
         if (mFilterInfoList == null) {
             mFilterInfoList = new ArrayList<>(mVideoInfoList.size());
             for (int i = 0; i < paths.size(); i++) {
                 mFilterInfoList.add(null);
             }
+        }
+        if (mVideoInfoList.size() > 1) {
+            mFFconcatFilePath = VideoInfoTool.createFFconcatFile(mActivityContext, mVideoInfoList);
+            mVideoPlayer.setDataSource(mFFconcatFilePath);
+        } else if (mVideoInfoList.size() == 1) {
+            mVideoPlayer.setDataSource(mVideoInfoList.get(0).getVideoPath());
+        } else {
+            Debug.e(TAG, "setVideoPathWithFilter mVideoInfoList.size()<1");
         }
     }
 
@@ -108,11 +108,9 @@ public class VideoEditorImpl extends VideoEditor {
     public void prepare(boolean autoPlay) {
         int firstVideoShowWidth, firstVideoShowHeight;
         if (mIsMultipleVideo) {
-            VideoInfoTool.fillVideoInfo(mActivityContext, mVideoInfoList);
             firstVideoShowWidth = mVideoInfoList.get(0).getShowWidth();
             firstVideoShowHeight = mVideoInfoList.get(0).getShowHeight();
         } else {
-            VideoInfoTool.fillVideoInfo(mActivityContext, mVideoInfo);
             firstVideoShowWidth = mVideoInfo.getShowWidth();
             firstVideoShowHeight = mVideoInfo.getShowHeight();
             if (mFilterInfo != null) {
@@ -272,6 +270,15 @@ public class VideoEditorImpl extends VideoEditor {
         return new WaterMarkInfoBuilder(this);
     }
 
+    @Override
+    public void showWatermark() {
+        mVideoPlayer.getIjkMediaPlayer().watermarkOn();
+    }
+
+    @Override
+    public void hideWatermark() {
+        mVideoPlayer.getIjkMediaPlayer().watermarkOff();
+    }
 
     @Override
     public void setTransitionEffect(@TransitionEffect.TransEffect int effect) {
@@ -308,13 +315,9 @@ public class VideoEditorImpl extends VideoEditor {
         mVideoPlayer.play();
     }
 
-    void onPauseBeforeSuper() {
-        Debug.d(TAG, "onPauseBeforeSuper");
+    void onPause() {
+        Debug.d(TAG, "onPause");
         mVideoPlayer.pause();
-    }
-
-    void onPauseAfterSuper() {
-        Debug.d(TAG, "onPauseAfterSuper");
     }
 
 
@@ -327,13 +330,12 @@ public class VideoEditorImpl extends VideoEditor {
         mLifecycle = null;
         mApplicationContext = null;
         mActivityContext = null;
-        if (mVideoPlayerViewController != null) {
-            mVideoPlayerViewController.release();
-            mVideoPlayerViewController = null;
-        }
         if (mVideoPlayer != null) {
             mVideoPlayer.release();
             mVideoPlayer = null;
+        }
+        if (mFFconcatFilePath != null) {
+            VideoInfoTool.deleteFFconcatFile(mFFconcatFilePath);
         }
     }
 

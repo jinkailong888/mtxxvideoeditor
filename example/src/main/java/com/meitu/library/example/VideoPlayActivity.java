@@ -2,19 +2,28 @@ package com.meitu.library.example;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.Toast;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.filter.FilterInfo;
+import com.meitu.library.videoeditor.player.listener.adapter.OnPlayListenerAdapter;
 import com.meitu.library.videoeditor.player.listener.adapter.OnSaveListenerAdapter;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
+import com.meitu.library.videoeditor.watermark.WaterMarkPosition;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import tv.danmaku.ijk.media.player.ffmpeg.FFmpegApi;
 
 /**
  * Created by wyh3 on 2018/1/22.
@@ -45,6 +54,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_target);
 
         mVideoPlayerView = findViewById(R.id.videoPlayerView);
@@ -73,7 +84,16 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .build();
 
         mVideoEditor.setVideoPathWithFilter(filePaths, null);
+
         mVideoEditor.prepare(true);
+
+        mVideoEditor.setOnPlayListener(new OnPlayListenerAdapter(){
+            @Override
+            public void onProgressUpdate(long currentTime, long duration) {
+                super.onProgressUpdate(currentTime, duration);
+//                Log.d(TAG, "currentTime=" + currentTime + " duration=" + duration);
+            }
+        });
 
         mVideoEditor.setOnSaveListener(new OnSaveListenerAdapter() {
             @Override
@@ -85,7 +105,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             @Override
             public void onDone() {
                 mSaveTime = System.currentTimeMillis() - mSaveTime;
-
                 Toast.makeText(VideoPlayActivity.this, "保存成功，耗时：" + mSaveTime + "ms", Toast.LENGTH_SHORT).show();
                 finish();
             }
@@ -112,10 +131,16 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                         .setHeight(140)
                         .setWidth(161)
                         .setImagePath("assets/watermark/wartermark.png")
-                        .setConfigPath("assets/watermark/water.plist")
+                        .setWaterMarkPos(WaterMarkPosition.BottomRight)
+                        .setHorizontalPadding(5)
+                        .setVerticalPadding(5)
                         .setWaterMark();
+                mVideoEditor.showWatermark();
+
             } else {
-                mVideoEditor.clearWaterMark();
+//                mVideoEditor.clearWaterMark();
+                mVideoEditor.hideWatermark();
+
             }
         }
         if (mMusicSwitch == compoundButton) {

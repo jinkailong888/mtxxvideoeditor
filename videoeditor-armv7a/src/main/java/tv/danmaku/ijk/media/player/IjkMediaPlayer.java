@@ -41,6 +41,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
+import android.widget.Toast;
 
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
@@ -561,6 +562,19 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
             mWakeLock.acquire();
         }
     }
+
+
+    public void watermarkOn() throws IllegalStateException {
+        _watermarkOn();
+    }
+    public void watermarkOff() throws IllegalStateException {
+        _watermarkOff();
+    }
+
+    private native void _watermarkOn() throws IllegalStateException;
+    private native void _watermarkOff() throws IllegalStateException;
+
+
 
     @Override
     public void setScreenOnWhilePlaying(boolean screenOn) {

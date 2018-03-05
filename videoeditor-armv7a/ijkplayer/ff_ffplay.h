@@ -65,6 +65,11 @@ int       ffp_is_paused_l(FFPlayer *ffp);
 int       ffp_stop_l(FFPlayer *ffp);
 int       ffp_wait_stop_l(FFPlayer *ffp);
 
+/* filter control */
+int ffp_watermark_on_l(FFPlayer *ffp);
+int ffp_watermark_off_l(FFPlayer *ffp);
+
+
 /* all in milliseconds */
 int       ffp_seek_to_l(FFPlayer *ffp, long msec);
 long      ffp_get_current_position_l(FFPlayer *ffp);

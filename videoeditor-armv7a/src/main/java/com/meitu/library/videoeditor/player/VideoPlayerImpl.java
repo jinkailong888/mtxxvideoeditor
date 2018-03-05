@@ -1,11 +1,14 @@
 package com.meitu.library.videoeditor.player;
 
+import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.player.listener.OnGetFrameListener;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
@@ -13,7 +16,9 @@ import com.meitu.library.videoeditor.util.Executor;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -40,8 +45,6 @@ public class VideoPlayerImpl implements VideoPlayer {
     private ByteBuffer mFirstFrameByteBuffer;
     // 播放配置
     private PlayerStrategyInfo mPlayerStrategyInfo;
-    // 控制视频播放的GLSurfaceView和盖在上面的ImageView的大小和显示
-    private VideoPlayerViewController mVideoPlayerViewController;
     //取帧时需要用的视频宽高
     private int mShowWidth;
     private int mShowHeight;
@@ -49,10 +52,17 @@ public class VideoPlayerImpl implements VideoPlayer {
     private OnSaveListener mOnSaveListener;
     //播放监听器
     private OnPlayListener mOnPlayListener;
+    //视频播放控件
+    private VideoPlayerView mVideoPlayerView;
 
 
-    public VideoPlayerImpl(IjkMediaPlayer player) {
-        mIjkMediaPlayer = player;
+    public VideoPlayerImpl(VideoEditor.Builder builder) {
+        mIjkMediaPlayer = new IjkMediaPlayer();
+        if (builder.nativeDebuggable) {
+            IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
+        }
+        mVideoPlayerView = ((Activity) builder.activityContext).findViewById(builder.playerViewId);
+        mVideoPlayerView.init(this);
         mPlayerStrategyInfo = new PlayerStrategyInfo();
         scheduleTimer();
         initPlayer();
@@ -61,9 +71,19 @@ public class VideoPlayerImpl implements VideoPlayer {
 
     private void initPlayer() {
         setLooping(true);
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec",0);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe","0");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "protocol_whitelist",
+                "ffconcat,file,http,https");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
+                "concat,tcp,http,https,tls,file");
 
+    }
+
+
+    public IjkMediaPlayer getIjkMediaPlayer() {
+        return mIjkMediaPlayer;
     }
 
     private void initNativeListener() {
@@ -141,7 +161,6 @@ public class VideoPlayerImpl implements VideoPlayer {
     }
 
 
-
     /**
      * 开始调度 获取 播放进度
      */
@@ -195,6 +214,22 @@ public class VideoPlayerImpl implements VideoPlayer {
     }
 
     @Override
+    public void setDataSource(String path) {
+        if (mIjkMediaPlayer != null) {
+            try {
+                mIjkMediaPlayer.setDataSource(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void setDataSource(List<String> paths) {
+
+    }
+
+    @Override
     public void prepare(boolean autoPlay) {
         Log.d(TAG, "prepare autoPlay = " + autoPlay);
         mPlayerStrategyInfo.setPrepareAutoPlay(autoPlay);
@@ -238,24 +273,24 @@ public class VideoPlayerImpl implements VideoPlayer {
 //            return;
 //        }
         pause();
-        if (mVideoPlayerViewController != null && mVideoPlayerViewController.isShowCoverView()) {
-            Log.d(TAG, "isShowCoverView");
-            doSave(videoSaveInfo);
-            return;
-        }
-        getCurrentFrame(new OnGetFrameListener() {
-            @Override
-            public void onGetFrame(Bitmap frame) {
-                mVideoPlayerViewController.showCoverView(frame);
-                Log.d(TAG, "onGetFrame");
-                Executor.getInstance().mainThread().executeDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        doSave(videoSaveInfo);
-                    }
-                }, mPlayerStrategyInfo.getWaitBitmapShowTime());
-            }
-        });
+//        if (mVideoPlayerViewController != null && mVideoPlayerViewController.isShowCoverView()) {
+//            Log.d(TAG, "isShowCoverView");
+//            doSave(videoSaveInfo);
+//            return;
+//        }
+//        getCurrentFrame(new OnGetFrameListener() {
+//            @Override
+//            public void onGetFrame(Bitmap frame) {
+//                mVideoPlayerViewController.showCoverView(frame);
+//                Log.d(TAG, "onGetFrame");
+//                Executor.getInstance().mainThread().executeDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        doSave(videoSaveInfo);
+//                    }
+//                }, mPlayerStrategyInfo.getWaitBitmapShowTime());
+//            }
+//        });
 
     }
 
@@ -278,7 +313,11 @@ public class VideoPlayerImpl implements VideoPlayer {
         Log.d(TAG, "release");
         releaseFirstFrameSaveBuffer();
         releaseTimer();
-        mIjkMediaPlayer.release();
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.release();
+            mIjkMediaPlayer = null;
+        }
+
     }
 
 
@@ -354,10 +393,6 @@ public class VideoPlayerImpl implements VideoPlayer {
 //        });
     }
 
-    @Override
-    public void setPlayerViewController(VideoPlayerViewController videoPlayerViewController) {
-        this.mVideoPlayerViewController = videoPlayerViewController;
-    }
 
     /**
      * 设置需要保存视频第一次封面数据，只有在prepare之前设置有效

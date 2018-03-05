@@ -35,11 +35,24 @@ public class WaterMarkInfoBuilder {
         return this;
     }
 
-    public WaterMarkInfoBuilder setConfigPath(String configPath) {
-        mWaterMarkInfo.setConfigPath(configPath);
+    public WaterMarkInfoBuilder setWaterMarkPos(@WaterMarkPosition.WaterMarkPos int waterMarkPos) {
+        mWaterMarkInfo.setWaterMarkPos(waterMarkPos);
         return this;
     }
 
+    public WaterMarkInfoBuilder setHorizontalPadding(int padding) {
+        mWaterMarkInfo.setHorizontalPadding(padding);
+        return this;
+    }
+
+    public WaterMarkInfoBuilder setVerticalPadding(int padding) {
+        mWaterMarkInfo.setVerticalPadding(padding);
+        return this;
+    }
+
+    /**
+     * 设置水印，保存时生效，若要在播放时可见则调用 {@link VideoEditor#showWatermark()}
+     */
     public void setWaterMark() {
         mVideoEditor.setWaterMark(mWaterMarkInfo);
     }

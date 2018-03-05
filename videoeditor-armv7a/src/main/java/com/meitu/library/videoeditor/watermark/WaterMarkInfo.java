@@ -8,55 +8,24 @@ import android.os.Parcelable;
  * WaterMarkInfo
  */
 
-//TODO 1.2.3.4 版本水印添加失效
 
-public class WaterMarkInfo implements Parcelable {
+public class WaterMarkInfo {
     private String mImagePath;
     private int mWidth;
     private int mHeight;
-    private String mConfigPath;
     private long mStartTime;
     private long mDuration=30000;
     private boolean mVisible = true;
+    @WaterMarkPosition.WaterMarkPos
+    private int mWaterMarkPos;
+    //left or right Padding
+    private int mHorizontalPadding;
+    //top or bottom Padding
+    private int mVerticalPadding;
+
 
     public WaterMarkInfo() {
     }
-
-    protected WaterMarkInfo(Parcel in) {
-        mImagePath = in.readString();
-        mWidth = in.readInt();
-        mHeight = in.readInt();
-        mConfigPath = in.readString();
-        mStartTime = in.readLong();
-        mDuration = in.readLong();
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(mImagePath);
-        dest.writeInt(mWidth);
-        dest.writeInt(mHeight);
-        dest.writeString(mConfigPath);
-        dest.writeLong(mStartTime);
-        dest.writeLong(mDuration);
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public static final Creator<WaterMarkInfo> CREATOR = new Creator<WaterMarkInfo>() {
-        @Override
-        public WaterMarkInfo createFromParcel(Parcel in) {
-            return new WaterMarkInfo(in);
-        }
-
-        @Override
-        public WaterMarkInfo[] newArray(int size) {
-            return new WaterMarkInfo[size];
-        }
-    };
 
     /**
      * 图片路径
@@ -67,7 +36,6 @@ public class WaterMarkInfo implements Parcelable {
 
     /**
      * 设置图片路径,支持实时更新图片素材路径。
-     * 需调用{@link com.meitu.library.media.core.MVEditor#updateWaterMark(WaterMarkInfo)}更新
      */
     public void setImagePath(String source) {
         mImagePath = source;
@@ -101,19 +69,6 @@ public class WaterMarkInfo implements Parcelable {
         this.mHeight = height;
     }
 
-    /**
-     * 配置文件路径
-     */
-    public String getConfigPath() {
-        return mConfigPath;
-    }
-
-    /**
-     * 设置配置文件路径
-     */
-    public void setConfigPath(String plistPath) {
-        this.mConfigPath = plistPath;
-    }
 
     /**
      * 在要保存的视频中，开始播放的时间
@@ -162,7 +117,6 @@ public class WaterMarkInfo implements Parcelable {
 
     /**
      * 水印是否为可见，默认为true，即可见。
-     * 支持实时更新水印可见性，需要调用{@link com.meitu.library.media.core.MVEditor#updateWaterMark(WaterMarkInfo)}更新
      *
      * @param visible true,可见；false，不可见
      */
@@ -171,7 +125,27 @@ public class WaterMarkInfo implements Parcelable {
     }
 
 
+    public int getWaterMarkPos() {
+        return mWaterMarkPos;
+    }
 
+    public void setWaterMarkPos(@WaterMarkPosition.WaterMarkPos int waterMarkPos) {
+        mWaterMarkPos = waterMarkPos;
+    }
 
+    public int getHorizontalPadding() {
+        return mHorizontalPadding;
+    }
 
+    public void setHorizontalPadding(int horizontalPadding) {
+        mHorizontalPadding = horizontalPadding;
+    }
+
+    public int getVerticalPadding() {
+        return mVerticalPadding;
+    }
+
+    public void setVerticalPadding(int verticalPadding) {
+        mVerticalPadding = verticalPadding;
+    }
 }

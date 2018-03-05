@@ -22,7 +22,7 @@
  */
 
 #include "ffmpeg_api_jni.h"
-
+#include <libavutil/log.h>
 #include <assert.h>
 #include <string.h>
 #include <jni.h>
@@ -31,6 +31,8 @@
 #include "ijksdl/android/ijksdl_android_jni.h"
 
 #define JNI_CLASS_FFMPEG_API "tv/danmaku/ijk/media/player/ffmpeg/FFmpegApi"
+#define LOGD(format, ...) av_log(NULL, AV_LOG_DEBUG, format, ##__VA_ARGS__);
+#define LOGE(format, ...) av_log(NULL, AV_LOG_ERROR, format, ##__VA_ARGS__);
 
 typedef struct ffmpeg_api_fields_t {
     jclass clazz;
@@ -38,13 +40,12 @@ typedef struct ffmpeg_api_fields_t {
 static ffmpeg_api_fields_t g_clazz;
 
 static jstring
-FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in)
-{
+FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in) {
     jstring ret_string = NULL;
-    char*   out_buffer = 0;
-    int     out_size   = 0;
-    jbyte*  in_buffer  = 0;
-    jsize   in_size    = (*env)->GetArrayLength(env, in);
+    char *out_buffer = 0;
+    int out_size = 0;
+    jbyte *in_buffer = 0;
+    jsize in_size = (*env)->GetArrayLength(env, in);
     if (in_size <= 0)
         goto fail;
 
@@ -58,11 +59,11 @@ FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in)
         goto fail;
     out_buffer[out_size] = 0;
 
-    if (!av_base64_encode(out_buffer, out_size, (const uint8_t *)in_buffer, in_size))
+    if (!av_base64_encode(out_buffer, out_size, (const uint8_t *) in_buffer, in_size))
         goto fail;
 
     ret_string = (*env)->NewStringUTF(env, out_buffer);
-fail:
+    fail:
     if (in_buffer) {
         (*env)->ReleaseByteArrayElements(env, in, in_buffer, JNI_ABORT);
         in_buffer = NULL;
@@ -74,12 +75,49 @@ fail:
     return ret_string;
 }
 
+
+AVFormatContext *ic;
+
+static jint
+FFmpegApi_open_video(JNIEnv *env, jclass clazz, jstring url) {
+
+    const char *videoUrl = NULL;
+    videoUrl = (*env)->GetStringUTFChars(env, url, NULL);
+    LOGE("FFmpegApi_open_video url : %s", videoUrl);
+    ic = avformat_alloc_context();
+
+    if (avformat_open_input(&ic, videoUrl, NULL, NULL) < 0) {
+        LOGE("could not open source %s", videoUrl);
+        return -1;
+    }
+
+    if (avformat_find_stream_info(ic, NULL) < 0) {
+        LOGE("could not find stream information");
+        return -1;
+    }
+    return 0;
+}
+
+static jlong
+FFmpegApi_get_video_duration(JNIEnv *env, jclass clazz) {
+    jlong duration = ic->duration;
+    return duration;
+}
+
+static void
+FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
+    avformat_close_input(&ic);
+}
+
+
 static JNINativeMethod g_methods[] = {
-    {"av_base64_encode", "([B)Ljava/lang/String;", (void *) FFmpegApi_av_base64_encode},
+        {"av_base64_encode",  "([B)Ljava/lang/String;", (void *) FFmpegApi_av_base64_encode},
+        {"_open",              "(Ljava/lang/String;)I",  (void *) FFmpegApi_open_video},
+        {"_getVideoDuration", "()J",                   (void *) FFmpegApi_get_video_duration},
+        {"close",             "()V",                    (void *) FFmpegApi_close_video},
 };
 
-int FFmpegApi_global_init(JNIEnv *env)
-{
+int FFmpegApi_global_init(JNIEnv *env) {
     int ret = 0;
 
     IJK_FIND_JAVA_CLASS(env, g_clazz.clazz, JNI_CLASS_FFMPEG_API);
