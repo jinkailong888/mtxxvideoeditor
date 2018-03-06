@@ -168,15 +168,17 @@ char *filter_video_edgedetect2 = "edgedetect=mode=wires:low=0.1:high=0.4";
 char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:gamma_r=3";
 
 
-//char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)'[out]";
+//todo 有的视频（比如红米手机相机录像，宽高互换，水印顺时针旋转90度，故需调整）
+char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50,rotate=-PI/2[wm];[in][wm]overlay=W-w-5:H-h-5:enable='between(t,1,2)'[out]";
 //char *filter_video_descr = "split [water][fade];[water] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out] ; [fade] fade=in:0:200";
 //char *filter_video_descr = "split [main][tmp]; [tmp] crop=iw:ih/2:0:0, vflip [flip]; [main][flip] overlay=0:H/2";
+//char *filter_video_descr = "split [main][tmp]; [tmp] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm]; [main][wm] overlay=W-w-5:H-h-5";
 //char *filter_video_descr = "crop=iw:ih/2:0:0, vflip [flip]; [in][flip] overlay=0:H/2[out]";
 //char *filter_video_descr = "split [main][tmp]; [tmp] crop=iw:ih/2:0:0, vflip [flip]; [main] smartblur= 5:0.8:0";
 //char *filter_video_descr = "smartblur= 5:0.8:0:enable='between(t,1,2)'";
 //char *filter_video_descr = "edgedetect=mode=wires:low=0.1:high=0.4:enable='between(t,1,2)'";
 //char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)',smartblur= 5:0.8:0:enable='between(t,1,2)'[out]";
-char *filter_video_descr = NULL;
+//char *filter_video_descr = NULL;
 
 #else
 char *filter_video_descr= NULL;

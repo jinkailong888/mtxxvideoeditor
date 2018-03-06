@@ -67,10 +67,8 @@ public class VideoInfoTool {
         boolean isOpen = FFmpegApi.open(videoInfo.getVideoPath());
         if (isOpen) {
             videoInfo.setDuration((long) (FFmpegApi.getVideoDuration()));
-//            videoInfo.setShowWidth(videoEditor.getShowWidth());
-//            videoInfo.setShowHeight(videoEditor.getShowHeight());
-//            videoInfo.setWidth(videoEditor.getVideoWidth());//获取不准确且无用
-//            videoInfo.setHeight(videoEditor.getVideoHeight());//获取不准确且无用
+            videoInfo.setWidth(FFmpegApi.getVideoWidth());
+            videoInfo.setHeight(FFmpegApi.getVideoHeight());
             Debug.d(TAG, "fillVideoInfo " + videoInfo.toString());
             FFmpegApi.close();
         }

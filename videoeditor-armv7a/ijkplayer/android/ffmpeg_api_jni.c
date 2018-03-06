@@ -77,25 +77,46 @@ FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in) {
 
 
 AVFormatContext *ic;
+int video_stream_idx;
+int audio_stream_idx;
 
 static jint
 FFmpegApi_open_video(JNIEnv *env, jclass clazz, jstring url) {
-
     const char *videoUrl = NULL;
     videoUrl = (*env)->GetStringUTFChars(env, url, NULL);
     LOGE("FFmpegApi_open_video url : %s", videoUrl);
     ic = avformat_alloc_context();
-
     if (avformat_open_input(&ic, videoUrl, NULL, NULL) < 0) {
         LOGE("could not open source %s", videoUrl);
         return -1;
     }
-
     if (avformat_find_stream_info(ic, NULL) < 0) {
         LOGE("could not find stream information");
         return -1;
     }
+    video_stream_idx = av_find_best_stream(ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+//    audio_stream_idx = av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
     return 0;
+}
+
+static jint
+FFmpegApi_get_video_width(JNIEnv *env, jclass clazz) {
+    if (video_stream_idx >= 0) {
+        AVStream *video_stream = ic->streams[video_stream_idx];
+        return video_stream->codecpar->width;
+    }else{
+        return 0;
+    }
+}
+
+static jint
+FFmpegApi_get_video_height(JNIEnv *env, jclass clazz) {
+    if (video_stream_idx >= 0) {
+        AVStream *video_stream = ic->streams[video_stream_idx];
+        return video_stream->codecpar->height;
+    }else{
+        return 0;
+    }
 }
 
 static jlong
@@ -104,6 +125,18 @@ FFmpegApi_get_video_duration(JNIEnv *env, jclass clazz) {
     return duration;
 }
 
+static jstring
+FFmpegApi_get_video_codec_name(JNIEnv *env, jclass clazz) {
+    if (video_stream_idx >= 0) {
+        AVStream *video_stream = ic->streams[video_stream_idx];
+        const char *codec_name = avcodec_get_name(video_stream->codecpar->codec_id);
+        return (*env)->NewStringUTF(env, codec_name);
+    }else{
+        return NULL;
+    }
+}
+
+
 static void
 FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
     avformat_close_input(&ic);
@@ -111,10 +144,13 @@ FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
 
 
 static JNINativeMethod g_methods[] = {
-        {"av_base64_encode",  "([B)Ljava/lang/String;", (void *) FFmpegApi_av_base64_encode},
+        {"av_base64_encode",   "([B)Ljava/lang/String;", (void *) FFmpegApi_av_base64_encode},
         {"_open",              "(Ljava/lang/String;)I",  (void *) FFmpegApi_open_video},
-        {"_getVideoDuration", "()J",                   (void *) FFmpegApi_get_video_duration},
-        {"close",             "()V",                    (void *) FFmpegApi_close_video},
+        {"_getVideoWidth",     "()I",                    (void *) FFmpegApi_get_video_width},
+        {"_getVideoHeight",    "()I",                    (void *) FFmpegApi_get_video_height},
+        {"_getVideoDuration",  "()J",                    (void *) FFmpegApi_get_video_duration},
+        {"_getVideoCodecName", "()Ljava/lang/String;",   (void *) FFmpegApi_get_video_codec_name},
+        {"close",              "()V",                    (void *) FFmpegApi_close_video},
 };
 
 int FFmpegApi_global_init(JNIEnv *env) {
