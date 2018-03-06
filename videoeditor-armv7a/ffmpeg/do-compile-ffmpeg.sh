@@ -43,6 +43,17 @@ fi
 FF_PWD_DIR=$(pwd)
 # ffmpeg源码根目录
 FF_FFMPEG_SOURCE=./ffmpeg-armv7a
+
+#X264_INCLUDE=./x264/Android/arm/include
+#X264_BIN=./x264/Android/arm/lib
+#AAC_INCLUDE=./fdk-aac-0.1.4/Android/arm/include
+#AAC_BIN=./fdk-aac-0.1.4/Android/arm/lib
+X264_INCLUDE=/home/yhao/lib/x264/Android/arm/include
+X264_BIN=/home/yhao/lib/x264/Android/arm/lib
+
+AAC_INCLUDE=/home/yhao/lib/fdk-aac-0.1.4/Android/arm/include
+AAC_BIN=/home/yhao/lib/fdk-aac-0.1.4/Android/arm/lib
+
 # 输出目录
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
@@ -143,13 +154,18 @@ FF_EXTRA_CFLAGS="-O3 -Wall -pipe \
     -ffast-math \
     -fstrict-aliasing -Werror=strict-aliasing \
     -Wno-psabi -Wa,--noexecstack \
-    -DANDROID -DNDEBUG $FF_EXTRA_CFLAGS"
+    -DANDROID -DNDEBUG \
+    -Os -fPIC -I$X264_INCLUDE -I$AAC_INCLUDE  $FF_EXTRA_CFLAGS"
+
+FF_EXTRA_LDFLAGS="-L$X264_BIN -lx264 -L$AAC_BIN  $FF_EXTRA_LDFLAGS -lm"
+
+
 
 # 导入ffmpeg配置
 export COMMON_FF_CFG_FLAGS=
 . ./module.sh
-
 FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS $COMMON_FF_CFG_FLAGS"
+
 
 # 交叉编译链
 FF_CROSS_PREFIX=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/bin/${FF_GCC_NAME}-
@@ -263,6 +279,8 @@ ${FF_SHARED_PREFIX}/libijkffmpeg.so \
     libavformat/libavformat.a \
     libavutil/libavutil.a \
     libswscale/libswscale.a \
+    /home/yhao/lib/x264/Android/arm/lib/libx264.a \
+    /home/yhao/lib/fdk-aac-0.1.4/Android/arm/lib/libfdk-aac.a \
     -lc -lm -lz -ldl -llog --dynamic-linker=/system/bin/linker \
     ${FF_LIB_GCC_DIR}/libgcc.a \
 
