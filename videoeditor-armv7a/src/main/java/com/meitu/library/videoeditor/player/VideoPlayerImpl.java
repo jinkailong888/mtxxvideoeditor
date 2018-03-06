@@ -292,6 +292,8 @@ public class VideoPlayerImpl implements VideoPlayer {
 //            }
 //        });
 
+        mIjkMediaPlayer.save();
+
     }
 
     private void doSave(VideoSaveInfo videoSaveInfo) {

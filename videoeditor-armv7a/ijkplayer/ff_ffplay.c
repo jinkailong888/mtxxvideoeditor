@@ -114,6 +114,7 @@
 
 // static const AVOption ffp_context_options[] = ...
 #include "ff_ffplay_options.h"
+#include "ff_ffeditor.h"
 
 static AVPacket flush_pkt;
 
@@ -4555,6 +4556,15 @@ int ffp_watermark_off_l(FFPlayer *ffp) {
         return EIJK_NULL_IS_PTR;
     filter_video_descr = NULL;
     ffp->vf_changed = 1;
+    return 0;
+}
+
+int ffp_save_l(FFPlayer *ffp) {
+    assert(ffp);
+    VideoState *is = ffp->is;
+    if (!is)
+        return EIJK_NULL_IS_PTR;
+    save(is->filename,"/storage/emulated/0/VideoEditorDir/tttttttttt.mp4");
     return 0;
 }
 

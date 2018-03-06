@@ -472,7 +472,7 @@ int ijkmp_pause(IjkMediaPlayer *mp) {
     return retval;
 }
 
-int ijkmp_watermarkOn(IjkMediaPlayer *mp) {
+int ijkmp_showWatermark(IjkMediaPlayer *mp) {
     assert(mp);
             MPTRACE("ijkmp_watermarkOn()\n");
     pthread_mutex_lock(&mp->mutex);
@@ -483,11 +483,20 @@ int ijkmp_watermarkOn(IjkMediaPlayer *mp) {
     return 0;
 }
 
-int ijkmp_watermarkOff(IjkMediaPlayer *mp) {
+int ijkmp_hideWatermark(IjkMediaPlayer *mp) {
     assert(mp);
             MPTRACE("ijkmp_watermarkOff()\n");
     pthread_mutex_lock(&mp->mutex);
     ffp_notify_msg1(mp->ffplayer, FFP_REQ_WATERMARK_OFF);
+    pthread_mutex_unlock(&mp->mutex);
+    return 0;
+}
+
+int ijkmp_save(IjkMediaPlayer *mp) {
+    assert(mp);
+    MPTRACE("ijkmp_save()\n");
+    pthread_mutex_lock(&mp->mutex);
+    ffp_notify_msg1(mp->ffplayer, FFP_REQ_SAVE);
     pthread_mutex_unlock(&mp->mutex);
     return 0;
 }
@@ -765,6 +774,13 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block) {
                 continue_wait_next_msg = 1;
                 pthread_mutex_lock(&mp->mutex);
                 ffp_watermark_off_l(mp->ffplayer);
+                pthread_mutex_unlock(&mp->mutex);
+                break;
+            case FFP_REQ_SAVE:
+                MPTRACE("ijkmp_get_msg: FFP_REQ_SAVE\n");
+                continue_wait_next_msg = 1;
+                pthread_mutex_lock(&mp->mutex);
+                ffp_save_l(mp->ffplayer);
                 pthread_mutex_unlock(&mp->mutex);
                 break;
 

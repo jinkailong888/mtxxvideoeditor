@@ -564,15 +564,19 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     }
 
 
-    public void watermarkOn() throws IllegalStateException {
-        _watermarkOn();
+    public void showWatermark() throws IllegalStateException {
+        _showWatermark();
     }
-    public void watermarkOff() throws IllegalStateException {
-        _watermarkOff();
+    public void hideWatermark() throws IllegalStateException {
+        _hideWatermark();
+    }
+    public void save() throws IllegalStateException {
+        _save();
     }
 
-    private native void _watermarkOn() throws IllegalStateException;
-    private native void _watermarkOff() throws IllegalStateException;
+    private native void _showWatermark() throws IllegalStateException;
+    private native void _hideWatermark() throws IllegalStateException;
+    private native void _save() throws IllegalStateException;
 
 
 

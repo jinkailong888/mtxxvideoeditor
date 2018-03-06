@@ -14,7 +14,7 @@ public class WaterMarkInfo {
     private int mWidth;
     private int mHeight;
     private long mStartTime;
-    private long mDuration=30000;
+    private long mDuration=-1;
     private boolean mVisible = true;
     @WaterMarkPosition.WaterMarkPos
     private int mWaterMarkPos;
@@ -89,7 +89,7 @@ public class WaterMarkInfo {
     }
 
     /**
-     * 设置播放时长
+     * 水印时长
      *
      * @return 单位：ms（视频1倍速下的时间）
      */
@@ -98,7 +98,7 @@ public class WaterMarkInfo {
     }
 
     /**
-     * 设置播放时长，目前没有设置时间的需求，等日后有需求，再开放
+     * 设置水印时长，传入 -1 可设置为视频时长
      *
      * @param duration 单位：ms（视频1倍速下的时间）
      */

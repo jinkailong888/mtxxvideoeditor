@@ -41,6 +41,8 @@ set(source_files
      ${pwd_dir}/ijkmeta.c
      ${pwd_dir}/ijkplayer.c
 
+     ${pwd_dir}/ff_ffeditor.c
+
      ${pwd_dir}/pipeline/ffpipeline_ffplay.c
      ${pwd_dir}/pipeline/ffpipenode_ffplay_vdec.c
 

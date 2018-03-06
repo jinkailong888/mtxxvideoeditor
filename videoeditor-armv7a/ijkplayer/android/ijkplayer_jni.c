@@ -310,30 +310,6 @@ LABEL_RETURN:
 }
 
 static void
-IjkMediaPlayer_watermarkOn(JNIEnv *env, jobject thiz)
-{
-    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
-    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: watermarkOn: null mp", LABEL_RETURN);
-
-    ijkmp_watermarkOn(mp);
-
-    LABEL_RETURN:
-    ijkmp_dec_ref_p(&mp);
-}
-
-static void
-IjkMediaPlayer_watermarkOff(JNIEnv *env, jobject thiz)
-{
-    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
-    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: watermarkOn: null mp", LABEL_RETURN);
-
-    ijkmp_watermarkOff(mp);
-
-    LABEL_RETURN:
-    ijkmp_dec_ref_p(&mp);
-}
-
-static void
 IjkMediaPlayer_seekTo(JNIEnv *env, jobject thiz, jlong msec)
 {
     MPTRACE("%s\n", __func__);
@@ -1140,7 +1116,39 @@ LABEL_RETURN:
     return;
 }
 
+static void
+IjkMediaPlayer_showWatermark(JNIEnv *env, jobject thiz)
+{
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: showWatermark: null mp", LABEL_RETURN);
 
+    ijkmp_showWatermark(mp);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+
+static void
+IjkMediaPlayer_hideWatermark(JNIEnv *env, jobject thiz)
+{
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: hideWatermark: null mp", LABEL_RETURN);
+
+    ijkmp_hideWatermark(mp);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+static void
+IjkMediaPlayer_save(JNIEnv *env, jobject thiz){
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: save: null mp", LABEL_RETURN);
+
+    ijkmp_save(mp);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
 
 
 
@@ -1162,8 +1170,6 @@ static JNINativeMethod g_methods[] = {
     { "_stop",                  "()V",      (void *) IjkMediaPlayer_stop },
     { "seekTo",                 "(J)V",     (void *) IjkMediaPlayer_seekTo },
     { "_pause",                 "()V",      (void *) IjkMediaPlayer_pause },
-    { "_watermarkOn",           "()V",      (void *) IjkMediaPlayer_watermarkOn },
-    { "_watermarkOff",          "()V",      (void *) IjkMediaPlayer_watermarkOff },
     { "isPlaying",              "()Z",      (void *) IjkMediaPlayer_isPlaying },
     { "getCurrentPosition",     "()J",      (void *) IjkMediaPlayer_getCurrentPosition },
     { "getDuration",            "()J",      (void *) IjkMediaPlayer_getDuration },
@@ -1194,7 +1200,13 @@ static JNINativeMethod g_methods[] = {
     { "native_profileEnd",      "()V",                      (void *) IjkMediaPlayer_native_profileEnd },
 
     { "native_setLogLevel",     "(I)V",                     (void *) IjkMediaPlayer_native_setLogLevel },
-    { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V", (void *) IjkMediaPlayer_setFrameAtTime },
+    { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V",(void *) IjkMediaPlayer_setFrameAtTime },
+
+    { "_showWatermark",         "()V",                   (void *) IjkMediaPlayer_showWatermark },
+    { "_hideWatermark",         "()V",                   (void *) IjkMediaPlayer_hideWatermark },
+
+    { "_save",                  "()V",                   (void *) IjkMediaPlayer_save },
+
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)

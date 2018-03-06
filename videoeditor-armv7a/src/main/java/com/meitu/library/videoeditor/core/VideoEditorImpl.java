@@ -272,12 +272,12 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void showWatermark() {
-        mVideoPlayer.getIjkMediaPlayer().watermarkOn();
+        mVideoPlayer.getIjkMediaPlayer().showWatermark();
     }
 
     @Override
     public void hideWatermark() {
-        mVideoPlayer.getIjkMediaPlayer().watermarkOff();
+        mVideoPlayer.getIjkMediaPlayer().hideWatermark();
     }
 
     @Override

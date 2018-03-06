@@ -65,9 +65,7 @@ int       ffp_is_paused_l(FFPlayer *ffp);
 int       ffp_stop_l(FFPlayer *ffp);
 int       ffp_wait_stop_l(FFPlayer *ffp);
 
-/* filter control */
-int ffp_watermark_on_l(FFPlayer *ffp);
-int ffp_watermark_off_l(FFPlayer *ffp);
+
 
 
 /* all in milliseconds */
@@ -126,6 +124,13 @@ void      ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value);
 struct IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp);
 
 int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame);
+
+
+//
+
+int ffp_watermark_on_l(FFPlayer *ffp);
+int ffp_watermark_off_l(FFPlayer *ffp);
+int ffp_save_l(FFPlayer *ffp);
 
 
 #endif

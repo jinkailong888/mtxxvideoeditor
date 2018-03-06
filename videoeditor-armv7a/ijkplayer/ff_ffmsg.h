@@ -59,6 +59,7 @@
 
 #define FFP_REQ_WATERMARK_ON                   30001
 #define FFP_REQ_WATERMARK_OFF                  30002
+#define FFP_REQ_SAVE                           30003
 
 #define FFP_PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND   10001
 #define FFP_PROP_FLOAT_VIDEO_OUTPUT_FRAMES_PER_SECOND   10002

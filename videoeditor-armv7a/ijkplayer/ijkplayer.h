@@ -219,7 +219,8 @@ int             ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block);
 void            ijkmp_set_frame_at_time(IjkMediaPlayer *mp, const char *path, int64_t start_time, int64_t end_time, int num, int definition);
 
 
-int             ijkmp_watermarkOn(IjkMediaPlayer *mp);
-int             ijkmp_watermarkOff(IjkMediaPlayer *mp);
+int             ijkmp_showWatermark(IjkMediaPlayer *mp);
+int             ijkmp_hideWatermark(IjkMediaPlayer *mp);
+int             ijkmp_save(IjkMediaPlayer *mp);
 
 #endif
