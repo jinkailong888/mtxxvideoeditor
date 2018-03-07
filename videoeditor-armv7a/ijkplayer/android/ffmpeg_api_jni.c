@@ -76,6 +76,9 @@ FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in) {
 }
 
 
+
+/**** MeiTu 获取视频信息方法 ****/
+
 AVFormatContext *ic;
 int video_stream_idx;
 int audio_stream_idx;
@@ -143,14 +146,23 @@ FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
 }
 
 
+/**** MeiTu 获取视频信息方法 end ****/
+
+
 static JNINativeMethod g_methods[] = {
         {"av_base64_encode",   "([B)Ljava/lang/String;", (void *) FFmpegApi_av_base64_encode},
+
+        /**** MeiTu 获取视频信息方法 ****/
+
         {"_open",              "(Ljava/lang/String;)I",  (void *) FFmpegApi_open_video},
         {"_getVideoWidth",     "()I",                    (void *) FFmpegApi_get_video_width},
         {"_getVideoHeight",    "()I",                    (void *) FFmpegApi_get_video_height},
         {"_getVideoDuration",  "()J",                    (void *) FFmpegApi_get_video_duration},
         {"_getVideoCodecName", "()Ljava/lang/String;",   (void *) FFmpegApi_get_video_codec_name},
         {"close",              "()V",                    (void *) FFmpegApi_close_video},
+
+
+        /**** MeiTu 获取视频信息方法 end ****/
 };
 
 int FFmpegApi_global_init(JNIEnv *env) {

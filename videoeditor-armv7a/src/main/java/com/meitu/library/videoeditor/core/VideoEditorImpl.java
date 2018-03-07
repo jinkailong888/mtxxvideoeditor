@@ -1,18 +1,17 @@
 package com.meitu.library.videoeditor.core;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.text.TextUtils;
 
 import com.meitu.library.videoeditor.bgm.BgMusicInfo;
 import com.meitu.library.videoeditor.bgm.BgMusicInfoBuilder;
 import com.meitu.library.videoeditor.filter.FilterInfo;
 import com.meitu.library.videoeditor.player.VideoPlayer;
-import com.meitu.library.videoeditor.player.VideoPlayerImpl;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
@@ -25,9 +24,11 @@ import com.meitu.library.videoeditor.video.VideoSaveInfoBuilder;
 import com.meitu.library.videoeditor.watermark.WaterMarkInfo;
 import com.meitu.library.videoeditor.watermark.WaterMarkInfoBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
 /**
@@ -44,8 +45,10 @@ public class VideoEditorImpl extends VideoEditor {
     private Context mActivityContext;
     //播放界面生命周期
     private Lifecycle mLifecycle;
-    //播放器
+    //视频播放器
     private VideoPlayer mVideoPlayer;
+    //背景音乐播放器
+    private IMediaPlayer mAudioPlayer;
     //是否为多段视频
     private boolean mIsMultipleVideo;
     //分段视频信息
@@ -70,7 +73,8 @@ public class VideoEditorImpl extends VideoEditor {
         mLifecycle = new Lifecycle(this, builder.activityContext);
         ((Application) mApplicationContext).registerActivityLifecycleCallbacks(mLifecycle);
         mLifecycle.onActivityCreated();
-        mVideoPlayer = new VideoPlayerImpl(builder);
+        mVideoPlayer = ((Activity) builder.activityContext).findViewById(builder.playerViewId);
+        mVideoPlayer.init(builder);
     }
 
 
@@ -117,32 +121,23 @@ public class VideoEditorImpl extends VideoEditor {
                 setFilter(mFilterInfo);
             }
         }
-//        if (mWaterMarkTrack != null) {
-//            mMTMVTimeLine.addWatermark(mWaterMarkTrack);
-//        }
-//        if (mBgMusicTrack != null) {
-//            mMTMVTimeLine.setBgm(mBgMusicTrack);
-//        }
-//        if (mTransitionEffect != TransitionEffect.None) {
-//            MTMtxxTransition.MTMVTransitionEffect(mMTMVTimeLine, mTransitionEffect);
-//        }
-//        mMTMVCoreApplication.setOutput_width(firstVideoShowWidth);
-//        mMTMVCoreApplication.setOutput_height(firstVideoShowHeight);
-        Debug.d(TAG, "mMTMVCoreApplication.setOutput_width=firstVideoShowWidth=" + firstVideoShowWidth);
-        Debug.d(TAG, "mMTMVCoreApplication.setOutput_height=firstVideoShowHeight=" + firstVideoShowHeight);
-        mVideoPlayer.setShowWidth(firstVideoShowWidth);
-        mVideoPlayer.setShowHeight(firstVideoShowHeight);
         mVideoPlayer.prepare(autoPlay);
     }
 
     @Override
     public void play() {
-        mVideoPlayer.play();
+        mVideoPlayer.start();
+        if (mAudioPlayer != null) {
+            mAudioPlayer.start();
+        }
     }
 
     @Override
     public void pause() {
         mVideoPlayer.pause();
+        if (mAudioPlayer != null && mAudioPlayer.isPlaying()) {
+            mAudioPlayer.pause();
+        }
     }
 
     @Override
@@ -205,14 +200,23 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void setBgMusic(@NonNull BgMusicInfo bgMusicInfo) {
-//        mBgMusicTrack = MTMVTrack.CreateMusicTrack(bgMusicInfo.getMusicPath(),
-//                bgMusicInfo.getStartTime(), bgMusicInfo.getDuration(), bgMusicInfo.getSourceStartTime());
-//        mBgMusicTrack.setRepeat(bgMusicInfo.isRepeat());
-//        mBgMusicTrack.setSpeed(bgMusicInfo.getSpeed());
-//        if (mVideoPlayer.isPlaying()) {
-//            mVideoPlayer.stop();
-//            prepare(true);
-//        }
+        mVideoPlayer.getIjkMediaPlayer().setBgMusic(bgMusicInfo.getMusicPath(), bgMusicInfo.getStartTime(),
+                bgMusicInfo.getDuration(), bgMusicInfo.getSpeed(), bgMusicInfo.isRepeat());
+        mAudioPlayer = new IjkMediaPlayer();
+        try {
+            mAudioPlayer.setDataSource(bgMusicInfo.getMusicPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mAudioPlayer.setLooping(bgMusicInfo.isRepeat());
+        mAudioPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(IMediaPlayer mp) {
+                mp.start();
+            }
+        });
+        mAudioPlayer.prepareAsync();
+
     }
 
     @Override
@@ -220,13 +224,25 @@ public class VideoEditorImpl extends VideoEditor {
         return new BgMusicInfoBuilder(this);
     }
 
+
+    @Override
+    public void playBgMusic() {
+        mAudioPlayer.start();
+    }
+
+    @Override
+    public void stopBgMusic() {
+        mAudioPlayer.stop();
+    }
+
     @Override
     public void clearBgMusic() {
-//        mBgMusicTrack = null;
-//        if (mVideoPlayer.isPlaying()) {
-//            mVideoPlayer.stop();
-//            prepare(true);
-//        }
+        mVideoPlayer.getIjkMediaPlayer().clearBgMusic();
+        if (mAudioPlayer != null) {
+            mAudioPlayer.reset();
+            mAudioPlayer.release();
+            mAudioPlayer = null;
+        }
     }
 
     @Override
@@ -237,32 +253,14 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void clearWaterMark() {
-//        mWaterMarkTrack = null;
-//        if (mVideoPlayer.isPlaying()) {
-//            mVideoPlayer.stop();
-//            prepare(true);
-//        }
+        mVideoPlayer.getIjkMediaPlayer().clearWaterMark();
     }
 
     @Override
-    public void setWaterMark(WaterMarkInfo waterMarkInfo) {
-        long duration = 0;
-//        if (mIsMultipleVideo) {
-//            for (VideoInfo videoInfo : mVideoInfoList) {
-//                duration += videoInfo.getDuration();
-//            }
-//        }
-//        mWaterMarkTrack = MTWatermark.CreateWatermarkTrack(
-//                waterMarkInfo.getImagePath(), waterMarkInfo.getWidth(),
-//                waterMarkInfo.getHeight(), waterMarkInfo.getConfigPath());
-//        mWaterMarkTrack.setStartPos(waterMarkInfo.getStartTime());
-//        mWaterMarkTrack.setVisible(waterMarkInfo.isVisible());
-//        mWaterMarkTrack.setDuration(waterMarkInfo.getDuration());
-
-        if (mVideoPlayer.isPlaying()) {
-            mVideoPlayer.stop();
-            prepare(true);
-        }
+    public void setWaterMark(WaterMarkInfo w) {
+        mVideoPlayer.getIjkMediaPlayer().setWatermark(w.getImagePath(), w.getWidth(), w.getHeight(),
+                w.getStartTime(), w.getDuration(),
+                w.getWaterMarkPos(), w.getHorizontalPadding(), w.getVerticalPadding());
     }
 
     @Override
@@ -312,7 +310,7 @@ public class VideoEditorImpl extends VideoEditor {
     // ===========================================================
     void onResume() {
         Debug.d(TAG, "onResume");
-        mVideoPlayer.play();
+        mVideoPlayer.start();
     }
 
     void onPause() {
@@ -336,6 +334,11 @@ public class VideoEditorImpl extends VideoEditor {
         }
         if (mFFconcatFilePath != null) {
             VideoInfoTool.deleteFFconcatFile(mFFconcatFilePath);
+        }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.reset();
+            mAudioPlayer.release();
+            mAudioPlayer = null;
         }
     }
 

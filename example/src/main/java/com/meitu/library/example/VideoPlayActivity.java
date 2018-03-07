@@ -78,7 +78,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .with(this)
                 .setPlayerViewId(R.id.videoPlayerView)
                 .registerFilters(mFilters)
-                .setHardWardSave(true)
                 .setDebuggable(true)
                 .setNativeDebuggable(true)
                 .build();
@@ -116,6 +115,17 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             }
         });
 
+        mVideoEditor.getWaterMarkBuilder()
+                .setHeight(60)
+                .setWidth(60)
+                //无法设置assets资源
+                .setImagePath("/storage/emulated/0/VideoEditorDir/save.png")
+                //对于宽>高的视频位置错乱
+                .setWaterMarkPos(WaterMarkPosition.TopLeft)
+                .setHorizontalPadding(5)
+                .setVerticalPadding(5)
+                .setWaterMark();
+
     }
 
     public void save(View view) {
@@ -127,16 +137,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
         if (mWaterMarkSwitch == compoundButton) {
             if (b) {
-                mVideoEditor.getWaterMarkBuilder()
-                        .setHeight(140)
-                        .setWidth(161)
-                        .setImagePath("assets/watermark/wartermark.png")
-                        .setWaterMarkPos(WaterMarkPosition.BottomRight)
-                        .setHorizontalPadding(5)
-                        .setVerticalPadding(5)
-                        .setWaterMark();
                 mVideoEditor.showWatermark();
-
             } else {
 //                mVideoEditor.clearWaterMark();
                 mVideoEditor.hideWatermark();
@@ -147,6 +148,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             if (b) {
                 String musicPath = FileUtil.getMusicPath();
                 mVideoEditor.getBgMusicBuilder().setMusicPath(musicPath).setRepeat(true).setBgMusic();
+                mVideoEditor.playBgMusic();
             } else {
                 mVideoEditor.clearBgMusic();
             }

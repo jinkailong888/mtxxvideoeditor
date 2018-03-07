@@ -27,7 +27,7 @@ public class BgMusicInfoBuilder {
         return this;
     }
 
-    private BgMusicInfoBuilder setStartTime(long startTime) {
+    private BgMusicInfoBuilder setStartTime(int startTime) {
         mBgMusicInfo.setStartTime(startTime);
         return this;
     }
@@ -37,7 +37,7 @@ public class BgMusicInfoBuilder {
         return this;
     }
 
-    private BgMusicInfoBuilder setDuration(long duration) {
+    private BgMusicInfoBuilder setDuration(int duration) {
         mBgMusicInfo.setDuration(duration);
         return this;
     }

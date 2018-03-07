@@ -5,55 +5,19 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 
 
-public class BgMusicInfo implements Parcelable {
+public class BgMusicInfo {
 
     //速度默认为1.0
     private float mSpeed = 1.0f;
     private String mMusicPath;
-    private long mStartTime;
+    private int mStartTime;
     private long mSourceStartTime;
-    private long mDuration = 30000;  //todo 设置什么值可以全首播？
-    private boolean mRepeat = true;
+    private int mDuration = 30000;  //todo 设置什么值可以全首播？
+    private boolean mLoop = true;
 
 
     public BgMusicInfo() {
     }
-
-    protected BgMusicInfo(Parcel in) {
-        mMusicPath = in.readString();
-        mStartTime = in.readLong();
-        mSourceStartTime = in.readLong();
-        mDuration = in.readLong();
-        mRepeat = in.readByte() != 0;
-        mSpeed = in.readFloat();
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(mMusicPath);
-        dest.writeLong(mStartTime);
-        dest.writeLong(mSourceStartTime);
-        dest.writeLong(mDuration);
-        dest.writeByte((byte) (mRepeat ? 1 : 0));
-        dest.writeFloat(mSpeed);
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public static final Creator<BgMusicInfo> CREATOR = new Creator<BgMusicInfo>() {
-        @Override
-        public BgMusicInfo createFromParcel(Parcel in) {
-            return new BgMusicInfo(in);
-        }
-
-        @Override
-        public BgMusicInfo[] newArray(int size) {
-            return new BgMusicInfo[size];
-        }
-    };
 
     /**
      * 获取音乐文件路径
@@ -69,18 +33,18 @@ public class BgMusicInfo implements Parcelable {
         this.mMusicPath = musicPath;
     }
 
-    public long getStartTime() {
+    public int getStartTime() {
         return mStartTime;
     }
 
     /**
      * 设置在TimeLine上的开始时间，暂时没有启用，日后有需求，需要联系底层同学处理
      */
-    public void setStartTime(long startTime) {
+    public void setStartTime(int startTime) {
         this.mStartTime = startTime;
     }
 
-    public long getDuration() {
+    public int getDuration() {
         return mDuration;
     }
 
@@ -89,7 +53,7 @@ public class BgMusicInfo implements Parcelable {
      *
      * @param duration 加速后的时长
      */
-    public void setDuration(long duration) {
+    public void setDuration(int duration) {
         this.mDuration = duration;
     }
 
@@ -110,7 +74,7 @@ public class BgMusicInfo implements Parcelable {
      * @return true 循环播放; false 不循环播放
      */
     public boolean isRepeat() {
-        return mRepeat;
+        return mLoop;
     }
 
     /**
@@ -119,7 +83,7 @@ public class BgMusicInfo implements Parcelable {
      * @param repeat true 循环播放; false 不循环播放
      */
     public void setRepeat(boolean repeat) {
-        this.mRepeat = repeat;
+        this.mLoop = repeat;
     }
 
     /**
@@ -130,7 +94,7 @@ public class BgMusicInfo implements Parcelable {
     }
 
     /**
-     * 设置速度，若没设置，默认为{@link #DEFAULT_SPEED}
+     * 设置速度，默认为1.0
      */
     public void setSpeed(float speed) {
         this.mSpeed = speed;

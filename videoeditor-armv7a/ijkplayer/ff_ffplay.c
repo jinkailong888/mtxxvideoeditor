@@ -170,7 +170,7 @@ char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:g
 
 
 //todo 有的视频（比如红米手机相机录像，宽高互换，水印顺时针旋转90度，故需调整）
-char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50,rotate=-PI/2[wm];[in][wm]overlay=W-w-5:H-h-5:enable='between(t,1,2)'[out]";
+//char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50,rotate=-PI/2[wm];[in][wm]overlay=W-w-5:H-h-5:enable='between(t,1,2)'[out]";
 //char *filter_video_descr = "split [water][fade];[water] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5[out] ; [fade] fade=in:0:200";
 //char *filter_video_descr = "split [main][tmp]; [tmp] crop=iw:ih/2:0:0, vflip [flip]; [main][flip] overlay=0:H/2";
 //char *filter_video_descr = "split [main][tmp]; [tmp] movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm]; [main][wm] overlay=W-w-5:H-h-5";
@@ -179,7 +179,7 @@ char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',
 //char *filter_video_descr = "smartblur= 5:0.8:0:enable='between(t,1,2)'";
 //char *filter_video_descr = "edgedetect=mode=wires:low=0.1:high=0.4:enable='between(t,1,2)'";
 //char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)',smartblur= 5:0.8:0:enable='between(t,1,2)'[out]";
-//char *filter_video_descr = NULL;
+char *filter_video_descr = NULL;
 
 #else
 char *filter_video_descr= NULL;
@@ -199,7 +199,7 @@ char *audio_name2 = NULL;
 //若要开启硬解，设置硬解码器即可
 char *hd_video_codec_name = "h264_mediacodec";
 #else
-char *hd_video_codec_name= NULL;
+char *hd_video_codec_name = NULL;
 #endif
 
 
@@ -1115,6 +1115,14 @@ static void stream_close(FFPlayer *ffp) {
     av_free(is->filename);
     av_free(is);
     ffp->is = NULL;
+
+    //释放EditorState
+    EditorState *es = ffp->es;
+    if (es->movie_descr)
+        av_free(es->movie_descr);
+    av_free(es);
+    ffp->es = NULL;
+
 }
 
 // FFP_MERGE: do_exit
@@ -3534,6 +3542,12 @@ static int read_thread(void *arg) {
     if (is->video_st && is->video_st->codecpar) {
         AVCodecParameters *codecpar = is->video_st->codecpar;
         ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, codecpar->width, codecpar->height);
+        EditorState *es = ffp->es;
+        es->videoWidth = codecpar->width;
+        es->videoHeight = codecpar->height;
+        av_log(NULL, AV_LOG_DEBUG, "videoWidth=%d,videoHeight=%d\n", es->videoWidth,
+               es->videoHeight);
+        config_watermark(ffp);
         ffp_notify_msg3(ffp, FFP_MSG_SAR_CHANGED, codecpar->sample_aspect_ratio.num,
                         codecpar->sample_aspect_ratio.den);
     }
@@ -3859,8 +3873,13 @@ static int video_refresh_thread(void *arg);
 static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputFormat *iformat) {
     assert(!ffp->is);
     VideoState *is;
+    EditorState *es;
 
     is = av_mallocz(sizeof(VideoState));
+    //MeiTu 创建EditorState
+    es = av_mallocz(sizeof(EditorState));
+    ffp->es = es;
+
     if (!is)
         return NULL;
     is->filename = av_strdup(filename);
@@ -4537,37 +4556,6 @@ int ffp_pause_l(FFPlayer *ffp) {
     return 0;
 }
 
-int ffp_watermark_on_l(FFPlayer *ffp) {
-    assert(ffp);
-    VideoState *is = ffp->is;
-    if (!is)
-        return EIJK_NULL_IS_PTR;
-    filter_video_descr = filter_video_movie;
-    ffp->vf_changed = 1;
-    av_log(NULL, AV_LOG_DEBUG, "ffp_watermark_on_l filter_video_descr:%s",
-           filter_video_descr);
-    return 0;
-}
-
-int ffp_watermark_off_l(FFPlayer *ffp) {
-    assert(ffp);
-    VideoState *is = ffp->is;
-    if (!is)
-        return EIJK_NULL_IS_PTR;
-    filter_video_descr = NULL;
-    ffp->vf_changed = 1;
-    return 0;
-}
-
-int ffp_save_l(FFPlayer *ffp) {
-    assert(ffp);
-    VideoState *is = ffp->is;
-    if (!is)
-        return EIJK_NULL_IS_PTR;
-    save(is->filename,"/storage/emulated/0/VideoEditorDir/tttttttttt.mp4");
-    return 0;
-}
-
 int ffp_is_paused_l(FFPlayer *ffp) {
     assert(ffp);
     VideoState *is = ffp->is;
@@ -5213,3 +5201,160 @@ IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp) {
 
     return ffp->meta;
 }
+
+
+/**** MeiTu 视频编辑相关方法 ****/
+
+void config_watermark(FFPlayer *ffp) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es->watermark) {
+        return;
+    }
+    char *rotate_descr, *movie_descr;
+    rotate_descr = es->videoWidth > es->videoHeight ? ",rotate=-PI/2" : "";
+    movie_descr = av_asprintf("movie='%s',%s%s[wm];[in][wm]overlay=%s%s[out]",
+                              es->watermark_path,
+                              es->scale_descr,
+                              rotate_descr,
+                              es->overlay_descr,
+                              es->enable_descr);
+
+    es->movie_descr = movie_descr;
+    av_log(NULL, AV_LOG_DEBUG, "ffp_setWatermark movie_descr:%s", movie_descr);
+    if (es->free_overlay_descr)
+        av_free(es->overlay_descr);
+    if (es->free_enable_descr)
+        av_free(es->enable_descr);
+    av_free(es->scale_descr);
+}
+
+void ffp_setWatermark(FFPlayer *ffp,
+                      const char *path,
+                      jint width, jint height,
+                      jint startTime, jint duration,
+                      jint pos,
+                      jint horizontalPadding,
+                      jint verticalPadding) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+
+    char *overlay_descr, *enable_descr, *scale_descr;
+    bool free_overlay_descr = true, free_enable_descr = true;
+    switch (pos) {
+        case WATERMARK_POS_CENTER:
+            overlay_descr = "(W-w)/2:(H-h)/2";
+            free_overlay_descr = false;
+            break;
+        case WATERMARK_POS_TOP_LEFT:
+            overlay_descr = av_asprintf("%d:%d", horizontalPadding, verticalPadding);
+            break;
+        case WATERMARK_POS_TOP_RIGHT:
+            overlay_descr = av_asprintf("W-w-%d:%d", horizontalPadding, verticalPadding);
+            break;
+        case WATERMARK_POS_BOTTOM_RIGHT:
+            overlay_descr = av_asprintf("W-w-%d:H-h-%d", horizontalPadding, verticalPadding);
+            break;
+        case WATERMARK_POS_BOTTOM_LEFT:
+            overlay_descr = av_asprintf("%d:H-h-%d", horizontalPadding, verticalPadding);
+            break;
+        default:
+            overlay_descr = "(W-w)/2:(H-h)/2";
+            free_overlay_descr = false;
+            break;
+    }
+    if (duration == WATERMARK_VIDEO_DURATION) {
+        enable_descr = "";
+        free_enable_descr = false;
+    } else {
+        enable_descr = av_asprintf(":enable='between(t,%d,%d)'", startTime, duration);
+    }
+    scale_descr = av_asprintf("scale=%d:%d", width, height);
+    es->overlay_descr = overlay_descr;
+    es->enable_descr = enable_descr;
+    es->scale_descr = scale_descr;
+    es->free_overlay_descr = free_overlay_descr;
+    es->free_enable_descr = free_enable_descr;
+    es->watermark_path = path;
+    es->watermark = true;
+}
+
+
+int ffp_watermark_on_l(FFPlayer *ffp) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es)
+        return EIJK_NULL_IS_PTR;
+    filter_video_descr = es->movie_descr;
+    ffp->vf_changed = 1;
+    av_log(NULL, AV_LOG_DEBUG, "ffp_watermark_on_l filter_video_descr:%s",
+           filter_video_descr);
+    return 0;
+}
+
+int ffp_watermark_off_l(FFPlayer *ffp) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es)
+        return EIJK_NULL_IS_PTR;
+    filter_video_descr = NULL;
+    ffp->vf_changed = 1;
+    return 0;
+}
+
+void ffp_clearWatermark(FFPlayer *ffp) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es)
+        return;
+    if (es->movie_descr){
+        av_free(es->movie_descr);
+        es->movie_descr=NULL;
+    }
+}
+
+
+void ffp_setBgMusic(FFPlayer *ffp,
+                    const char * musicPath,
+                    jint startTime,
+                    jint duration,
+                    jfloat speed,
+                    jboolean loop){
+
+
+    //todo ffp_setBgMusic
+
+}
+
+void ffp_clearBgMusic(FFPlayer *ffp){
+
+}
+
+
+void
+ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jint width, jint height,
+                  jint bitrate, jint fps) {
+
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es)
+        return;
+    es->mediaCodec = mediaCodec;
+    es->outputPath = path;
+    es->outputWidth = width;
+    es->outputHeight = height;
+    es->outputBitrate = bitrate;
+    es->outputFps = fps;
+}
+
+
+int ffp_save_l(FFPlayer *ffp) {
+    VideoState *is = ffp->is;
+    if (!is)
+        return EIJK_NULL_IS_PTR;
+    ffeditor_save(is->filename, ffp->es);
+    return 0;
+}
+
+
+/**** MeiTu 视频编辑相关方法 end****/

@@ -21,6 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <jni.h>
 #include "ijkplayer.h"
 #include "ijkplayer_internal.h"
 #include "ijkversion.h"
@@ -376,7 +377,6 @@ static int ijkmp_prepare_async_l(IjkMediaPlayer *mp) {
     mp->msg_thread = SDL_CreateThreadEx(&mp->_msg_thread, ijkmp_msg_loop, mp, "ff_msg_loop");
     // msg_thread is detached inside msg_loop
     // TODO: 9 release weak_thiz if pthread_create() failed;
-    mp->ffplayer->audio_filename = "/storage/emulated/0/VideoEditorDir/paomo_cut_mp3.mp3";
 
     int retval = ffp_prepare_async_l(mp->ffplayer, mp->data_source);
 
@@ -470,35 +470,6 @@ int ijkmp_pause(IjkMediaPlayer *mp) {
     pthread_mutex_unlock(&mp->mutex);
             MPTRACE("ijkmp_pause()=%d\n", retval);
     return retval;
-}
-
-int ijkmp_showWatermark(IjkMediaPlayer *mp) {
-    assert(mp);
-            MPTRACE("ijkmp_watermarkOn()\n");
-    pthread_mutex_lock(&mp->mutex);
-
-    ffp_notify_msg1(mp->ffplayer, FFP_REQ_WATERMARK_ON);
-
-    pthread_mutex_unlock(&mp->mutex);
-    return 0;
-}
-
-int ijkmp_hideWatermark(IjkMediaPlayer *mp) {
-    assert(mp);
-            MPTRACE("ijkmp_watermarkOff()\n");
-    pthread_mutex_lock(&mp->mutex);
-    ffp_notify_msg1(mp->ffplayer, FFP_REQ_WATERMARK_OFF);
-    pthread_mutex_unlock(&mp->mutex);
-    return 0;
-}
-
-int ijkmp_save(IjkMediaPlayer *mp) {
-    assert(mp);
-    MPTRACE("ijkmp_save()\n");
-    pthread_mutex_lock(&mp->mutex);
-    ffp_notify_msg1(mp->ffplayer, FFP_REQ_SAVE);
-    pthread_mutex_unlock(&mp->mutex);
-    return 0;
 }
 
 static int ijkmp_stop_l(IjkMediaPlayer *mp) {
@@ -763,21 +734,21 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block) {
                 pthread_mutex_unlock(&mp->mutex);
                 break;
             case FFP_REQ_WATERMARK_ON:
-                MPTRACE("ijkmp_get_msg: FFP_REQ_WATERMARK_ON\n");
+                        MPTRACE("ijkmp_get_msg: FFP_REQ_WATERMARK_ON\n");
                 continue_wait_next_msg = 1;
                 pthread_mutex_lock(&mp->mutex);
                 ffp_watermark_on_l(mp->ffplayer);
                 pthread_mutex_unlock(&mp->mutex);
                 break;
             case FFP_REQ_WATERMARK_OFF:
-                MPTRACE("ijkmp_get_msg: FFP_REQ_WATERMARK_OFF\n");
+                        MPTRACE("ijkmp_get_msg: FFP_REQ_WATERMARK_OFF\n");
                 continue_wait_next_msg = 1;
                 pthread_mutex_lock(&mp->mutex);
                 ffp_watermark_off_l(mp->ffplayer);
                 pthread_mutex_unlock(&mp->mutex);
                 break;
             case FFP_REQ_SAVE:
-                MPTRACE("ijkmp_get_msg: FFP_REQ_SAVE\n");
+                        MPTRACE("ijkmp_get_msg: FFP_REQ_SAVE\n");
                 continue_wait_next_msg = 1;
                 pthread_mutex_lock(&mp->mutex);
                 ffp_save_l(mp->ffplayer);
@@ -797,3 +768,77 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block) {
 
     return -1;
 }
+
+/**** MeiTu 视频编辑相关方法 ****/
+
+
+void ijkmp_setWatermark(IjkMediaPlayer *mp, const char *path,
+                        jint width, jint height,
+                        jint startTime, jint duration,
+                        jint pos,
+                        jint horizontalPadding,
+                        jint verticalPadding) {
+    assert(mp);
+            MPTRACE("ijkmp_setWatermark()\n");
+    ffp_setWatermark(mp->ffplayer, path, width, height, startTime, duration,
+                     pos, horizontalPadding, verticalPadding);
+}
+
+int ijkmp_showWatermark(IjkMediaPlayer *mp) {
+    assert(mp);
+            MPTRACE("ijkmp_watermarkOn()\n");
+    pthread_mutex_lock(&mp->mutex);
+    ffp_notify_msg1(mp->ffplayer, FFP_REQ_WATERMARK_ON);
+    pthread_mutex_unlock(&mp->mutex);
+    return 0;
+}
+
+int ijkmp_hideWatermark(IjkMediaPlayer *mp) {
+    assert(mp);
+            MPTRACE("ijkmp_watermarkOff()\n");
+    pthread_mutex_lock(&mp->mutex);
+    ffp_notify_msg1(mp->ffplayer, FFP_REQ_WATERMARK_OFF);
+    pthread_mutex_unlock(&mp->mutex);
+    return 0;
+}
+
+int ijkmp_clearWatermark(IjkMediaPlayer *mp) {
+    ijkmp_hideWatermark(mp);
+    ffp_clearWatermark(mp->ffplayer);
+    return 0;
+}
+
+
+void ijkmp_setBgMusic(IjkMediaPlayer *mp,
+                      const char *musicPath,
+                      jint startTime,
+                      jint duration,
+                      jfloat speed,
+                      jboolean loop) {
+    assert(mp);
+            MPTRACE("ijkmp_setBgMusic()\n");
+    ffp_setBgMusic(mp->ffplayer, musicPath, startTime, duration, speed, loop);
+}
+
+void ijkmp_clearBgMusic(IjkMediaPlayer *mp) {
+    assert(mp);
+            MPTRACE("ijkmp_clearBgMusic()\n");
+    ffp_clearBgMusic(mp->ffplayer);
+}
+
+
+int ijkmp_save(IjkMediaPlayer *mp, jboolean mediaCodec,
+               const char *path,
+               jint width, jint height,
+               jint bitrate, jint fps) {
+    assert(mp);
+            MPTRACE("ijkmp_save()\n");
+    ffp_set_save_info(mp->ffplayer, mediaCodec, path, width, height, bitrate, fps);
+    pthread_mutex_lock(&mp->mutex);
+    ffp_notify_msg1(mp->ffplayer, FFP_REQ_SAVE);
+    pthread_mutex_unlock(&mp->mutex);
+    return 0;
+}
+
+
+/**** MeiTu 视频编辑相关方法 end****/

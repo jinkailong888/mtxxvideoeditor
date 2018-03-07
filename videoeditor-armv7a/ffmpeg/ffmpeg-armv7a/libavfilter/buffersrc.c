@@ -239,18 +239,18 @@ static int av_buffersrc_add_frame_internal(AVFilterContext *ctx,
         av_frame_move_ref(copy, frame);
     } else {
 
-        av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ******\n");
-        if(ret!=-22){
-            av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ret!=-22******\n");
-        }
+//        av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ******\n");
+//        if(ret!=-22){
+//            av_log(ctx, AV_LOG_ERROR, "******before av_frame_ref ret!=-22******\n");
+//        }
 
         //todo return -22
         ret = av_frame_ref(copy, frame);
 
-        av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ******\n");
-        if(ret==-22){
-            av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ret==-22******\n");
-        }
+//        av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ******\n");
+//        if(ret==-22){
+//            av_log(ctx, AV_LOG_ERROR, "******after av_frame_ref ret==-22******\n");
+//        }
 
         if (ret < 0) {
             av_frame_free(&copy);

@@ -50,7 +50,6 @@ public abstract class VideoEditor {
         List<FilterInfo> filterInfoList;
         boolean debuggable;
         public boolean nativeDebuggable;
-        boolean isHardWardSave;
 
         Builder(Context context) {
             activityContext = context;
@@ -98,17 +97,6 @@ public abstract class VideoEditor {
          */
         public Builder registerFilters(List<FilterInfo> filterInfoList) {
             this.filterInfoList = filterInfoList;
-            return this;
-        }
-
-        /**
-         * 是否开启硬件保存，需自行判断机型是否支持
-         *
-         * @param open true：开启硬件保存   false：关闭硬件保存
-         * @return VideoEditor构造器
-         */
-        public Builder setHardWardSave(boolean open) {
-            this.isHardWardSave = open;
             return this;
         }
 
@@ -248,19 +236,29 @@ public abstract class VideoEditor {
     // ===========================================================
 
     /**
-     * 设置背景音乐，推荐调用{@link VideoEditor#getBgMusicBuilder()}方法设置，若在播放时调用会重新载入视频播放
+     * 设置背景音乐，推荐调用{@link VideoEditor#getBgMusicBuilder()}方法设置
      *
      * @param bgMusicInfo 背景音乐信息
      */
     public abstract void setBgMusic(@NonNull BgMusicInfo bgMusicInfo);
 
     /**
-     * 清空背景音乐，若在播放时调用会重新载入视频播放
+     * 播放背景音乐，需提前设置背景音乐
+     */
+    public abstract void playBgMusic();
+
+    /**
+     * 暂停播放背景音乐
+     */
+    public abstract void stopBgMusic();
+
+    /**
+     * 清空背景音乐
      */
     public abstract void clearBgMusic();
 
     /**
-     * 设置背景音乐，可以链式配置背景音乐信息，推荐使用，若在播放时调用会重新载入视频播放
+     * 设置背景音乐，可以链式配置背景音乐信息，推荐使用
      *
      * @return 背景音乐信息构造器
      */
@@ -279,25 +277,32 @@ public abstract class VideoEditor {
     // ===========================================================
 
     /**
-     * 设置水印，推荐调用{@link VideoEditor#getWaterMarkBuilder()}方法设置，若在播放时调用会重新载入视频播放
+     * 设置水印，推荐调用{@link VideoEditor#getWaterMarkBuilder()}方法设置，保存时生效
      *
      * @param waterMarkInfo 水印信息
      */
     public abstract void setWaterMark(WaterMarkInfo waterMarkInfo);
 
     /**
-     * 清空水印，若在播放时调用会重新载入视频播放
+     * 清空水印，保存时失效
      */
     public abstract void clearWaterMark();
 
     /**
-     * 设置水印，可以链式配置水印信息，推荐使用，若在播放时调用会重新载入视频播放
+     * 设置水印，可以链式配置水印信息，推荐使用
      *
      * @return 水印信息构造器
      */
     public abstract WaterMarkInfoBuilder getWaterMarkBuilder();
 
+    /**
+     * 显示水印，需提前设置水印
+     */
     public abstract void showWatermark();
+
+    /**
+     * 隐藏水印，若提前设置过水印，保存时仍然生效
+     */
     public abstract void hideWatermark();
 
 

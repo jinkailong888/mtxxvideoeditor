@@ -15,7 +15,9 @@ public class VideoSaveInfo  {
     // 设置播放器进入保存模式后视频的保存帧率,底层默认fps是30帧
     private int mFps = 30;
     // 视频保存地址
-    private String videoSavePath;
+    private String mVideoSavePath;
+    //是否硬解
+    private boolean mMediaCodec;
 
 
     @Override
@@ -25,19 +27,25 @@ public class VideoSaveInfo  {
                 ", mOutputHeight=" + mOutputHeight +
                 ", mOutputBitrate=" + mOutputBitrate +
                 ", mFps=" + mFps +
-                ", videoSavePath='" + videoSavePath + '\'' +
+                ", mVideoSavePath='" + mVideoSavePath + '\'' +
+                ", mMediaCodec=" + mMediaCodec +
                 '}';
     }
 
-    public VideoSaveInfo() {
+    public boolean isMediaCodec() {
+        return mMediaCodec;
+    }
+
+    public void setMediaCodec(boolean mediaCodec) {
+        mMediaCodec = mediaCodec;
     }
 
     public String getVideoSavePath() {
-        return videoSavePath;
+        return mVideoSavePath;
     }
 
     public void setVideoSavePath(String videoSavePath) {
-        this.videoSavePath = videoSavePath;
+        this.mVideoSavePath = videoSavePath;
     }
 
 

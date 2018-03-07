@@ -1,8 +1,5 @@
 package com.meitu.library.videoeditor.watermark;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 /**
  * Created by wyh3 on 2018/1/23.
  * WaterMarkInfo
@@ -13,8 +10,9 @@ public class WaterMarkInfo {
     private String mImagePath;
     private int mWidth;
     private int mHeight;
-    private long mStartTime;
-    private long mDuration=-1;
+    private int mStartTime;
+    //若要设置水印与视频时长相同，mDuration字段设置为-1即可
+    private int mDuration=-1;
     private boolean mVisible = true;
     @WaterMarkPosition.WaterMarkPos
     private int mWaterMarkPos;
@@ -75,7 +73,7 @@ public class WaterMarkInfo {
      *
      * @return 单位：ms（视频1倍速下的时间）
      */
-    public long getStartTime() {
+    public int getStartTime() {
         return mStartTime;
     }
 
@@ -84,7 +82,7 @@ public class WaterMarkInfo {
      *
      * @param startTime 开始时间（视频1倍速下的时间），单位ms
      */
-    private void setStartTime(long startTime) {
+    private void setStartTime(int startTime) {
         this.mStartTime = startTime;
     }
 
@@ -93,7 +91,7 @@ public class WaterMarkInfo {
      *
      * @return 单位：ms（视频1倍速下的时间）
      */
-    public long getDuration() {
+    public int getDuration() {
         return mDuration;
     }
 
@@ -102,7 +100,7 @@ public class WaterMarkInfo {
      *
      * @param duration 单位：ms（视频1倍速下的时间）
      */
-    private void setDuration(long duration) {
+    private void setDuration(int duration) {
         this.mDuration = duration;
     }
 

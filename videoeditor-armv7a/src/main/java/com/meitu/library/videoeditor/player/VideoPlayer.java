@@ -2,6 +2,7 @@ package com.meitu.library.videoeditor.player;
 
 import android.graphics.Bitmap;
 
+import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.player.listener.OnGetFrameListener;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
@@ -18,22 +19,17 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
 public interface VideoPlayer {
 
+    void init(VideoEditor.Builder builder);
+
     /**
      * 操作相关
      */
 
-
-    void setDataSource(List<String> path);
-
     void setDataSource(String path);
-
-    void setShowWidth(int showWidth);
-
-    void setShowHeight(int showHeight);
 
     void prepare(boolean autoPlay);
 
-    void play();
+    void start();
 
     void stop();
 
@@ -44,7 +40,6 @@ public interface VideoPlayer {
     void release();
 
     void setLooping(boolean looping);
-
 
     void setOnSaveListener(OnSaveListener onSaveListener);
 
@@ -60,20 +55,8 @@ public interface VideoPlayer {
 
     long getDuration();
 
-    long getRawDuration();
-
     long getCurrentPosition();
 
-    long getRawCurrentPosition();
-
     IjkMediaPlayer getIjkMediaPlayer();
-
-
-    /**
-     * 获取帧信息
-     */
-    Bitmap getFirstFrame();
-
-    void getCurrentFrame(final OnGetFrameListener listener);
 
 }

@@ -1,16 +1,30 @@
 package com.meitu.library.videoeditor.player;
 
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.res.Resources;
+import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import com.meitu.library.videoeditor.core.VideoEditor;
+import com.meitu.library.videoeditor.player.listener.OnPlayListener;
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.util.Tag;
+import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
 /**
@@ -18,28 +32,42 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
  * 播放器控件
  */
 
-public class VideoPlayerView extends FrameLayout {
+public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     private final String TAG = Tag.build("VideoPlayerView");
-
+    // 默认查询底层当前播放的时间的间隔
+    private static final int DEFAULT_SCHEDULE_PLAY_TIME = 50;
+    // 底层播放对象
+    private IjkMediaPlayer mIjkMediaPlayer;
+    // 获取播放进度的task的调度器
+    private Timer mTimer;
+    // 获取播放进度的task
+    private TimerTask mTimerTask;
+    // 播放配置
+    private PlayerStrategyInfo mPlayerStrategyInfo;
+    //保存监听器
+    private OnSaveListener mOnSaveListener;
+    //播放监听器
+    private OnPlayListener mOnPlayListener;
     // SurfaceView，用于显示视频播放内容
     private IRenderView mRenderView;
-    //盖在mPlayerView上面,在mPlayerView黑屏时,可以用来显示视频截图
-    private ImageView mCoverView;
     private IRenderView.ISurfaceHolder mSurfaceHolder;
     private Context mContext;
-    private VideoPlayerImpl mVideoPlayer;
     private int mSurfaceWidth;
     private int mSurfaceHeight;
     private int mVideoWidth;
     private int mVideoHeight;
+    private int mVideoSarNum;
+    private int mVideoSarDen;
+    private int mVideoRotationDegree;
+
 
     public VideoPlayerView(@NonNull Context context) {
-        this(context,null);
+        this(context, null);
     }
 
     public VideoPlayerView(@NonNull Context context, @Nullable AttributeSet attrs) {
-        this(context, attrs,0);
+        this(context, attrs, 0);
     }
 
     public VideoPlayerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
@@ -47,20 +75,246 @@ public class VideoPlayerView extends FrameLayout {
         mContext = context;
     }
 
-    public void init(VideoPlayerImpl videoPlayerImpl) {
-        mVideoPlayer = videoPlayerImpl;
-        mRenderView =  new SurfaceRenderView(mContext);
+    @Override
+    public void init(VideoEditor.Builder builder) {
+        mIjkMediaPlayer = new IjkMediaPlayer();
+        if (builder.nativeDebuggable) {
+            IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
+        }
+        mPlayerStrategyInfo = new PlayerStrategyInfo();
+        scheduleTimer();
+        initPlayer();
+        initListener();
+    }
+
+    private void initPlayer() {
+        setLooping(true);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "protocol_whitelist",
+                "ffconcat,file,http,https");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
+                "concat,tcp,http,https,tls,file");
+        mRenderView = new SurfaceRenderView(mContext);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER);
-        addView(mRenderView.getView(),lp);
+        addView(mRenderView.getView(), lp);
         mRenderView.addRenderCallback(mSHCallback);
-//        mRenderView.setVideoRotation(mVideoRotationDegree);
+        mRenderView.setVideoRotation(mVideoRotationDegree);
 
     }
 
+    private void initListener() {
+        mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
+        mIjkMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
+        mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
+        mIjkMediaPlayer.setOnErrorListener(mErrorListener);
+        mIjkMediaPlayer.setOnInfoListener(mInfoListener);
+//        mIjkMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
+//        mIjkMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
+//        mIjkMediaPlayer.setOnTimedTextListener(mOnTimedTextListener);
+    }
 
+    /**
+     * 开始调度 获取 播放进度
+     */
+    private void scheduleTimer() {
+        Log.d(TAG, "scheduleTimer");
+        releaseTimer();
+        mTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                // 不在播放中，或是 保存模式 返回
+                if (!isPlaying()) {
+                    return;
+                }
+                final long currentPos = mIjkMediaPlayer.getCurrentPosition();
+                // 通知播放进度
+                if (mOnPlayListener != null) {
+                    mOnPlayListener.onProgressUpdate(currentPos, getDuration());
+                }
+            }
+        };
+        mTimer = new Timer();
+        mTimer.schedule(mTimerTask, 0, DEFAULT_SCHEDULE_PLAY_TIME);
+    }
+
+    /**
+     * 释放获取 播放进度 task
+     */
+    private void releaseTimer() {
+        Log.d(TAG, "releaseTimer");
+        if (mTimerTask != null) {
+            mTimerTask.cancel();
+            mTimerTask = null;
+        }
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
+    }
+
+
+    @Override
+    public void setDataSource(String path) {
+        if (mIjkMediaPlayer != null) {
+            try {
+                mIjkMediaPlayer.setDataSource(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void prepare(boolean autoPlay) {
+        Log.d(TAG, "prepare autoPlay = " + autoPlay);
+        mPlayerStrategyInfo.setPrepareAutoPlay(autoPlay);
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.stop();
+            mIjkMediaPlayer.prepareAsync();
+            mIjkMediaPlayer.seekTo(0);
+        }
+    }
+
+    @Override
+    public void start() {
+        Log.d(TAG, "start");
+        if (mIjkMediaPlayer != null && !isPlaying()) {
+            mIjkMediaPlayer.start();
+        }
+    }
+
+    @Override
+    public void stop() {
+        Log.d(TAG, "stop");
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.stop();
+        }
+    }
+
+    @Override
+    public void pause() {
+        Log.d(TAG, "pause");
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.pause();
+        }
+    }
+
+    @Override
+    public void save(final VideoSaveInfo v) {
+        Log.d(TAG, "save VideoSaveInfo:" + v.toString());
+//        if (isSaving()) {
+//            Log.d(TAG, "is saving, do nothing");
+//            return;
+//        }
+        pause();
+        mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
+    }
+
+    @Override
+    public void setLooping(boolean looping) {
+        Log.d(TAG, "setLooping:" + looping);
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.setLooping(looping);
+        } else {
+            Log.e(TAG, "mIjkMediaPlayer is null");
+        }
+    }
+
+    @Override
+    public boolean isPlaying() {
+        return mIjkMediaPlayer != null && mIjkMediaPlayer.isPlaying();
+    }
+
+    @Override
+    public boolean isLooping() {
+        return mIjkMediaPlayer != null && mIjkMediaPlayer.isLooping();
+    }
+
+
+    @Override
+    public long getDuration() {
+        return mIjkMediaPlayer != null ? mIjkMediaPlayer.getDuration() : 0;
+    }
+
+
+    @Override
+    public long getCurrentPosition() {
+        return mIjkMediaPlayer != null ? mIjkMediaPlayer.getCurrentPosition() : 0;
+    }
+
+    @Override
+    public IjkMediaPlayer getIjkMediaPlayer() {
+        return mIjkMediaPlayer;
+    }
+
+
+    @Override
+    public void setOnSaveListener(OnSaveListener onSaveListener) {
+        mOnSaveListener = onSaveListener;
+    }
+
+    @Override
+    public void setOnPlayListener(OnPlayListener onPlayListener) {
+        mOnPlayListener = onPlayListener;
+    }
+
+
+    @Override
+    public void release() {
+        Log.d(TAG, "release");
+        releaseTimer();
+        if (mIjkMediaPlayer != null) {
+            mIjkMediaPlayer.release();
+            mIjkMediaPlayer = null;
+        }
+    }
+
+    IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
+        public void onPrepared(IMediaPlayer mp) {
+            Log.d(TAG, "onPrepared");
+            mVideoWidth = mp.getVideoWidth();
+            mVideoHeight = mp.getVideoHeight();
+            if (mVideoWidth != 0 && mVideoHeight != 0) {
+                if (mRenderView != null) {
+                    mRenderView.setVideoSize(mVideoWidth, mVideoHeight);
+                    mRenderView.setVideoSampleAspectRatio(mVideoSarNum, mVideoSarDen);
+                }
+            }
+            if (mPlayerStrategyInfo.isPrepareAutoPlay()) {
+                start();
+            }
+        }
+    };
+
+
+    IMediaPlayer.OnVideoSizeChangedListener mSizeChangedListener =
+            new IMediaPlayer.OnVideoSizeChangedListener() {
+                public void onVideoSizeChanged(IMediaPlayer mp, int width, int height, int sarNum, int sarDen) {
+                    mVideoWidth = mp.getVideoWidth();
+                    mVideoHeight = mp.getVideoHeight();
+                    mVideoSarNum = mp.getVideoSarNum();
+                    mVideoSarDen = mp.getVideoSarDen();
+                    if (mVideoWidth != 0 && mVideoHeight != 0) {
+                        if (mRenderView != null) {
+                            mRenderView.setVideoSize(mVideoWidth, mVideoHeight);
+                            mRenderView.setVideoSampleAspectRatio(mVideoSarNum, mVideoSarDen);
+                        }
+                        requestLayout();
+                    }
+                }
+            };
+
+    private IMediaPlayer.OnCompletionListener mCompletionListener =
+            new IMediaPlayer.OnCompletionListener() {
+                public void onCompletion(IMediaPlayer mp) {
+                    Log.e(TAG, "OnCompletionListener\n");
+                }
+            };
 
 
     IRenderView.IRenderCallback mSHCallback = new IRenderView.IRenderCallback() {
@@ -72,10 +326,6 @@ public class VideoPlayerView extends FrameLayout {
             }
             mSurfaceWidth = w;
             mSurfaceHeight = h;
-            boolean hasValidSize = !mRenderView.shouldWaitForResize() || (mVideoWidth == w && mVideoHeight == h);
-            if (mVideoPlayer != null  && hasValidSize) {
-                mVideoPlayer.play();
-            }
         }
 
         @Override
@@ -85,8 +335,8 @@ public class VideoPlayerView extends FrameLayout {
                 return;
             }
             mSurfaceHolder = holder;
-            if (mVideoPlayer != null){
-                holder.bindToMediaPlayer(mVideoPlayer.getIjkMediaPlayer());
+            if (mIjkMediaPlayer != null) {
+                holder.bindToMediaPlayer(mIjkMediaPlayer);
             }
         }
 
@@ -97,7 +347,63 @@ public class VideoPlayerView extends FrameLayout {
                 return;
             }
             mSurfaceHolder = null;
-            mVideoPlayer.release();
         }
     };
+
+    private IMediaPlayer.OnErrorListener mErrorListener =
+            new IMediaPlayer.OnErrorListener() {
+                public boolean onError(IMediaPlayer mp, int framework_err, int impl_err) {
+                    Log.d(TAG, "onError: " + framework_err + "," + impl_err);
+                    return false;
+                }
+            };
+
+
+    private IMediaPlayer.OnInfoListener mInfoListener =
+            new IMediaPlayer.OnInfoListener() {
+                public boolean onInfo(IMediaPlayer mp, int arg1, int arg2) {
+                    switch (arg1) {
+                        case IMediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING:
+                            Log.d(TAG, "MEDIA_INFO_VIDEO_TRACK_LAGGING:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
+                            Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH:
+                            Log.d(TAG, "MEDIA_INFO_NETWORK_BANDWIDTH: " + arg2);
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_BAD_INTERLEAVING:
+                            Log.d(TAG, "MEDIA_INFO_BAD_INTERLEAVING:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_NOT_SEEKABLE:
+                            Log.d(TAG, "MEDIA_INFO_NOT_SEEKABLE:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_METADATA_UPDATE:
+                            Log.d(TAG, "MEDIA_INFO_METADATA_UPDATE:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_UNSUPPORTED_SUBTITLE:
+                            Log.d(TAG, "MEDIA_INFO_UNSUPPORTED_SUBTITLE:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_SUBTITLE_TIMED_OUT:
+                            Log.d(TAG, "MEDIA_INFO_SUBTITLE_TIMED_OUT:");
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_VIDEO_ROTATION_CHANGED:
+                            mVideoRotationDegree = arg2;
+                            Log.d(TAG, "MEDIA_INFO_VIDEO_ROTATION_CHANGED: " + arg2);
+                            if (mRenderView != null)
+                                mRenderView.setVideoRotation(arg2);
+                            break;
+                        case IMediaPlayer.MEDIA_INFO_AUDIO_RENDERING_START:
+                            Log.d(TAG, "MEDIA_INFO_AUDIO_RENDERING_START:");
+                            break;
+                    }
+                    return true;
+                }
+            };
 }

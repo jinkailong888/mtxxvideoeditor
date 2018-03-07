@@ -57,10 +57,6 @@
 #define FFP_REQ_PAUSE                       20002
 #define FFP_REQ_SEEK                        20003
 
-#define FFP_REQ_WATERMARK_ON                   30001
-#define FFP_REQ_WATERMARK_OFF                  30002
-#define FFP_REQ_SAVE                           30003
-
 #define FFP_PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND   10001
 #define FFP_PROP_FLOAT_VIDEO_OUTPUT_FRAMES_PER_SECOND   10002
 #define FFP_PROP_FLOAT_PLAYBACK_RATE                    10003
@@ -106,5 +102,13 @@
 
 #define FFP_PROP_INT64_LOGICAL_FILE_SIZE                20209
 #define FFP_PROP_INT64_SHARE_CACHE_DATA                 20210
+
+
+/**** MeiTu 视频编辑相关 ****/
+#define FFP_REQ_WATERMARK_ON                   30001
+#define FFP_REQ_WATERMARK_OFF                  30002
+#define FFP_REQ_SAVE                           30003
+
+/**** MeiTu 视频编辑相关 end****/
 
 #endif
