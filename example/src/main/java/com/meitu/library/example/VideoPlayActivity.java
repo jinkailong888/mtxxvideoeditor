@@ -119,9 +119,10 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .setHeight(60)
                 .setWidth(60)
                 //无法设置assets资源
-                .setImagePath("/storage/emulated/0/VideoEditorDir/save.png")
+//                .setImagePath(FileUtil.getWatermarkPath())
+                .setImagePath(FileUtil.getDir()+"/"+"save.png")
                 //对于宽>高的视频位置错乱
-                .setWaterMarkPos(WaterMarkPosition.TopLeft)
+                .setWaterMarkPos(WaterMarkPosition.Center)
                 .setHorizontalPadding(5)
                 .setVerticalPadding(5)
                 .setWaterMark();
@@ -129,8 +130,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     }
 
     public void save(View view) {
-        String outputPath = FileUtil.getSaveVideoOutputPath();
-        mVideoEditor.getSaveBuilder().setVideoSavePath(outputPath).save();
+        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()).save();
     }
 
     @Override
@@ -146,10 +146,11 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         }
         if (mMusicSwitch == compoundButton) {
             if (b) {
-                String musicPath = FileUtil.getMusicPath();
-                mVideoEditor.getBgMusicBuilder().setMusicPath(musicPath).setRepeat(true).setBgMusic();
+                mVideoEditor.getBgMusicBuilder().setMusicPath(FileUtil.getMusicPath()).setRepeat(true).setBgMusic();
                 mVideoEditor.playBgMusic();
             } else {
+
+                mVideoEditor.stopBgMusic();
                 mVideoEditor.clearBgMusic();
             }
         }

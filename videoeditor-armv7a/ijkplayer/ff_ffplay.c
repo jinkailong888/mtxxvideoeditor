@@ -2489,18 +2489,12 @@ static int ffplay_video_thread(void *arg) {
             frame_rate = av_buffersink_get_frame_rate(filt_out);
             SDL_UnlockMutex(ffp->vf_mutex);
         }
-
-
-        av_log(NULL, AV_LOG_ERROR, "get_video_frame pts = %lli\n", frame->pts);
-
-
         ret = av_buffersrc_add_frame(filt_in, frame);
         if (ret < 0)
             goto the_end;
 
         while (ret >= 0) {
             is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
-
             ret = av_buffersink_get_frame_flags(filt_out, frame, 0);
             if (ret < 0) {
                 if (ret == AVERROR_EOF)

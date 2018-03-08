@@ -2128,6 +2128,8 @@ AVProgram *av_new_program(AVFormatContext *s, int id);
  * avformat_free_context() can be used to free the context and
  * everything allocated by the framework within it.
  *
+ * AVFormatContext 可为NULL
+ *
  * @param *ctx is set to the created format context, or to NULL in
  * case of failure
  * @param oformat format to use for allocating the context, if NULL

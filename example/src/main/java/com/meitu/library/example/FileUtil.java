@@ -27,16 +27,33 @@ class FileUtil {
             "/VideoEditorDir";
 
     private static String musicPath = null;
+    private static String watermarkPath = null;
 
 
-    static void init(Context context) {
-        File file = new File(dir);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        String modelFilePath = "music/triton.mp3";
-        musicPath = dir + "/" + "triton.mp3";
-        Assets2Sd(context, modelFilePath, musicPath);
+    public static String getDir() {
+        return dir;
+    }
+
+    static void init(final Context context) {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File file = new File(dir);
+                if (!file.exists()) {
+                    file.mkdirs();
+                }
+
+                String assetsMusicPath = "music/triton.mp3";
+                musicPath = dir + "/" + "triton.mp3";
+                Assets2Sd(context, assetsMusicPath, musicPath);
+
+                String assetsWatermarkPath = "watermark/watermark.png";
+                watermarkPath = dir + "/" + "watermark.png";
+                Assets2Sd(context, assetsWatermarkPath, watermarkPath);
+            }
+        }).start();
+
     }
 
 
@@ -54,6 +71,9 @@ class FileUtil {
         return musicPath;
     }
 
+    public static String getWatermarkPath() {
+        return watermarkPath;
+    }
 
     private static void Assets2Sd(Context context, String fileAssetPath, String fileSdPath) {
         //测试把文件直接复制到sd卡中 fileSdPath完整路径
