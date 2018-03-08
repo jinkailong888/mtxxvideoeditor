@@ -26,8 +26,7 @@ android {
                         " -Wno-psabi -Wa,--noexecstack " +
                         " -DANDROID -DNDEBUG"
 
-                arguments "-DANDROID_PLATFORM=android-9",
-                        "-DANDROID_STL=stlport_static",
+                arguments "-DANDROID_STL=stlport_static",
                         "-DANDROID_PIE=OFF",
                         "-DANDROID_ARM_NEON=TRUE"
 
