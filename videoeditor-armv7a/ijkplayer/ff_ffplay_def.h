@@ -440,6 +440,9 @@ typedef struct EditorState {
     //原视频信息
     int videoWidth;
     int videoHeight;
+    int frameWidth;
+    int frameHeight;
+    double rotation;
 
     //保存参数
     bool mediaCodec;

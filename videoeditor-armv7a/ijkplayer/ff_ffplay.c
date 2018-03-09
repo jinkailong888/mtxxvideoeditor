@@ -1687,6 +1687,8 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
         if (vp->width != src_frame->width || vp->height != src_frame->height)
             ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, src_frame->width, src_frame->height);
 
+        av_log(NULL, AV_LOG_INFO, "FFP_MSG_VIDEO_SIZE_CHANGED width=%d,height=%d", src_frame->width,
+               src_frame->height);
         vp->allocated = 0;
         vp->width = src_frame->width;
         vp->height = src_frame->height;
@@ -5301,26 +5303,26 @@ void ffp_clearWatermark(FFPlayer *ffp) {
     EditorState *es = ffp->es;
     if (!es)
         return;
-    if (es->movie_descr){
+    if (es->movie_descr) {
         av_free(es->movie_descr);
-        es->movie_descr=NULL;
+        es->movie_descr = NULL;
     }
 }
 
 
 void ffp_setBgMusic(FFPlayer *ffp,
-                    const char * musicPath,
+                    const char *musicPath,
                     jint startTime,
                     jint duration,
                     jfloat speed,
-                    jboolean loop){
+                    jboolean loop) {
 
 
     //todo ffp_setBgMusic
 
 }
 
-void ffp_clearBgMusic(FFPlayer *ffp){
+void ffp_clearBgMusic(FFPlayer *ffp) {
 
 }
 

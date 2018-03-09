@@ -6,13 +6,13 @@ package com.meitu.library.videoeditor.video;
  */
 
 public class VideoSaveInfo  {
-    // 视频输出宽度
+    // 视频输出宽度，默认与原视频相同
     private int mOutputWidth;
-    // 视频输出高度
+    // 视频输出高度，默认与原视频相同
     private int mOutputHeight;
     // 输出码率，默认为 2000 * 1000 + 1
     private int mOutputBitrate = 2000 * 1000 + 1;
-    // 设置播放器进入保存模式后视频的保存帧率,底层默认fps是30帧
+    // 输出fps， 默认为30帧
     private int mFps = 30;
     // 视频保存地址
     private String mVideoSavePath;

@@ -24,7 +24,23 @@
 #ifndef IJKPLAYER_ANDROID__FFMPEG_API_JNI_H
 
 #include <jni.h>
+#include <ff_ffinc.h>
 
 int FFmpegApi_global_init(JNIEnv *env);
+
+/**** MeiTu 获取视频信息方法 ****/
+
+//int FFmpegApi_open_video(JNIEnv *env, jclass clazz, jstring url);
+
+//int FFmpegApi_get_video_height(JNIEnv *env, jclass clazz);
+
+//int FFmpegApi_get_video_width(JNIEnv *env, jclass clazz);
+
+double FFmpegApi_get_rotation(AVStream *st);
+
+//void FFmpegApi_close_video(JNIEnv *env, jclass clazz);
+
+
+/**** MeiTu 获取视频信息方法 end ****/
 
 #endif

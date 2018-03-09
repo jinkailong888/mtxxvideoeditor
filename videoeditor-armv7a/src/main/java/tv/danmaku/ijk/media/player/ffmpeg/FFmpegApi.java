@@ -35,6 +35,12 @@ public class FFmpegApi {
         return _getVideoHeight();
     }
 
+    public static double getVideoRotation() {
+        return _getVideoRotation();
+    }
+
+    public static native double _getVideoRotation();
+
     public static native int _open(String url);
 
     private static native long _getVideoDuration();

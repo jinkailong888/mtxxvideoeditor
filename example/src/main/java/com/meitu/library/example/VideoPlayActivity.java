@@ -115,22 +115,22 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             }
         });
 
-        mVideoEditor.getWaterMarkBuilder()
-                .setHeight(60)
-                .setWidth(60)
-                //无法设置assets资源
+//        mVideoEditor.getWaterMarkBuilder()
+//                .setHeight(60)
+//                .setWidth(60)
+//                //无法设置assets资源
 //                .setImagePath(FileUtil.getWatermarkPath())
-                .setImagePath(FileUtil.getDir()+"/"+"save.png")
-                //对于宽>高的视频位置错乱
-                .setWaterMarkPos(WaterMarkPosition.Center)
-                .setHorizontalPadding(5)
-                .setVerticalPadding(5)
-                .setWaterMark();
+//                .setImagePath(FileUtil.getDir()+"/"+"save.png")
+//                //对于宽>高的视频位置错乱
+//                .setWaterMarkPos(WaterMarkPosition.Center)
+//                .setHorizontalPadding(5)
+//                .setVerticalPadding(5)
+//                .setWaterMark();
 
     }
 
     public void save(View view) {
-        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()).save();
+        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()) .save();
     }
 
     @Override

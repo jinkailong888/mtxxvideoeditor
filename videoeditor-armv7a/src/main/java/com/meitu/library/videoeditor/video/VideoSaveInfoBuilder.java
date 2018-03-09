@@ -23,7 +23,7 @@ public class VideoSaveInfoBuilder {
     /**
      * 设置保存视频输出宽度
      *
-     * @param outputWidth 视频输出宽度
+     * @param outputWidth 视频输出宽度，默认为原视频宽度
      * @return VideoSaveInfo构造器
      */
     public VideoSaveInfoBuilder setOutputWidth(int outputWidth) {
@@ -32,7 +32,7 @@ public class VideoSaveInfoBuilder {
     }
 
     /**
-     * 设置保存视频输出高度
+     * 设置保存视频输出高度，默认为原视频高度
      *
      * @param outputHeight 视频输出高度
      * @return VideoSaveInfo构造器

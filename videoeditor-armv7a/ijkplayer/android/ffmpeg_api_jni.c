@@ -76,7 +76,6 @@ FFmpegApi_av_base64_encode(JNIEnv *env, jclass clazz, jbyteArray in) {
 }
 
 
-
 /**** MeiTu 获取视频信息方法 ****/
 
 AVFormatContext *ic;
@@ -107,7 +106,7 @@ FFmpegApi_get_video_width(JNIEnv *env, jclass clazz) {
     if (video_stream_idx >= 0) {
         AVStream *video_stream = ic->streams[video_stream_idx];
         return video_stream->codecpar->width;
-    }else{
+    } else {
         return 0;
     }
 }
@@ -117,7 +116,7 @@ FFmpegApi_get_video_height(JNIEnv *env, jclass clazz) {
     if (video_stream_idx >= 0) {
         AVStream *video_stream = ic->streams[video_stream_idx];
         return video_stream->codecpar->height;
-    }else{
+    } else {
         return 0;
     }
 }
@@ -134,8 +133,18 @@ FFmpegApi_get_video_codec_name(JNIEnv *env, jclass clazz) {
         AVStream *video_stream = ic->streams[video_stream_idx];
         const char *codec_name = avcodec_get_name(video_stream->codecpar->codec_id);
         return (*env)->NewStringUTF(env, codec_name);
-    }else{
+    } else {
         return NULL;
+    }
+}
+
+static jdouble
+FFmpegApi_get_video_rotation(JNIEnv *env, jclass clazz){
+    if (video_stream_idx >= 0) {
+        AVStream *video_stream = ic->streams[video_stream_idx];
+        return FFmpegApi_get_rotation(video_stream);
+    } else {
+        return 0;
     }
 }
 
@@ -143,6 +152,23 @@ FFmpegApi_get_video_codec_name(JNIEnv *env, jclass clazz) {
 static void
 FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
     avformat_close_input(&ic);
+}
+
+double FFmpegApi_get_rotation(AVStream *st) {
+    AVDictionaryEntry *rotate_tag = av_dict_get(st->metadata, "rotate", NULL, 0);
+    double theta = 0;
+    if (rotate_tag && *rotate_tag->value && strcmp(rotate_tag->value, "0")) {
+        //char *tail;
+        //theta = av_strtod(rotate_tag->value, &tail);
+        theta = atof(rotate_tag->value);
+        // if (*tail)
+        // theta = 0;
+    }
+    theta -= 360 * floor(theta / 360 + 0.9 / 360);
+    if (fabs(theta - 90 * round(theta / 90)) > 2)
+        LOGD("Odd rotation angle");
+    LOGD("get_rotation %f", theta);
+    return theta;
 }
 
 
@@ -159,6 +185,7 @@ static JNINativeMethod g_methods[] = {
         {"_getVideoHeight",    "()I",                    (void *) FFmpegApi_get_video_height},
         {"_getVideoDuration",  "()J",                    (void *) FFmpegApi_get_video_duration},
         {"_getVideoCodecName", "()Ljava/lang/String;",   (void *) FFmpegApi_get_video_codec_name},
+        {"_getVideoRotation",   "()D",                    (void *) FFmpegApi_get_video_rotation},
         {"close",              "()V",                    (void *) FFmpegApi_close_video},
 
 
