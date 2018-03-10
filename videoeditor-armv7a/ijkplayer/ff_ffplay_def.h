@@ -276,7 +276,7 @@ typedef struct Decoder {
 } Decoder;
 
 typedef struct VideoState {
-    //todo Demux解复用线程，读视频文件stream线程，得到AVPacket，并对packet入栈
+    // Demux解复用线程，读视频文件stream线程，得到AVPacket，并对packet入栈
     SDL_Thread *read_tid;
     SDL_Thread _read_tid;
     AVInputFormat *iformat;

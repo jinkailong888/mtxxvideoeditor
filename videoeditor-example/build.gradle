@@ -37,7 +37,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 
 
-    compile project(path: ':videoeditor-armv7a')
+    compile project(path: ':editor(avfilter)-armv7a')
 
 
 }

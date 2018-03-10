@@ -29,19 +29,19 @@ import tv.danmaku.ijk.media.player.IjkMediaMeta;
 
 public class IjkMediaFormat implements IMediaFormat {
     // Common
-    public static final String KEY_IJK_CODEC_LONG_NAME_UI = "ijk-codec-long-name-ui";
-    public static final String KEY_IJK_CODEC_NAME_UI = "ijk-codec-name-ui";
-    public static final String KEY_IJK_BIT_RATE_UI = "ijk-bit-rate-ui";
+    public static final String KEY_IJK_CODEC_LONG_NAME_UI = "ijk记录-codec-long-name-ui";
+    public static final String KEY_IJK_CODEC_NAME_UI = "ijk记录-codec-name-ui";
+    public static final String KEY_IJK_BIT_RATE_UI = "ijk记录-bit-rate-ui";
 
     // Video
-    public static final String KEY_IJK_CODEC_PROFILE_LEVEL_UI = "ijk-profile-level-ui";
-    public static final String KEY_IJK_CODEC_PIXEL_FORMAT_UI = "ijk-pixel-format-ui";
-    public static final String KEY_IJK_RESOLUTION_UI = "ijk-resolution-ui";
-    public static final String KEY_IJK_FRAME_RATE_UI = "ijk-frame-rate-ui";
+    public static final String KEY_IJK_CODEC_PROFILE_LEVEL_UI = "ijk记录-profile-level-ui";
+    public static final String KEY_IJK_CODEC_PIXEL_FORMAT_UI = "ijk ijk记录 汇总-pixel-format-ui";
+    public static final String KEY_IJK_RESOLUTION_UI = "ijk ijk记录 汇总-resolution-ui";
+    public static final String KEY_IJK_FRAME_RATE_UI = "ijk ijk记录 汇总-frame-rate-ui";
 
     // Audio
-    public static final String KEY_IJK_SAMPLE_RATE_UI = "ijk-sample-rate-ui";
-    public static final String KEY_IJK_CHANNEL_UI = "ijk-channel-ui";
+    public static final String KEY_IJK_SAMPLE_RATE_UI = "ijk ijk记录 汇总-sample-rate-ui";
+    public static final String KEY_IJK_CHANNEL_UI = "ijk ijk记录 汇总-channel-ui";
 
     // Codec
     public static final String CODEC_NAME_H264 = "h264";

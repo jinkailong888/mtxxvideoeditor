@@ -186,7 +186,7 @@ int ff_vaapi_decode_issue(AVCodecContext *avctx,
     vas = vaEndPicture(ctx->hwctx->display, ctx->va_context);
     if (vas != VA_STATUS_SUCCESS) {
         av_log(avctx, AV_LOG_ERROR, "Failed to end picture decode "
-               "issue: %d (%s).\n", vas, vaErrorStr(vas));
+               "ijk记录: %d (%s).\n", vas, vaErrorStr(vas));
         err = AVERROR(EIO);
         if (ctx->hwctx->driver_quirks &
             AV_VAAPI_DRIVER_QUIRK_RENDER_PARAM_BUFFERS)

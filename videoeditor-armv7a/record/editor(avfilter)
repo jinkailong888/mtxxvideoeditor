@@ -1,0 +1,79 @@
+
+**************************************
+播放
+水印
+音乐
+转场
+滤镜
+保存
+**************************************
+
+
+**************************************
+播放
+**************************************
+《使用ffmpeg合并视频文件的三种方法 》：http://blog.csdn.net/u012587637/article/details/51670975
+
+
+**************************************
+水印
+**************************************
+秀秀中预览视频时不需显示水印，需要能在最后保存时加入水印
+问题：水印错误:
+ E/IJKMEDIA: Failed to avformat_open_input '/storage/emulated/0/VideoEditorDir/test.jpg',ret=-1094995529
+ E/IJKMEDIA: Error initializing filter 'movie'
+ E/IJKMEDIA: *********************************Error initializing filter 'movie'
+ E/IJKMEDIA:  with args '/storage/emulated/0/VideoEditorDir/test.jpg'
+原因:https://stackoverflow.com/questions/10455611/how-to-solve-ffmpeg-watermark-no-such-filter-movie-and-failed-to-avformat
+解决：ijk未开启对应的demuxers
+问题：水印能否在ijk的硬解时添加失败，
+     ret = av_buffersrc_add_frame(filt_in, frame);     返回 -22
+     错误码 libavutil/error.c中   -22代表：无效参数
+     av_buffersrc_add_frame  索引到：  av_frame_ref   ---》  av_frame_copy(dst, src)   ---》   frame_copy_video 方法中的：
+         planes = av_pix_fmt_count_planes(dst->format);
+            for (i = 0; i < planes; i++){
+            if (!dst->data[i] || !src->data[i]){
+                return AVERROR(EINVAL);
+            }
+         }
+     原因： src->data[0] = 0
+     软解帧此值不为0,硬解帧此值为0
+     硬解帧异常，虽然可以加入帧缓冲队列显示，但是其format和data值都异常
+     通过调用av_pix_fmt_count_planes方法得知 format=10001为无效format
+     解决方案：首先搞懂软解和硬解出来的帧即avframe的区别
+     软解: format=0对应于AV_PIX_FMT_YUV420P
+     硬解: format=10001无对应格式(format一共347个)
+解决：改用ffmpeg3.1后自带的mediacodec硬解后，由于其走的软解流程，添加成功
+     问题：-enable-jni 报错
+     -enable-jni 报错： ERROR: jni not found  Objective-C compiler not installed on this system
+     高版本ffmpeg也会报错 ERROR: jni not found 但具体原因不一样
+     解决：--target-os=linux ---》 --target-os=android
+     成功实现硬解水印：https://www.cnblogs.com/elesos/p/6860865.html
+加水印暂停后崩溃问题：暂时屏蔽destory方法
+
+**************************************
+音乐
+**************************************
+《SDL 与 FFMPEG 音乐播放器开发（2）——混播多个音频》：http://blog.csdn.net/u013080313/article/details/50387244
+《ffmpeg实战教程（十二）为视频添加/更换背景音乐 》：http://blog.csdn.net/king1425/article/details/72628607
+工作：1.播放  2.保存写入
+无声问题：音频未开始解码
+原因：configure_audio_filters 出错
+暂时 #define CONFIG_AVFILTER 0 屏蔽configure_audio_filters操作
+解决：--enable-filter=aresample
+1.播放
+>音频滤镜实现
+>播放实现
+  如何在原播放器基础上多重叠播放一个音频
+
+**************************************
+转场
+**************************************
+
+**************************************
+滤镜
+**************************************
+
+**************************************
+保存
+**************************************

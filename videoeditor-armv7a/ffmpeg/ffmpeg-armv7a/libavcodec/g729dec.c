@@ -581,7 +581,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame_ptr,
               reference code, because gain_corr_factor in G.729D is
               two times larger than in original G.729.
 
-              If bit-exact result is not issue then gain_corr_factor
+              If bit-exact result is not ijk记录 then gain_corr_factor
               can be simpler divided by 2 before call to g729_get_gain_code
               instead of using correction below.
             */

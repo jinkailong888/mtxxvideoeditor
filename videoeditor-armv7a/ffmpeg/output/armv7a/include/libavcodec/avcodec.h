@@ -1781,7 +1781,6 @@ typedef struct AVCodecContext {
 
     /**
      * the average bitrate
-     * d
      * - encoding: Set by user; unused for constant quantizer encoding.
      * - decoding: Set by user, may be overwritten by libavcodec
      *             if this info is available in the stream
@@ -1940,8 +1939,6 @@ typedef struct AVCodecContext {
      * Pixel format, see AV_PIX_FMT_xxx.
      * May be set by the demuxer if known from headers.
      * May be overridden by the decoder if it knows better.
-     *
-     * 像素传输格式（该参数跟编码器支持的格式有关，需要严格检查）
      *
      * @note This field may not match the value of the last
      * AVFrame output by avcodec_receive_frame() due frame
@@ -2128,7 +2125,6 @@ typedef struct AVCodecContext {
     int *slice_offset;
 
     /**
-     * 音视频宽高比（作者注：标清一般为4:3，高清为16:9）
      * sample aspect ratio (0 if unknown)
      * That is the width of a pixel divided by the height of the pixel.
      * Numerator and denominator must be relatively prime and smaller than 256 for some video standards.
@@ -2243,8 +2239,6 @@ typedef struct AVCodecContext {
     /**
      * maximum motion estimation search range in subpel units
      * If 0 then no limit.
-     *  运动估计的最大搜索范围
-     * （这个东西跟运动补偿有关，值越大，则补偿参考范围越广，也会越精确，但编码效率会有所下降。）
      *
      * - encoding: Set by user.
      * - decoding: unused
@@ -2661,7 +2655,6 @@ typedef struct AVCodecContext {
     int refcounted_frames;
 
     /* - encoding parameters */
-    // 官方注释是压缩变化的难易程度。（值越大，越难压缩变换，那么压缩率也越高，质量相对损失较大。）
     float qcompress;  ///< amount of qscale change between easy & hard scenes (0.0-1.0)
     float qblur;      ///< amount of qscale smoothing over time (0.0-1.0)
 
@@ -2701,7 +2694,6 @@ typedef struct AVCodecContext {
 
     /**
      * decoder bitstream buffer size
-     * 用于码率控制的buffer大小（该值太小容易下溢，太大可能会导致编码延迟过大）
      * - encoding: Set by user.
      * - decoding: unused
      */
@@ -2725,7 +2717,6 @@ typedef struct AVCodecContext {
 
     /**
      * maximum bitrate
-     * 最大码率
      * - encoding: Set by user.
      * - decoding: Set by user, may be overwritten by libavcodec.
      */
@@ -2733,7 +2724,6 @@ typedef struct AVCodecContext {
 
     /**
      * minimum bitrate
-     * 最小码率
      * - encoding: Set by user.
      * - decoding: unused
      */
@@ -2752,7 +2742,6 @@ typedef struct AVCodecContext {
 
     /**
      * Ratecontrol attempt to use, at maximum, <value> of what can be used without an underflow.
-     * 最大可用的码率值，用于防止下溢
      * - encoding: Set by user.
      * - decoding: unused.
      */
@@ -2760,7 +2749,6 @@ typedef struct AVCodecContext {
 
     /**
      * Ratecontrol attempt to use, at least, <value> times the amount needed to prevent a vbv overflow.
-     * 最小可用的码率值，用于防止上溢
      * - encoding: Set by user.
      * - decoding: unused.
      */
@@ -2768,7 +2756,6 @@ typedef struct AVCodecContext {
 
     /**
      * Number of bits which should be loaded into the rc buffer before decoding starts.
-     * 解码开始前，需要往码率控制buffer中读取的数据大小
      * - encoding: Set by user.
      * - decoding: unused
      */
@@ -4095,7 +4082,6 @@ typedef struct AVCodecParameters {
 
     /**
      * The average bitrate of the encoded data (in bits per second).
-     * 编码码率
      */
     int64_t bit_rate;
 

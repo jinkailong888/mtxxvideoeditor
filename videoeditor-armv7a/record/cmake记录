@@ -1,0 +1,68 @@
+LLDB: Android Studio上面调试本地代码的工具
+externalNativeBuild文件夹：cmake编译好的文件, 显示支持的各种硬件等信息。系统生成
+
+优势：
+        可以直接的在C/C++代码中加入断点，进行调试
+        java引用的C/C++中的方法，可以直接ctrl+左键进入
+        对于include的头文件或者库，也可以直接进入
+        不需要配置命令行操作，手动的生成头文件，不需要配置android.useDeprecatedNdk=true属性
+
+cmakelist语法：
+
+add_library方法和target_link_libraries方法一一对应，当有多个库，多个C/C++文件时，可写多组add_library方法和target_link_libraries方法
+
+添加某个目录下的所有
+
+
+问题：cmake编不出.a
+解决：moudel的 defaultConfig externalNativeBuild cmake中添加： targets 'native-lib'  ，.a库会生成到externalNativeBuild目录下
+
+问题: 编译sdl时提示缺少ffmpeg的avutil下文件
+解决：libffmepg.so仅7kb，静态库没有成功的编译进去，应该设置一些参数，使其所有函数都编译到动态库中，而不是用到哪个编译哪个。暂时先用ijk的libffmpeg.so
+
+问题： Error:invalid argument '-std=c99' not allowed with 'C++/ObjC++'
+解决： 去掉 std=c99
+
+
+2.引用.externalNativeBuild里的.a
+3.ffmpeg里的include缺少文件
+
+编译选项没有生效，ffmpeg .a共105M   ,ijk中35M, libffmpeg.so:52M-10+M  
+原因：./module.sh 无法获取配置
+解决： （直接. /module.sh无法打开 ）
+export COMMON_FF_CFG_FLAGS=
+. ../ffmpeg/module.sh
+
+CFLAGS:
+-Wall 是打开警告开关
+-O1 提供基础级别的优化
+-O2提供更加高级的代码优化,会占用更长的编译时间
+-O3提供最高级的代码优化
+-ffast-math 对于这些以速度为重的应用，该选项定义了预处理器宏 __FAST_MATH__, 指示编译不必遵循 IEEE 和 ISO 的浮点运算标准
+-fstrict-aliasing 在编译选项中加入-fstrict-aliasing的优势在于向编译器说明不同类型的lvalue将指向不相关的内存区域，编译器可以做大量的优化。
+-fno-strict-aliasing：在编译内核的编译选项CFLAGS中，加入了-fno-strict-aliasing，向编译器表明不同类型的lvalue可能指向相关的内存区域，因此编译器不会做出一些极端的优化而造成不安全（内核编译中优化选项为-O2, -O2优化时默认是-fstrict-aliasing，因此需要显式的指出编译参数是-fno-strict-aliasing）
+-Werror=strict-aliasing : http://clhjoe.blogspot.hk/2012/06/gcc-strict-aliasing.html
+-Wno-psabi 可以防止ndk-build编译时出现的警告。
+-Wall选项意思是编译后显示所有警告。
+-W选项类似-Wall，会显示警告，但是只显示编译器认为会出现错误的警告。
+
+LOCAL_EXPORT_LDLIBS:为其他使用本模块的工程定义一些要链接的库，相当于为别人定义了一些LOCAL_LDLIBS，通常是定义一些系统库
+LOCAL_EXPORT_C_INCLUDES //为其他使用本模块的工程定义一些include头文件
+LOCAL_EXPORT_CFLAGS //为其他使用本模块的工程定义一些宏，#define XXX=X
+
+$(call import-module,android/cpufeatures) 
+$(call import-module,android/native_app_glue) 
+import-module:
+通过名字找到和include 另外一个模块的 Android.mk，这样就会编译这个mk文件。
+“android/cpufeatures”这个目录是在ndk的source文件夹里面,其实是在
+NDK_MODULE_PATH环境变量指定的路径里面去寻找。
+
+
+
+
+
+
+
+
+
+

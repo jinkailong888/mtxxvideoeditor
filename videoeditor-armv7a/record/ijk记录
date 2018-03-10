@@ -1,0 +1,84 @@
+×××××××××××××××××××目录×××××××××××××××××××
+ijk概述
+mediacodec相关
+OpenGL相关
+filter相关
+setOption配置相关
+×××××××××××××××××××××××××××××××××××××××××
+
+*****************************************
+ijk概述
+*****************************************
+《零基础读懂视频播放器控制原理： ffplay 播放器源代码分析》：    https://cloud.tencent.com/developer/article/1004559
+《基于 ffmpeg 的跨平台播放器实现》：    https://cloud.tencent.com/developer/article/1004561
+《ijkplayer框架深入剖析》：   https://www.jianshu.com/p/daf0a61cc1e0
+
+三种播放器实现： 均继承自 AbstractMediaPlayer 继承自 IMediaPlayer
+1.AndroidMediaPlayer：基于安卓自带播放器（位于ijkplayer-java）
+2.IjkExoMediaPlayer：基于ExoPlayer（位于ijkplayer-exo）
+介绍：http://blog.csdn.net/u014606081/article/details/76181049
+3.IjkMediaPlayer：基于ffplay（位于ijkplayer-java，底层实现在ijkmedia目录）
+输出：
+video-output: NativeWindow, OpenGL ES 2.0
+audio-output: AudioTrack, OpenSL ES
+jni底层接口：
+IjkMediaPlayer ： ijkmedia/ijkplayer/android/ijkplayer_jni.c
+播放器结构体：VideoState（ff_ffplay_def.c ）
+播放入口：
+ffplay.c ： ffp_prepare_async_l
+stream_open ：创建音视频解码前后队列， 创建数据读取（read_thread）和视频显示线程（video_refresh_thread）
+1.read_thread：读取packet
+stream_component_open： 打开视频、音频解码器。在此会打开相应解码器，并创建相应的解码线程
+av_read_frame：读取媒体数据，得到的是音视频分离的解码前数据
+packet_queue_put：往缓冲队列中放入解码前的音、视、字幕 packet
+打开视频解码器：
+ffplay.c : stream_component_open
+ffpipeline_open_video_decoder
+ff_ffpipeline.c : ffpipeline_open_video_decoder 调用 IJKFF_Pipeline->func_open_video_decoder
+IJKFF_Pipeline->func_open_video_decoder 函数指针指向 android/pipeline/cffpipeline_android.c 的 func_open_video_decoder 方法
+然后调用 android/pipeline/ffpipenode_android_mediacodec_vdec.c  的 ffpipenode_create_video_decoder_from_android_mediacodec
+2.video_thread：解码
+ff_ffpipenode.c : ffpipenode_run_sync
+/android/pipeline/ffpipenode_android_mediacodec_vdec.c  : func_run_sync   解码后的帧加入帧缓冲队列
+IJKFF_Pipenode  IJKFF_Pipenode_Opaque
+视频显示：
+video_refresh_thread
+video_refresh
+frame_queue_peek_last
+video_display2
+video_image_display2
+ijksdl/ijksdl_vout.c : SDL_VoutDisplayYUVOverlay
+ijksdl_vout_android_nativewindow.c   vout->display_overlay = func_display_overlay
+func_display_overlay
+func_display_overlay_l
+音视频同步:
+video_refresh
+
+
+*****************************************
+mediacodec相关
+*****************************************
+1.为什么ijk硬解不用ffmpeg自带的mediacodec_wrapper，而是自己在底层封装的java api
+https://github.com/Bilibili/ijkplayer/issues/1705
+https://github.com/Bilibili/ijkplayer/issues/1557
+FFmpeg3.1中也集成了MediaCodec硬件解码
+ijkplayer doesn't use ffmpeg's mediacodec implement
+ijkplayer has its own mediacodec implement.
+*****************************************
+OpenGL相关
+*****************************************
+1.Android MediaCodec and OpenGL Render       
+https://github.com/Bilibili/ijkplayer/issues/2893
+2.ijk android是支持opengl的
+https://github.com/Bilibili/ijkplayer/issues/338
+*****************************************
+filter相关
+*****************************************
+1.Does ijkplayer support video filters , ijk支持java层直接设置滤镜！
+https://github.com/Bilibili/ijkplayer/issues/3686
+*****************************************
+setOption配置相关
+*****************************************
+mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
+"mediacodec"等配置项位于：ff_ffplaye_options.h
+如何利用 AVDictionary 配置参数 : http://blog.csdn.net/encoder1234/article/details/54582676

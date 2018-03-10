@@ -1,0 +1,114 @@
+编译并运行demo:
+1.clone
+git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
+2.初始化，下载ffmpeg等源码
+cd ijkplayer-android
+./init-android.sh
+3.编译ffmpeg（需要配置ANDROID_NDK,ANDROID_SDK环境变量）
+cd android/contrib
+./compile-ffmpeg.sh clean
+./compile-ffmpeg.sh all
+4.编译.so
+cd ..
+./compile-ijk.sh all
+5.运行
+AS打开 ijkplayer-android/android/ijkplayer 即可
+
+ijk结构：
+libijkffmpeg.so
+libijksdl.so
+libijkplayer.so
+
+1.libijkplayer.so
+LOCAL_SHARED_LIBRARIES := ijkffmpeg ijksdl
+LOCAL_STATIC_LIBRARIES := android-ndk-profiler ijksoundtouch 
+
+2.libijksdl.so
+LOCAL_SHARED_LIBRARIES := ijkffmpeg
+LOCAL_STATIC_LIBRARIES := cpufeatures yuv_static ijkj4a
+
+3.libijkffmpeg.so
+
+步骤：
+1.编译libijkffmpeg.so
+2.编译cpufeatures yuv_static ijkj4a静态库
+3.编译libijksdl.so
+4.编译android-ndk-profiler ijksoundtouch 静态库
+5.编译libijkplayer.so
+
+MTXXVideoEditor步骤
+1.cd videoeditor-generate_so/ffmpeg
+2.sh compile.sh
+
+j4a安装测试
+1.git clone https://github.com/Bilibili/jni4android.git jni4android
+2.cd jni4android
+3.
+# build dependencies
+# you don't have to run this if you have bison 3.x installed
+./get-deps.sh
+报错：configure: error: no acceptable m4 could be found in $PATH
+解决：http://blog.csdn.net/ldl22847/article/details/8575140
+报错: Makefile:64: recipe for target 'src/flex.j4a.yy.cpp' failed    flex：命令未找到
+解决：sudo apt-get install flex bison
+4.
+./configure
+5.
+make
+报错：clang++：命令未找到
+解决：sudo apt-get  install clang
+
+
+ijkj4a:   cmake 没体现 ： $(call import-module,android/cpufeatures)， j4a中没有用到cpufeatures，为什么要导入？
+
+libyuv:   大小不一样
+cpufeatures: 什么时候生成的？  执行： ./compile-ijk.sh armv7a时生成 即 ndk-build ,关键语法：call import-module
+
+             cmake中可以通过include(AndroidNdkModules)  android_ndk_import_module_cpufeatures() 导入，但导入后的模块为android.mk编译方式
+             解决方案：将这个模块源码拷贝到工程中，转为cmake编译方式，不再需要android_ndk_import_module_cpufeatures导入
+
+静态库拷贝：
+
+#是否需要从externalNativeBuild目录中拷贝静态库到输出目录, 设置为"true"时才会拷贝
+#暂时用此方式解决静态库无法输出到指定目录的问题
+set(static_cp
+    "false"
+)
+if(${static_cp} STREQUAL "true")
+add_custom_command(TARGET ${lib_name}
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_if_different
+${CMAKE_SOURCE_DIR}/.externalNativeBuild/cmake/debug/${ANDROID_ABI}/${lib_name}/lib${lib_name}.a
+${CMAKE_SOURCE_DIR}/libs/${abi_library_name})
+endif()
+
+sdl编译问题：
+x86成功编译，armv7a报错：Error:(201) undefined reference to 'I422ToYUY2Row_NEON'  等等等等
+
+查看对应的实现源文件，全部褐色
+
+问题：set(cxx_flag
+      ${cxx_flag}
+      -DLIBYUV_NEON
+      )
+解决：set(cxx_flag
+      ${cxx_flag}
+      -LIBYUV_NEON
+      )
+
+application.h
+
+ijkffmpeg.so 2.2M
+ijkplayer 200+k
+ijksdl 200+k
+
+
+问题：
+Error:Execution failed for task ':videoeditor-armv7a:transformNativeLibsWithMergeJniLibsForDebug'.
+> More than one file was found with OS independent path 'lib/armeabi-v7a/libijkplayer.so'
+原因：
+videoeditor_armv7a 为cmake工程，自动把gradle中的ijksdl、ijkplayer打到apk中了，与 jniLibs.srcDirs冲突
+解决：
+jniLibs.srcDirs只指向 libffmpeg.so 
+
+

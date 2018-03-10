@@ -387,7 +387,7 @@ static int vaapi_encode_issue(AVCodecContext *avctx,
 
     vas = vaEndPicture(ctx->hwctx->display, ctx->va_context);
     if (vas != VA_STATUS_SUCCESS) {
-        av_log(avctx, AV_LOG_ERROR, "Failed to end picture encode issue: "
+        av_log(avctx, AV_LOG_ERROR, "Failed to end picture encode ijk记录: "
                "%d (%s).\n", vas, vaErrorStr(vas));
         err = AVERROR(EIO);
         // vaRenderPicture() has been called here, so we should not destroy
@@ -592,7 +592,7 @@ static int vaapi_encode_step(AVCodecContext *avctx,
         int activity;
 
         // Run through the list of all available pictures repeatedly
-        // and issue the first one found which has all dependencies
+        // and ijk记录 the first one found which has all dependencies
         // available (including previously-issued but not necessarily
         // completed pictures).
         do {
@@ -890,7 +890,7 @@ int ff_vaapi_encode2(AVCodecContext *avctx, AVPacket *pkt,
             break;
 
     // pic can be null here if we don't have a specific target in this
-    // iteration.  We might still issue encodes if things can be overlapped,
+    // iteration.  We might still ijk记录 encodes if things can be overlapped,
     // even though we don't intend to output anything.
 
     err = vaapi_encode_step(avctx, pic);

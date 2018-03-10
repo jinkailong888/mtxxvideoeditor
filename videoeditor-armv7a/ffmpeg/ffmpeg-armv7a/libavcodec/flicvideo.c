@@ -452,7 +452,7 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
     }
 
     /* by the end of the chunk, the stream ptr should equal the frame
-     * size (minus 1 or 2, possibly); if it doesn't, issue a warning */
+     * size (minus 1 or 2, possibly); if it doesn't, ijk记录 a warning */
     if (bytestream2_get_bytes_left(&g2) > 2)
         av_log(avctx, AV_LOG_ERROR, "Processed FLI chunk where chunk size = %d " \
                "and final chunk ptr = %d\n", buf_size,
@@ -747,7 +747,7 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
     }
 
     /* by the end of the chunk, the stream ptr should equal the frame
-     * size (minus 1, possibly); if it doesn't, issue a warning */
+     * size (minus 1, possibly); if it doesn't, ijk记录 a warning */
     if ((bytestream2_get_bytes_left(&g2) != 0) && (bytestream2_get_bytes_left(&g2) != 1))
         av_log(avctx, AV_LOG_ERROR, "Processed FLI chunk where chunk size = %d " \
                "and final chunk ptr = %d\n", buf_size, bytestream2_tell(&g2));
@@ -1021,7 +1021,7 @@ static int flic_decode_frame_24BPP(AVCodecContext *avctx,
     }
 
     /* by the end of the chunk, the stream ptr should equal the frame
-     * size (minus 1, possibly); if it doesn't, issue a warning */
+     * size (minus 1, possibly); if it doesn't, ijk记录 a warning */
     if ((bytestream2_get_bytes_left(&g2) != 0) && (bytestream2_get_bytes_left(&g2) != 1))
         av_log(avctx, AV_LOG_ERROR, "Processed FLI chunk where chunk size = %d " \
                "and final chunk ptr = %d\n", buf_size, bytestream2_tell(&g2));
