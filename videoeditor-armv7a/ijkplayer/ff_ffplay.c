@@ -5346,7 +5346,7 @@ int ffp_save_l(FFPlayer *ffp) {
     VideoState *is = ffp->is;
     if (!is)
         return EIJK_NULL_IS_PTR;
-    ffeditor_save(is->filename, ffp->es);
+    ffeditor_save(is->filename, ffp->es, ffp->meta);
     return 0;
 }
 

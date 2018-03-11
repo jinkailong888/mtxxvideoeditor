@@ -5,7 +5,7 @@
 
 
 
-int ffeditor_save(char *inputFilePath, EditorState *es);
+int ffeditor_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta);
 
 
 

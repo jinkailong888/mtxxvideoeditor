@@ -60,6 +60,12 @@
 #define IJKM_KEY_TBR_DEN        "tbr_den"
 #define IJKM_KEY_SAR_NUM        "sar_num"
 #define IJKM_KEY_SAR_DEN        "sar_den"
+/**** MeiTu 保存时所需metadata信息 ****/
+#define IJKM_KEY_ROTATE         "rotate"
+/**** MeiTu 保存时所需metadata信息 end****/
+
+
+
 // stream: audio
 #define IJKM_KEY_SAMPLE_RATE    "sample_rate"
 #define IJKM_KEY_CHANNEL_LAYOUT "channel_layout"

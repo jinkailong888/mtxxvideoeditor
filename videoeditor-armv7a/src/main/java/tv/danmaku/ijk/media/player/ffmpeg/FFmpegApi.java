@@ -1,7 +1,6 @@
 package tv.danmaku.ijk.media.player.ffmpeg;
 
 public class FFmpegApi {
-    private static final double AV_TIME_BASE = 1000000;
     private static final String TAG = "FFmpegApi";
 
     public static native String av_base64_encode(byte in[]);
@@ -22,9 +21,8 @@ public class FFmpegApi {
         return ret >= 0;
     }
 
-    public static double getVideoDuration() {
-        long d = _getVideoDuration();
-        return d / AV_TIME_BASE;
+    public static long getVideoDuration() {
+        return _getVideoDuration();
     }
 
     public static int getVideoWidth() {

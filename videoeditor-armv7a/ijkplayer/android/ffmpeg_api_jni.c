@@ -26,6 +26,8 @@
 #include <assert.h>
 #include <string.h>
 #include <jni.h>
+#include <ff_cmdutils.h>
+#include <ff_ffplay_def.h>
 #include "../ff_ffinc.h"
 #include "ijksdl/ijksdl_log.h"
 #include "ijksdl/android/ijksdl_android_jni.h"
@@ -123,8 +125,7 @@ FFmpegApi_get_video_height(JNIEnv *env, jclass clazz) {
 
 static jlong
 FFmpegApi_get_video_duration(JNIEnv *env, jclass clazz) {
-    jlong duration = ic->duration;
-    return duration;
+    return fftime_to_milliseconds(ic->duration);
 }
 
 static jstring
@@ -155,20 +156,8 @@ FFmpegApi_close_video(JNIEnv *env, jclass clazz) {
 }
 
 double FFmpegApi_get_rotation(AVStream *st) {
-    AVDictionaryEntry *rotate_tag = av_dict_get(st->metadata, "rotate", NULL, 0);
-    double theta = 0;
-    if (rotate_tag && *rotate_tag->value && strcmp(rotate_tag->value, "0")) {
-        //char *tail;
-        //theta = av_strtod(rotate_tag->value, &tail);
-        theta = atof(rotate_tag->value);
-        // if (*tail)
-        // theta = 0;
-    }
-    theta -= 360 * floor(theta / 360 + 0.9 / 360);
-    if (fabs(theta - 90 * round(theta / 90)) > 2)
-        LOGD("Odd rotation angle");
-    LOGD("get_rotation %f", theta);
-    return theta;
+    //ff_cmdutils.c中封装了获取角度信息的方法
+    return get_rotation(st);
 }
 
 

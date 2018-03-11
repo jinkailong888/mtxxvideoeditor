@@ -18,8 +18,8 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <jni.h>
-#include <android/ffmpeg_api_jni.h>
 #include "ff_ffplay_def.h"
+#include "ff_cmdutils.h"
 
 static AVFormatContext *ifmt_ctx;
 static AVFormatContext *ofmt_ctx;
@@ -83,7 +83,7 @@ static int open_input_file(const char *filename, EditorState *es) {
             codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
                 codec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
-                es->rotation = FFmpegApi_get_rotation(stream);
+                es->rotation = get_rotation(stream);
             }
             /* 打开解码器 */
             ret = avcodec_open2(codec_ctx, dec, NULL);
@@ -98,7 +98,22 @@ static int open_input_file(const char *filename, EditorState *es) {
     return 0;
 }
 
-static int open_output_file(EditorState *es) {
+static int set_metadata_char(AVDictionary **pm, const char *key, const char *value,int flag){
+    int ret = av_dict_set(pm,key,value,flag);
+    if (ret < 0) {
+        loge("Failed to set metadata : key=%s ", key);
+    }
+    return ret;
+}
+static int set_metadata_int(AVDictionary **pm, const char *key, int64_t value,int flag){
+    int ret = av_dict_set_int(pm,key,value,flag);
+    if (ret < 0) {
+        loge("Failed to set metadata : key=%s ", key);
+    }
+    return ret;
+}
+
+static int open_output_file(EditorState *es, IjkMediaMeta *meta) {
     AVStream *out_stream;
     AVStream *in_stream;
     AVCodecContext *dec_ctx, *enc_ctx;
@@ -115,8 +130,20 @@ static int open_output_file(EditorState *es) {
         loge("Could not create output context\n");
         return AVERROR_UNKNOWN;
     }
+    //设置外层metadata
 
 
+//    loge("duration=%"PRId64 ,ijkmeta_get_int64_l(meta,IJKM_KEY_DURATION_US,NULL));
+
+    ofmt_ctx->duration = ifmt_ctx->duration;
+    ofmt_ctx->start_time = ifmt_ctx->start_time;
+
+
+
+
+
+
+    //分别设置三个流的metadata
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
@@ -126,6 +153,18 @@ static int open_output_file(EditorState *es) {
 
         in_stream = ifmt_ctx->streams[i];
         dec_ctx = stream_ctx[i].dec_ctx;
+
+
+        if ((ret = set_metadata_int(&out_stream->metadata, IJKM_KEY_DURATION_US,
+                                    ijkmeta_get_int64_l(meta,IJKM_KEY_DURATION_US,NULL), 0)) < 0 ){
+            return  ret;
+        }
+        out_stream->duration=in_stream->duration;
+
+        out_stream->start_time=in_stream->start_time;
+
+
+
 
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
@@ -160,14 +199,10 @@ static int open_output_file(EditorState *es) {
                      dec_ctx->time_base, dec_ctx->time_base);
                 logd("video src : rotation=%f ", es->rotation);
 
-
-                ret = av_dict_set(&out_stream->metadata,"rotate","90",0);
-
-
-                if(ret<0)
-                    loge("Failed to set video metadata rotation=%f ", es->rotation);
-
-
+                if ((ret = set_metadata_int(&out_stream->metadata, IJKM_KEY_ROTATE,
+                                            (int64_t) es->rotation, 0)) < 0 ){
+                    return  ret;
+                }
 
                 /* priv_data 属于每个编码器特有的设置域，用 av_opt_set 设置  */
 
@@ -239,6 +274,8 @@ static int open_output_file(EditorState *es) {
                 /* take first format from list of supported formats */
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base = (AVRational) {1, enc_ctx->sample_rate};
+
+
             }
 
             /* Third parameter can be used to pass settings to encoder */
@@ -575,19 +612,9 @@ static int flush_encoder(unsigned int stream_index) {
     return ret;
 }
 
-
-
-
-int ffeditor_save(char *inputFilePath, EditorState *es) {
-
-    //todo 创建一个线程保存
-    //todo 兼容 concat 协议
-    //todo 插入 filter
-
+int ffeditor_do_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta){
     time_t c_start, c_end;
-
     c_start = time(NULL);    //!< 单位为ms
-
 
     int ret;
     AVPacket packet = {.data = NULL, .size = 0};
@@ -601,7 +628,7 @@ int ffeditor_save(char *inputFilePath, EditorState *es) {
 
     if ((ret = open_input_file(inputFilePath, es)) < 0)
         goto end;
-    if ((ret = open_output_file(es)) < 0)
+    if ((ret = open_output_file(es, meta)) < 0)
         goto end;
 #if CONFIG_FILTER
     if ((ret = init_filters()) < 0)
@@ -731,5 +758,20 @@ int ffeditor_save(char *inputFilePath, EditorState *es) {
     logd("The save used %f s by time()\n", difftime(c_end, c_start));
 
     return ret ? 1 : 0;
+
 }
+
+
+
+
+int ffeditor_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta) {
+
+    //todo 创建一个线程保存
+    //todo 兼容 concat 协议
+    //todo 插入 filter
+
+    return ffeditor_do_save(inputFilePath, es, meta);
+}
+
+
 
