@@ -5,6 +5,7 @@ OpenGL相关
 filter相关
 setOption配置相关
 metadata相关
+h264编码器特有的设置域
 ×××××××××××××××××××××××××××××××××××××××××
 
 *****************************************
@@ -94,3 +95,35 @@ IjkMediaMeta分两层，外层metadata，内层：video、audio、subtitle三个
 How to set header metadata to encoded video?
 https://stackoverflow.com/questions/17024192/how-to-set-header-metadata-to-encoded-video
 avformat.h有对metadata的用法介绍
+
+*****************************************
+h264编码器特有的设置域
+*****************************************
+  /* priv_data 属于每个编码器特有的设置域，用 av_opt_set 设置  */
+  /**
+   *  preset ： 编码模式
+   * ultrafast,superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+   * fast 节省约 10% encoding time   10s视频100s
+   * faster 25%
+   * ultrafast 55% 10s视频16s
+   * 但越快质量越低
+   */
+
+  av_opt_set(enc_ctx->priv_data, "preset", "ultrafast", 0);
+
+  /**
+   * lookahead:编码码率控制所需要锁定的帧个数
+   */
+  av_opt_set(enc_ctx->priv_data, "lookahead", "0", 0);
+
+  /**
+   * 使用2pass编码模式
+   * 1pass和2pass的区别在于1pass只需要编码一次，
+   * 2pass需要编码两次。2pass的优点在于可编码更小的文件，缺点在于所花费时间比1pass更多
+   */
+  av_opt_set(enc_ctx->priv_data, "2pass", "0", 0);
+
+  /**
+   * 无延时输出
+   */
+  av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);

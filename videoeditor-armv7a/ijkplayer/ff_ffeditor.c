@@ -20,6 +20,11 @@
 #include <jni.h>
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
+#include "ff_ffeditor.h"
+
+const int ffeditor_default_output_bitrate = 2000001;
+const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
+
 
 static AVFormatContext *ifmt_ctx;
 static AVFormatContext *ofmt_ctx;
@@ -44,8 +49,12 @@ static int open_input_file(const char *filename, EditorState *es) {
     int ret;
     unsigned int i;
 
+    AVDictionary *format_opts = NULL;
+    av_dict_set(&format_opts, "safe", "0", 0);
+    av_dict_set(&format_opts, "protocol_whitelist", "concat,tcp,http,https,tls,file", 0);
+
     ifmt_ctx = NULL;
-    if ((ret = avformat_open_input(&ifmt_ctx, filename, NULL, NULL)) < 0) {
+    if ((ret = avformat_open_input(&ifmt_ctx, filename, NULL, &format_opts)) < 0) {
         loge("Cannot open input file\n");
         return ret;
     }
@@ -62,6 +71,8 @@ static int open_input_file(const char *filename, EditorState *es) {
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         AVStream *stream = ifmt_ctx->streams[i];
         AVCodec *dec = avcodec_find_decoder(stream->codecpar->codec_id);
+//        AVCodec *dec = avcodec_find_decoder_by_name(ffeditor_hd_video_codec_name);
+
         AVCodecContext *codec_ctx;
         if (!dec) {
             loge("Failed to find decoder for stream #%u\n", i);
@@ -98,22 +109,8 @@ static int open_input_file(const char *filename, EditorState *es) {
     return 0;
 }
 
-static int set_metadata_char(AVDictionary **pm, const char *key, const char *value,int flag){
-    int ret = av_dict_set(pm,key,value,flag);
-    if (ret < 0) {
-        loge("Failed to set metadata : key=%s ", key);
-    }
-    return ret;
-}
-static int set_metadata_int(AVDictionary **pm, const char *key, int64_t value,int flag){
-    int ret = av_dict_set_int(pm,key,value,flag);
-    if (ret < 0) {
-        loge("Failed to set metadata : key=%s ", key);
-    }
-    return ret;
-}
 
-static int open_output_file(EditorState *es, IjkMediaMeta *meta) {
+static int open_output_file(EditorState *es) {
     AVStream *out_stream;
     AVStream *in_stream;
     AVCodecContext *dec_ctx, *enc_ctx;
@@ -121,54 +118,29 @@ static int open_output_file(EditorState *es, IjkMediaMeta *meta) {
     int ret;
     unsigned int i;
     const char *filename;
-
-
     filename = es->outputPath;
     ofmt_ctx = NULL;
+
     avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, filename);
     if (!ofmt_ctx) {
         loge("Could not create output context\n");
         return AVERROR_UNKNOWN;
     }
-    //设置外层metadata
+    logd("video src : start_time=%lld  ; output : duration=%lld ",
+         ifmt_ctx->start_time, ifmt_ctx->duration);
 
-
-//    loge("duration=%"PRId64 ,ijkmeta_get_int64_l(meta,IJKM_KEY_DURATION_US,NULL));
-
-    ofmt_ctx->duration = ifmt_ctx->duration;
-    ofmt_ctx->start_time = ifmt_ctx->start_time;
-
-
-
-
-
-
-    //分别设置三个流的metadata
+    //分别初始化各个流
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
             loge("Failed allocating output stream\n");
             return AVERROR_UNKNOWN;
         }
-
         in_stream = ifmt_ctx->streams[i];
         dec_ctx = stream_ctx[i].dec_ctx;
 
-
-        if ((ret = set_metadata_int(&out_stream->metadata, IJKM_KEY_DURATION_US,
-                                    ijkmeta_get_int64_l(meta,IJKM_KEY_DURATION_US,NULL), 0)) < 0 ){
-            return  ret;
-        }
-        out_stream->duration=in_stream->duration;
-
-        out_stream->start_time=in_stream->start_time;
-
-
-
-
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-            /* in this example, we choose transcoding to same codec */
             //获取编码器
             encoder = avcodec_find_encoder(dec_ctx->codec_id);
             if (!encoder) {
@@ -182,79 +154,66 @@ static int open_output_file(EditorState *es, IjkMediaMeta *meta) {
                 return AVERROR(ENOMEM);
             }
 
-            /* In this example, we transcode to same properties (picture size,
-             * sample rate etc.). These properties can be changed for output
-             * streams easily using filters */
             if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-                logd("video src : w=%d,h=%d ; output : w=%d,h=%d",
-                     dec_ctx->width, dec_ctx->height, dec_ctx->width, dec_ctx->height);
-                logd("video src : bit_rate=%lld ; output : bit_rate=%d ",
-                     dec_ctx->bit_rate, es->outputBitrate);
-                logd("video src : sample_aspect_ratio=%d/%d ; output : sample_aspect_ratio=%d/%d ",
-                     dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den,
-                     dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den);
-                logd("video src : pix_fmt=%d ; output : pix_fmt=%d ",
-                     dec_ctx->pix_fmt, dec_ctx->pix_fmt);
-                logd("video src : time_base=%d ; output : time_base=%d ",
-                     dec_ctx->time_base, dec_ctx->time_base);
-                logd("video src : rotation=%f ", es->rotation);
 
-                if ((ret = set_metadata_int(&out_stream->metadata, IJKM_KEY_ROTATE,
-                                            (int64_t) es->rotation, 0)) < 0 ){
-                    return  ret;
+                //设置宽高，若未手动设置则默认与原视频相同
+                if (!es->outputWidth || !es->outputHeight) {
+                    es->outputWidth = dec_ctx->width;
+                    es->outputHeight = dec_ctx->height;
+                } else {
+                    int temp_outputWidth = es->outputWidth;
+                    es->outputWidth = es->rotation ? es->outputHeight : es->outputWidth;
+                    es->outputHeight = es->rotation ? temp_outputWidth : es->outputHeight;
+                }
+                enc_ctx->width = es->outputWidth;
+                enc_ctx->height = es->outputHeight;
+                logd("video src : w=%d,h=%d ; output : w=%d,h=%d",
+                     dec_ctx->width, dec_ctx->height, enc_ctx->width, enc_ctx->height);
+
+                //设置角度，若不旋转frame，则需保留角度
+                if ((ret = av_dict_set_int(&out_stream->metadata, IJKM_KEY_ROTATE,
+                                           (int64_t) es->rotation, 0)) < 0) {
+                    loge("Failed to set metadata rotation=%f", es->rotation);
+                    return ret;
+                } else {
+                    loge("set metadata rotation=%f", es->rotation);
                 }
 
-                /* priv_data 属于每个编码器特有的设置域，用 av_opt_set 设置  */
-
-                /**
-                 *  preset ： 编码模式
-                 * ultrafast,superfast, veryfast, faster, fast, medium, slow, slower, veryslow
-                 * fast 节省约 10% encoding time   10s视频100s
-                 * faster 25%
-                 * ultrafast 55% 10s视频16s
-                 * 但越快质量越低
-                 */
-
+                /* h264编码器特有设置域，具体见“ijk记录” */
                 av_opt_set(enc_ctx->priv_data, "preset", "ultrafast", 0);
-
-                /**
-                 * lookahead:编码码率控制所需要锁定的帧个数
-                 */
                 av_opt_set(enc_ctx->priv_data, "lookahead", "0", 0);
-
-                /**
-                 * 使用2pass编码模式
-                 * 1pass和2pass的区别在于1pass只需要编码一次，
-                 * 2pass需要编码两次。2pass的优点在于可编码更小的文件，缺点在于所花费时间比1pass更多
-                 */
                 av_opt_set(enc_ctx->priv_data, "2pass", "0", 0);
-
-                /**
-                 * 无延时输出
-                 */
                 av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);
 
-
-
+                //设置码率，只设置bit_rate是平均码率，不一定能控制住
                 if (!es->outputBitrate) {
-                    es->outputBitrate = 400000;
+                    logd("未手动设置输出码率，默认设置为%d ", 2000001);
+                    es->outputBitrate = 2000001;
                 }
 
-                //只设置bit_rate是平均码率，不一定能控制住
                 enc_ctx->bit_rate = es->outputBitrate;
                 enc_ctx->rc_max_rate = es->outputBitrate;
                 enc_ctx->rc_min_rate = es->outputBitrate;
+                logd("video src : bit_rate=%lld  ; output : bit_rate=%lld ",
+                     dec_ctx->bit_rate, enc_ctx->bit_rate);
 
-                enc_ctx->width = dec_ctx->width;
-                enc_ctx->height = dec_ctx->height;
+                //设置宽高比
                 enc_ctx->sample_aspect_ratio = dec_ctx->sample_aspect_ratio;
+
+                //设置帧格式
                 /* take first format from list of supported formats */
                 if (encoder->pix_fmts)
                     enc_ctx->pix_fmt = encoder->pix_fmts[0];
                 else
                     enc_ctx->pix_fmt = dec_ctx->pix_fmt;
-                /* video time_base can be set to whatever is handy and supported by encoder */
-                enc_ctx->time_base = av_inv_q(dec_ctx->framerate);
+
+                //设置时间基准
+                enc_ctx->time_base = dec_ctx->time_base;
+
+                //必须设置，否则系统播放器及pc无法播放(ijk可以)
+                enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
+
+
             } else {
 
                 logd("audio src sample_rate=%d ; output sample_rate=%d",
@@ -274,8 +233,6 @@ static int open_output_file(EditorState *es, IjkMediaMeta *meta) {
                 /* take first format from list of supported formats */
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base = (AVRational) {1, enc_ctx->sample_rate};
-
-
             }
 
             /* Third parameter can be used to pass settings to encoder */
@@ -612,7 +569,9 @@ static int flush_encoder(unsigned int stream_index) {
     return ret;
 }
 
-int ffeditor_do_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta){
+int ffeditor_save_thread(void *arg) {
+
+    EditorState *es = arg;
     time_t c_start, c_end;
     c_start = time(NULL);    //!< 单位为ms
 
@@ -626,9 +585,9 @@ int ffeditor_do_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta){
     int (*dec_func)(AVCodecContext *, AVFrame *, int *, const AVPacket *);
 
 
-    if ((ret = open_input_file(inputFilePath, es)) < 0)
+    if ((ret = open_input_file(es->videoPath, es)) < 0)
         goto end;
-    if ((ret = open_output_file(es, meta)) < 0)
+    if ((ret = open_output_file(es)) < 0)
         goto end;
 #if CONFIG_FILTER
     if ((ret = init_filters()) < 0)
@@ -752,25 +711,27 @@ int ffeditor_do_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta){
     if (ret < 0)
         loge("Error occurred: %s\n", av_err2str(ret));
 
-
     logd("save done , outputPath: %s\n", es->outputPath);
     c_end = time(NULL);
     logd("The save used %f s by time()\n", difftime(c_end, c_start));
-
     return ret ? 1 : 0;
 
 }
 
 
+int ffeditor_save(EditorState *es) {
 
-
-int ffeditor_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta) {
-
-    //todo 创建一个线程保存
-    //todo 兼容 concat 协议
+    //todo 硬保
+    //todo 进度回调
     //todo 插入 filter
 
-    return ffeditor_do_save(inputFilePath, es, meta);
+    es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
+                                      "ffeditor_save_thread");
+    if (!es->save_tid) {
+        av_log(NULL, AV_LOG_ERROR, "SDL_CreateThread(): %s\n", SDL_GetError());
+        return AVERROR(ENOMEM);
+    }
+    return 0;
 }
 
 

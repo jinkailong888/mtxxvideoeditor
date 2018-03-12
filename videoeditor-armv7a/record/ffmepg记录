@@ -1,9 +1,24 @@
 
 **************************************
+常用命令
 结构体分析
 avfilter
 examples
 **************************************
+**************************************
+常用命令
+**************************************
+打印metadata信息：
+ffprobe -v quiet -print_format json -show_format -show_streams output.mp4
+打印metadata信息并输出文件：
+ffprobe -v quiet -print_format json -show_format -show_streams output.mp4 >> output.txt
+导出metadata：
+ffmpeg -i INPUT -f ffmetadata FFMETADATAFILE
+
+从metadata文件中加载元数据信息合并到输出文件中：
+ffmpeg -i INPUT -i FFMETADATAFILE -map_metadata 1 -codec copy OUTPUT
+
+
 
 **************************************
 结构体分析

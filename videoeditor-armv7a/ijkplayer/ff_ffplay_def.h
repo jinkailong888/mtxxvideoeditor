@@ -438,6 +438,7 @@ typedef struct EditorState {
     bool free_enable_descr;
 
     //原视频信息
+    const char *videoPath;
     int videoWidth;
     int videoHeight;
     int frameWidth;
@@ -451,6 +452,11 @@ typedef struct EditorState {
     int outputHeight;
     int outputBitrate;
     int outputFps;
+
+    //保存线程
+    SDL_Thread *save_tid;
+    SDL_Thread _save_tid;
+
 
 
 } EditorState;

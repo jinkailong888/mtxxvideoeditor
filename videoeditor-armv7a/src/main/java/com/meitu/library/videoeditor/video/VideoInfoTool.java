@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -99,7 +100,9 @@ public class VideoInfoTool {
             rf.writeBytes(FFconcatHead + "\r\n");
             for (VideoInfo videoInfo : videoInfoList) {
                 rf.writeBytes("file '" + videoInfo.getVideoPath() + "'\r\n");
-                rf.writeBytes("duration " + videoInfo.getDuration() + "\r\n");
+                BigDecimal b = new BigDecimal( (double) videoInfo.getDuration() / 1000);
+                double duration = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+                rf.writeBytes("duration " + duration + "\r\n");
             }
             rf.close();
         } catch (Exception e) {
@@ -111,10 +114,10 @@ public class VideoInfoTool {
 
     public static void deleteFFconcatFile(String path) {
         File file = new File(path);
-        boolean ret= file.exists() && file.delete();
+        boolean ret = file.exists() && file.delete();
         if (ret) {
             Debug.d(TAG, "deleteFFconcatFile");
-        }else{
+        } else {
             Debug.e(TAG, "deleteFFconcatFile fail");
         }
     }

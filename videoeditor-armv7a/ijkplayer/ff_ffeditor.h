@@ -3,9 +3,9 @@
 // Created by wyh3 on 2018/3/6.
 //
 
+//默认输出码率
 
-
-int ffeditor_save(char *inputFilePath, EditorState *es, IjkMediaMeta *meta);
+int ffeditor_save( EditorState *es);
 
 
 

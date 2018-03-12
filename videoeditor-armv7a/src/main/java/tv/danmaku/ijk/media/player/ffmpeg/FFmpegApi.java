@@ -21,6 +21,8 @@ public class FFmpegApi {
         return ret >= 0;
     }
 
+
+    //ms
     public static long getVideoDuration() {
         return _getVideoDuration();
     }
