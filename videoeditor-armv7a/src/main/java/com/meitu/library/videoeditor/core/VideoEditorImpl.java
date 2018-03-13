@@ -3,6 +3,7 @@ package com.meitu.library.videoeditor.core;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.media.MediaCodec;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -25,6 +26,7 @@ import com.meitu.library.videoeditor.watermark.WaterMarkInfo;
 import com.meitu.library.videoeditor.watermark.WaterMarkInfoBuilder;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 

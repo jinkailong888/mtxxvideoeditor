@@ -78,6 +78,7 @@
 **************************************
 保存
 **************************************
+Add Android encoders support to MediaCodec implementation：https://trac.ffmpeg.org/ticket/6407
 关于metadata信息：（播放时需要什么就获取什么，设置什么）
 1.获取视频的metadata并记录
 2.保存时将metadata信息设置生效
@@ -85,16 +86,27 @@
 考虑应该是手机系统播放器依赖metadata信息，ijk不依赖，而我没设置全metadata信息
 问题：系统播放器无法播放，ijk可以播放，不知需要设置哪些metadata信息
 解决：视频编码器设置 enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER （不是metadata的问题！！！！！）
-
-concat:
+concat问题:
 问题:ijk播放正常，但是系统播放器会跳过第一段视频,duration有问题
 解决：ffconcat文件写入的duration错误， ms没有转换为s
-
-
 硬保：
 mtmvcore 硬保需4.3及以上，4.1 引入 MediaExtractor， 4.3 引入 MediaMuxer类
-可以完全使用android api。
+可以完全使用android api,但视频格式兼容性不足，NO
+问题：
+保存时若单用硬解，会在muxing时即 av_interleaved_write_frame 返回-22（无效参数）
+分析：有些帧有问题？
+暂时解决：忽略av_interleaved_write_frame返回值，输出文件大小由软解的 0.91M---->796kb
 
+谈谈关于Android视频编码的那些坑:https://ragnraok.github.io/android_video_record.html
+
+ffmpeg 编码后得到的是 AVPacket , 然后写入 AVFormatContext 进行 mux
+http://blog.csdn.net/leixiaohua1020/article/details/14215755
+mediacodec 编码后得到的是 ByteBuffer ,可通过 MediaMuxer 进行 mux
+https://bigflake.com/mediacodec/CameraToMpegTest.java.txt
+
+ffmpeg 若要集成硬编，使用 mediacodec 将 frame 编码为 ByteBuffer 后，转为 AVPacket 然后去 mux 。
+
+AVFrame  -->  YUV  -->  ByteBuffer  -->  硬码  -->  ByteBuffer  -->  AVPacket
 
 opengl：
 

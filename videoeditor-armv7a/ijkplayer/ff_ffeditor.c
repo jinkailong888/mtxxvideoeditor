@@ -21,9 +21,19 @@
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
 #include "ff_ffeditor.h"
+#include "ff_mediacodec.h"
 
 const int ffeditor_default_output_bitrate = 2000001;
 const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
+//const char *ffeditor_hd_video_codec_name = "null";
+
+
+//加水印耗时与不加差不多，但改变色调耗时巨长，由4S涨到20+S
+//const char *ffeditor_video_filter_spec = "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3";
+const char *ffeditor_video_filter_spec = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
+        "scale=200:200[wm];[in][wm]overlay=W-w-5:H-h-5[out]";
+//const char *ffeditor_video_filter_spec = "null";
+const char *ffeditor_audio_filter_spec = "anull";
 
 
 static AVFormatContext *ifmt_ctx;
@@ -45,9 +55,10 @@ typedef struct StreamContext {
 } StreamContext;
 static StreamContext *stream_ctx;
 
-static int open_input_file(const char *filename, EditorState *es) {
+static int open_input_file(EditorState *es) {
     int ret;
     unsigned int i;
+    const char *filename = es->videoPath;
 
     AVDictionary *format_opts = NULL;
     av_dict_set(&format_opts, "safe", "0", 0);
@@ -58,52 +69,72 @@ static int open_input_file(const char *filename, EditorState *es) {
         loge("Cannot open input file\n");
         return ret;
     }
-
     if ((ret = avformat_find_stream_info(ifmt_ctx, NULL)) < 0) {
         loge("Cannot find stream information\n");
         return ret;
     }
-
     stream_ctx = av_mallocz_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
-    if (!stream_ctx)
+    if (!stream_ctx) {
+        loge("Cannot av_mallocz_array stream_ctx\n");
         return AVERROR(ENOMEM);
+    }
 
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         AVStream *stream = ifmt_ctx->streams[i];
-        AVCodec *dec = avcodec_find_decoder(stream->codecpar->codec_id);
-//        AVCodec *dec = avcodec_find_decoder_by_name(ffeditor_hd_video_codec_name);
+        AVCodecContext *dec_ctx;
+        AVCodec *codec = NULL;
 
-        AVCodecContext *codec_ctx;
-        if (!dec) {
-            loge("Failed to find decoder for stream #%u\n", i);
-            return AVERROR_DECODER_NOT_FOUND;
-        }
-        codec_ctx = avcodec_alloc_context3(dec);
-        if (!codec_ctx) {
-            loge("Failed to allocate the decoder context for stream #%u\n", i);
+        dec_ctx = avcodec_alloc_context3(NULL);
+        if (!dec_ctx) {
+            loge("Failed to avcodec_alloc_context3 "
+                         "for stream #%u\n", i);
             return AVERROR(ENOMEM);
         }
-        ret = avcodec_parameters_to_context(codec_ctx, stream->codecpar);
+
+        ret = avcodec_parameters_to_context(dec_ctx, stream->codecpar);
         if (ret < 0) {
             loge("Failed to copy decoder parameters to input decoder context "
                          "for stream #%u\n", i);
             return ret;
         }
+
+        av_codec_set_pkt_timebase(dec_ctx, stream->time_base);
+
+        codec = avcodec_find_decoder(dec_ctx->codec_id);
+
+        if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO && es->mediaCodecDec) {
+            codec = avcodec_find_decoder_by_name(ffeditor_hd_video_codec_name);
+            if (!codec) {
+                loge("硬解码器未找到，自动切换至软解\n");
+                codec = avcodec_find_decoder(dec_ctx->codec_id);
+            } else {
+                logd("选择硬解码器\n");
+            }
+        }
+
+        if (!codec) {
+            loge("Necessary decoder not found\n");
+            return AVERROR_DECODER_NOT_FOUND;
+        } else {
+            logd("find decoder : %s \n", codec->name);
+        }
+        dec_ctx->codec_id = codec->id;
+
         /* Reencode video & audio and remux subtitles etc. */
-        if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO ||
-            codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-            if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-                codec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
+        if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO ||
+            dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
+            if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+                dec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
                 es->rotation = get_rotation(stream);
             }
             /* 打开解码器 */
-            ret = avcodec_open2(codec_ctx, dec, NULL);
+            ret = avcodec_open2(dec_ctx, codec, NULL);
             if (ret < 0) {
-                av_log(NULL, AV_LOG_ERROR, "Failed to open decoder for stream #%u\n", i);
+                loge("Failed to open decoder for stream #%u\n", i);
                 return ret;
             }
         }
-        stream_ctx[i].dec_ctx = codec_ctx;
+        stream_ctx[i].dec_ctx = dec_ctx;
     }
     av_dump_format(ifmt_ctx, 0, filename, 0);
     return 0;
@@ -146,6 +177,8 @@ static int open_output_file(EditorState *es) {
             if (!encoder) {
                 loge("Necessary encoder not found\n");
                 return AVERROR_INVALIDDATA;
+            } else {
+                logd("find encoder : %s \n", encoder->name);
             }
             //编码器上下文
             enc_ctx = avcodec_alloc_context3(encoder);
@@ -176,7 +209,7 @@ static int open_output_file(EditorState *es) {
                     loge("Failed to set metadata rotation=%f", es->rotation);
                     return ret;
                 } else {
-                    loge("set metadata rotation=%f", es->rotation);
+                    logd("set metadata rotation=%f", es->rotation);
                 }
 
                 /* h264编码器特有设置域，具体见“ijk记录” */
@@ -187,8 +220,8 @@ static int open_output_file(EditorState *es) {
 
                 //设置码率，只设置bit_rate是平均码率，不一定能控制住
                 if (!es->outputBitrate) {
-                    logd("未手动设置输出码率，默认设置为%d ", 2000001);
-                    es->outputBitrate = 2000001;
+                    logd("未手动设置输出码率，默认设置为%d ", ffeditor_default_output_bitrate);
+                    es->outputBitrate = ffeditor_default_output_bitrate;
                 }
 
                 enc_ctx->bit_rate = es->outputBitrate;
@@ -207,12 +240,13 @@ static int open_output_file(EditorState *es) {
                 else
                     enc_ctx->pix_fmt = dec_ctx->pix_fmt;
 
+                es->pix_fmt = enc_ctx->pix_fmt;
+
                 //设置时间基准
                 enc_ctx->time_base = dec_ctx->time_base;
 
                 //必须设置，否则系统播放器及pc无法播放(ijk可以)
                 enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
-
 
             } else {
 
@@ -278,7 +312,7 @@ static int open_output_file(EditorState *es) {
     /* init muxer, write output file header */
     ret = avformat_write_header(ofmt_ctx, NULL);
     if (ret < 0) {
-        loge("Error occurred when opening output file\n");
+        loge("Error occurred when avformat_write_header\n");
         return ret;
     }
 
@@ -453,9 +487,9 @@ static int init_filters(void) {
 
 
         if (ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-            filter_spec = "null"; /* passthrough (dummy) filter for video */
+            filter_spec = ffeditor_video_filter_spec;
         else
-            filter_spec = "anull"; /* passthrough (dummy) filter for audio */
+            filter_spec = ffeditor_audio_filter_spec;
         ret = init_filter(&filter_ctx[i], stream_ctx[i].dec_ctx,
                           stream_ctx[i].enc_ctx, filter_spec);
         if (ret)
@@ -466,7 +500,7 @@ static int init_filters(void) {
 
 #endif
 
-static int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_frame) {
+static int encode_write_frame(EditorState *es,AVFrame *filt_frame, unsigned int stream_index, int *got_frame) {
     int ret;
     int got_frame_local;
     AVPacket enc_pkt;
@@ -482,8 +516,12 @@ static int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, in
     enc_pkt.data = NULL;
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
-    ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt,
-                   filt_frame, got_frame);
+//    ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
+
+    mediacodec_encode_frame(es,&enc_pkt,filt_frame);
+
+
+
     av_frame_free(&filt_frame);
     if (ret < 0)
         return ret;
@@ -498,13 +536,17 @@ static int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, in
 
     logd("Muxing frame\n");
     /* mux encoded frame */
+    //硬解的情况下有些帧  mux 会返回-22，无效参数（对于3S视频有7帧异常）
     ret = av_interleaved_write_frame(ofmt_ctx, &enc_pkt);
-    return ret;
+    if (ret < 0) {
+        loge("Failed to muxing frame ret=%d\n", ret);
+    }
+    return 0;
 }
 
 #if CONFIG_FILTER
 
-static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) {
+static int filter_encode_write_frame(EditorState *es,AVFrame *frame, unsigned int stream_index) {
     int ret;
     AVFrame *filt_frame;
 
@@ -540,7 +582,7 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) 
         }
 
         filt_frame->pict_type = AV_PICTURE_TYPE_NONE;
-        ret = encode_write_frame(filt_frame, stream_index, NULL);
+        ret = encode_write_frame(es,filt_frame, stream_index, NULL);
         if (ret < 0)
             break;
     }
@@ -550,7 +592,7 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) 
 
 #endif
 
-static int flush_encoder(unsigned int stream_index) {
+static int flush_encoder(EditorState *es,unsigned int stream_index) {
     int ret;
     int got_frame;
 
@@ -560,7 +602,7 @@ static int flush_encoder(unsigned int stream_index) {
 
     while (1) {
         logd("Flushing stream #%u encoder\n", stream_index);
-        ret = encode_write_frame(NULL, stream_index, &got_frame);
+        ret = encode_write_frame(es,NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
         if (!got_frame)
@@ -585,7 +627,7 @@ int ffeditor_save_thread(void *arg) {
     int (*dec_func)(AVCodecContext *, AVFrame *, int *, const AVPacket *);
 
 
-    if ((ret = open_input_file(es->videoPath, es)) < 0)
+    if ((ret = open_input_file(es)) < 0)
         goto end;
     if ((ret = open_output_file(es)) < 0)
         goto end;
@@ -633,7 +675,7 @@ int ffeditor_save_thread(void *arg) {
 
                 frame->pts = av_frame_get_best_effort_timestamp(frame);
 #if CONFIG_FILTER
-                ret = filter_encode_write_frame(frame, stream_index);
+                ret = filter_encode_write_frame(es,frame, stream_index);
 #else
                 ret = encode_write_frame(frame, stream_index, NULL);
 #endif
@@ -669,7 +711,7 @@ int ffeditor_save_thread(void *arg) {
 #endif
             continue;
 #if CONFIG_FILTER
-        ret = filter_encode_write_frame(frame, i);
+        ret = filter_encode_write_frame(es,frame, i);
 #else
         ret = encode_write_frame(frame, i, NULL);
 #endif
@@ -679,7 +721,7 @@ int ffeditor_save_thread(void *arg) {
         }
 
         /* flush encoder */
-        ret = flush_encoder(i);
+        ret = flush_encoder(es,i);
         if (ret < 0) {
             loge("Flushing encoder failed\n");
             goto end;
@@ -708,12 +750,17 @@ int ffeditor_save_thread(void *arg) {
         avio_closep(&ofmt_ctx->pb);
     avformat_free_context(ofmt_ctx);
 
-    if (ret < 0)
+    if (ret < 0) {
         loge("Error occurred: %s\n", av_err2str(ret));
+    } else {
+        logd("save done , outputPath: %s\n", es->outputPath);
+    }
 
-    logd("save done , outputPath: %s\n", es->outputPath);
+
     c_end = time(NULL);
-    logd("The save used %f s by time()\n", difftime(c_end, c_start));
+    logd("The save used %lf s by time()\n", difftime(c_end, c_start));
+
+
     return ret ? 1 : 0;
 
 }
@@ -722,8 +769,14 @@ int ffeditor_save_thread(void *arg) {
 int ffeditor_save(EditorState *es) {
 
     //todo 硬保
+    //todo 创建独立的解码线程和编码线程，帧队列
     //todo 进度回调
     //todo 插入 filter
+
+    es->mediaCodecDec = true;
+    es->mediaCodecEnc = true;
+
+    mediacodec_encode_init(es);
 
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
                                       "ffeditor_save_thread");

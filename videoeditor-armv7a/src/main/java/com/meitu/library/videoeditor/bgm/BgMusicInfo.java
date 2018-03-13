@@ -1,5 +1,6 @@
 package com.meitu.library.videoeditor.bgm;
 
+import android.media.MediaCodec;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;

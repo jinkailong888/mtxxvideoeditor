@@ -669,12 +669,14 @@ int ff_mediacodec_dec_decode(AVCodecContext *avctx, MediaCodecDecContext *s,
                     return ret;
                 }
             } else {
+                //拿到解码后的yuv数据
                 data = ff_AMediaCodec_getOutputBuffer(codec, index, &size);
                 if (!data) {
                     av_log(avctx, AV_LOG_ERROR, "Failed to get output buffer\n");
                     return AVERROR_EXTERNAL;
                 }
 
+                //转为 frame
                 if ((ret = mediacodec_wrap_sw_buffer(avctx, s, data, size, index, &info, frame)) < 0) {
                     av_log(avctx, AV_LOG_ERROR, "Failed to wrap MediaCodec buffer\n");
                     return ret;

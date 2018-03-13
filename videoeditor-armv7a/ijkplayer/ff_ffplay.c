@@ -3027,7 +3027,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     if (ret < 0)
         goto fail;
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
-    // 打开ffmpeg 解码器
+    // 获取解码器
     codec = avcodec_find_decoder(avctx->codec_id);
     //若要开启硬解，设置硬解码器即可
     ffp->video_codec_name = hd_video_codec_name;

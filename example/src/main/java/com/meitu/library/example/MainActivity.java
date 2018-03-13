@@ -4,9 +4,14 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +28,7 @@ import com.wyh.slideAdapter.ItemView;
 import com.wyh.slideAdapter.SlideAdapter;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     private void editor() {
 
         if (verifyStoragePermissions()) {
@@ -157,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .footer(R.layout.item_foot)
                 .footer(R.layout.item_foot)
+                .footer(R.layout.item_foot)
                 .bind(new FooterBind() {
                     @Override
                     public void onBind(ItemView itemView, int i) {
@@ -178,8 +186,41 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     });
                         }
+                        if (i == 3) {
+                            itemView.setText(R.id.footTv, "测试")
+                                    .setOnClickListener(R.id.footTv, new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            test();
+                                        }
+                                    });
+                        }
                     }
                 })
                 .into(mRecyclerView);
     }
+
+
+    private void test() {
+        MediaFormat mediaFormat = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+            mediaFormat = new MediaFormat();
+            mediaFormat.setString("mime", "video/avc");
+            mediaFormat.setInteger("width", 1280);
+            mediaFormat.setInteger("height", 720);
+            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 2000001);
+            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
+            mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+            MediaCodec mediaCodec = null;
+            try {
+                mediaCodec = MediaCodec.createEncoderByType("video/avc");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        }
+    }
+
+
 }

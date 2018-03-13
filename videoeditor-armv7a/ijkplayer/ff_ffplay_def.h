@@ -68,6 +68,7 @@
 #include "ff_ffmsg_queue.h"
 #include "ff_ffpipenode.h"
 #include "ijkmeta.h"
+#include "ff_mediacodec_common.h"
 
 #define DEFAULT_HIGH_WATER_MARK_IN_BYTES        (256 * 1024)
 
@@ -446,12 +447,19 @@ typedef struct EditorState {
     double rotation;
 
     //保存参数
-    bool mediaCodec;
+    bool mediaCodecEnc;
+    bool mediaCodecDec;
     const char *outputPath;
     int outputWidth;
     int outputHeight;
     int outputBitrate;
     int outputFps;
+    FFAMediaCodec *mediaCodec;
+    FFAMediaFormat *mediaformat;
+    enum AVPixelFormat pix_fmt;
+
+
+
 
     //保存线程
     SDL_Thread *save_tid;
