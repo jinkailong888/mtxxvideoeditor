@@ -17,6 +17,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -29,6 +30,7 @@ import com.wyh.slideAdapter.SlideAdapter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -202,8 +204,10 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void test() {
+        int index;
+        byte[] bytes = new byte[]{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,1};
         MediaFormat mediaFormat = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             mediaFormat = new MediaFormat();
             mediaFormat.setString("mime", "video/avc");
             mediaFormat.setInteger("width", 1280);
@@ -218,9 +222,44 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            assert mediaCodec != null;
             mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mediaCodec.start();
+
+
+
+            for (;;) {
+
+                index = mediaCodec.dequeueInputBuffer(9000);
+                if (index > 0) {
+                    ByteBuffer inputBuffer = mediaCodec.getInputBuffer(index);
+                    if (inputBuffer != null) {
+                        inputBuffer.put(bytes);
+                    }
+                }
+                MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
+                index = mediaCodec.dequeueOutputBuffer(mBufferInfo, 9000);
+                if (index > 0) {
+                    ByteBuffer byteBuffer = mediaCodec.getOutputBuffer(index);
+                    if (byteBuffer != null) {
+                        byte[] out = byteBuffer.array();
+                        Log.d(TAG, "out=" + out);
+                        a++;
+                        if (a > 10) {
+                            break;
+                        }
+                    }
+                    mediaCodec.releaseOutputBuffer(index, 9000);
+
+                }
+            }
+
+            mediaCodec.stop();
+            mediaCodec.release();
         }
     }
+
+    private int a;
 
 
 }

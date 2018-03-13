@@ -500,7 +500,8 @@ static int init_filters(void) {
 
 #endif
 
-static int encode_write_frame(EditorState *es,AVFrame *filt_frame, unsigned int stream_index, int *got_frame) {
+static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int stream_index,
+                              int *got_frame) {
     int ret;
     int got_frame_local;
     AVPacket enc_pkt;
@@ -516,10 +517,15 @@ static int encode_write_frame(EditorState *es,AVFrame *filt_frame, unsigned int 
     enc_pkt.data = NULL;
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
-//    ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
 
-    mediacodec_encode_frame(es,&enc_pkt,filt_frame);
+    if (es->mediaCodecEnc) {
+        if (filt_frame->width && filt_frame->height) {
+            mediacodec_encode_frame(es, &enc_pkt, filt_frame);
+        }
+    } else {
+        ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
 
+    }
 
 
     av_frame_free(&filt_frame);
@@ -546,7 +552,7 @@ static int encode_write_frame(EditorState *es,AVFrame *filt_frame, unsigned int 
 
 #if CONFIG_FILTER
 
-static int filter_encode_write_frame(EditorState *es,AVFrame *frame, unsigned int stream_index) {
+static int filter_encode_write_frame(EditorState *es, AVFrame *frame, unsigned int stream_index) {
     int ret;
     AVFrame *filt_frame;
 
@@ -582,7 +588,7 @@ static int filter_encode_write_frame(EditorState *es,AVFrame *frame, unsigned in
         }
 
         filt_frame->pict_type = AV_PICTURE_TYPE_NONE;
-        ret = encode_write_frame(es,filt_frame, stream_index, NULL);
+        ret = encode_write_frame(es, filt_frame, stream_index, NULL);
         if (ret < 0)
             break;
     }
@@ -592,7 +598,7 @@ static int filter_encode_write_frame(EditorState *es,AVFrame *frame, unsigned in
 
 #endif
 
-static int flush_encoder(EditorState *es,unsigned int stream_index) {
+static int flush_encoder(EditorState *es, unsigned int stream_index) {
     int ret;
     int got_frame;
 
@@ -602,7 +608,7 @@ static int flush_encoder(EditorState *es,unsigned int stream_index) {
 
     while (1) {
         logd("Flushing stream #%u encoder\n", stream_index);
-        ret = encode_write_frame(es,NULL, stream_index, &got_frame);
+        ret = encode_write_frame(es, NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
         if (!got_frame)
@@ -675,7 +681,7 @@ int ffeditor_save_thread(void *arg) {
 
                 frame->pts = av_frame_get_best_effort_timestamp(frame);
 #if CONFIG_FILTER
-                ret = filter_encode_write_frame(es,frame, stream_index);
+                ret = filter_encode_write_frame(es, frame, stream_index);
 #else
                 ret = encode_write_frame(frame, stream_index, NULL);
 #endif
@@ -711,7 +717,7 @@ int ffeditor_save_thread(void *arg) {
 #endif
             continue;
 #if CONFIG_FILTER
-        ret = filter_encode_write_frame(es,frame, i);
+        ret = filter_encode_write_frame(es, frame, i);
 #else
         ret = encode_write_frame(frame, i, NULL);
 #endif
@@ -721,7 +727,7 @@ int ffeditor_save_thread(void *arg) {
         }
 
         /* flush encoder */
-        ret = flush_encoder(es,i);
+        ret = flush_encoder(es, i);
         if (ret < 0) {
             loge("Flushing encoder failed\n");
             goto end;
@@ -773,10 +779,12 @@ int ffeditor_save(EditorState *es) {
     //todo 进度回调
     //todo 插入 filter
 
-    es->mediaCodecDec = true;
+    es->mediaCodecDec = false;
     es->mediaCodecEnc = true;
 
-    mediacodec_encode_init(es);
+    if (es->mediaCodecEnc) {
+        mediacodec_encode_init(es);
+    }
 
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
                                       "ffeditor_save_thread");
