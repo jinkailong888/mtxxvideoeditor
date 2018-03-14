@@ -60,7 +60,8 @@ class FileUtil {
     public static String getSaveVideoOutputPath() {
         @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
         Calendar calendar = Calendar.getInstance();
-        String fileName = df.format(calendar.getTime()) + ".mp4";
+//        String fileName = df.format(calendar.getTime()) + ".mp4";
+        String fileName = "output" + ".mp4";
         String outputVidewPath = dir + "/" + fileName;
         Log.d(TAG, "outputVidewPath:" + outputVidewPath);
         return outputVidewPath;

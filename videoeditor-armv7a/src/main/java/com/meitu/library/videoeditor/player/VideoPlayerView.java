@@ -96,7 +96,12 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
                 "ffconcat,file,http,https");
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
                 "concat,tcp,http,https,tls,file");
+        //开启opengl渲染
+        //右侧有绿边
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
+                "fcc-_es2");
         mRenderView = new SurfaceRenderView(mContext);
+//        mRenderView = new TextureRenderView(mContext);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,

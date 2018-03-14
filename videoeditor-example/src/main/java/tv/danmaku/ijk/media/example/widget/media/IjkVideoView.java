@@ -38,7 +38,6 @@ import android.widget.FrameLayout;
 import android.widget.MediaController;
 import android.widget.TableLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +45,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import tv.danmaku.ijk.media.player.AndroidMediaPlayer;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -88,7 +85,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     // All the stuff we need for playing and showing a video
     private IRenderView.ISurfaceHolder mSurfaceHolder = null;
     private IMediaPlayer mMediaPlayer = null;
-    private IMediaPlayer mAudioPlayer = null;
     // private int         mAudioSession;
     private int mVideoWidth;
     private int mVideoHeight;
@@ -177,9 +173,9 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
         subtitleDisplay = new TextView(context);
         subtitleDisplay.setTextSize(24);
         subtitleDisplay.setGravity(Gravity.CENTER);
-        LayoutParams layoutParams_txt = new LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT,
+        FrameLayout.LayoutParams layoutParams_txt = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM);
         addView(subtitleDisplay, layoutParams_txt);
     }
@@ -206,9 +202,9 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             renderView.setVideoSampleAspectRatio(mVideoSarNum, mVideoSarDen);
 
         View renderUIView = mRenderView.getView();
-        LayoutParams lp = new LayoutParams(
-                LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT,
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER);
         renderUIView.setLayoutParams(lp);
         addView(renderUIView);
@@ -300,11 +296,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
         }
-        if (mAudioPlayer != null) {
-            mAudioPlayer.stop();
-            mAudioPlayer.release();
-            mAudioPlayer = null;
-        }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -319,9 +310,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
 
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-
-        //bgmusic
-//        playAudio();
 
         try {
             mMediaPlayer = createPlayer(mSettings.getPlayer());
@@ -379,29 +367,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
         } finally {
             // REMOVED: mPendingSubtitleTracks.clear();
         }
-    }
-
-    private void playAudio() {
-
-
-        String filePath = "/storage/emulated/0/VideoEditorDir/paomo_cut_mp3.mp3";
-        mAudioPlayer = new IjkMediaPlayer();
-        try {
-            mAudioPlayer.setDataSource(filePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        mAudioPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mAudioPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(IMediaPlayer mp) {
-                mp.start();
-            }
-        });
-        mAudioPlayer.prepareAsync();
-
-
-
     }
 
     public void setMediaController(IMediaController controller) {
@@ -763,11 +728,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
         }
-        if (mAudioPlayer != null) {
-            mAudioPlayer.reset();
-            mAudioPlayer.release();
-            mAudioPlayer = null;
-        }
     }
 
     @Override
@@ -839,13 +799,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     public void start() {
         if (isInPlaybackState()) {
             mMediaPlayer.start();
-            if (mAudioPlayer != null) {
-               mAudioPlayer.start();
-            }
             mCurrentState = STATE_PLAYING;
-
-
-
         }
         mTargetState = STATE_PLAYING;
     }
@@ -856,9 +810,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
                 mCurrentState = STATE_PAUSED;
-            }
-            if (mAudioPlayer!=null&&mAudioPlayer.isPlaying()) {
-                mAudioPlayer.pause();
             }
         }
         mTargetState = STATE_PAUSED;
@@ -1077,9 +1028,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                 IjkMediaPlayer ijkMediaPlayer = null;
                 if (mUri != null) {
                     ijkMediaPlayer = new IjkMediaPlayer();
-                    IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
-
-                    ijkMediaPlayer.setLooping(true);
+                    ijkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_DEBUG);
 
                     if (mSettings.getUsingMediaCodec()) {
                         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
@@ -1094,8 +1043,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-handle-resolution-change", 0);
                         }
                     } else {
-                        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec",
-                                0);
+                        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
                     }
 
                     if (mSettings.getUsingOpenSLES()) {

@@ -15,6 +15,8 @@ import android.widget.Toast;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.filter.FilterInfo;
+import com.meitu.library.videoeditor.player.listener.OnPlayListener;
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.player.listener.adapter.OnPlayListenerAdapter;
 import com.meitu.library.videoeditor.player.listener.adapter.OnSaveListenerAdapter;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
@@ -30,7 +32,8 @@ import tv.danmaku.ijk.media.player.ffmpeg.FFmpegApi;
  * 视频播放界面
  */
 
-public class VideoPlayActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, View.OnClickListener {
+public class VideoPlayActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener,
+        View.OnClickListener {
 
     private static final String TAG = "VideoPlayActivity";
     private VideoEditor mVideoEditor;
@@ -55,7 +58,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_target);
 
         mVideoPlayerView = findViewById(R.id.videoPlayerView);
@@ -86,51 +89,13 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
         mVideoEditor.prepare(true);
 
-        mVideoEditor.setOnPlayListener(new OnPlayListenerAdapter(){
-            @Override
-            public void onProgressUpdate(long currentTime, long duration) {
-                super.onProgressUpdate(currentTime, duration);
-//                Log.d(TAG, "currentTime=" + currentTime + " duration=" + duration);
-            }
-        });
+        mVideoEditor.setOnPlayListener(mOnPlayListener);
 
-        mVideoEditor.setOnSaveListener(new OnSaveListenerAdapter() {
-            @Override
-            public void onStart() {
-                mProgressBar.setVisibility(View.VISIBLE);
-                mSaveTime = System.currentTimeMillis();
-            }
-
-            @Override
-            public void onDone() {
-                mSaveTime = System.currentTimeMillis() - mSaveTime;
-                Toast.makeText(VideoPlayActivity.this, "保存成功，耗时：" + mSaveTime + "ms", Toast.LENGTH_SHORT).show();
-                finish();
-            }
-
-            @Override
-            public void onError() {
-                mProgressBar.setVisibility(View.INVISIBLE);
-                Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-//        mVideoEditor.getWaterMarkBuilder()
-//                .setHeight(60)
-//                .setWidth(60)
-//                //无法设置assets资源
-//                .setImagePath(FileUtil.getWatermarkPath())
-//                .setImagePath(FileUtil.getDir()+"/"+"save.png")
-//                //对于宽>高的视频位置错乱
-//                .setWaterMarkPos(WaterMarkPosition.Center)
-//                .setHorizontalPadding(5)
-//                .setVerticalPadding(5)
-//                .setWaterMark();
-
+        mVideoEditor.setOnSaveListener(mOnSaveListener);
     }
 
     public void save(View view) {
-        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()) .save();
+        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()).save();
     }
 
     @Override
@@ -204,4 +169,40 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             }
         }
     }
+
+    OnPlayListener mOnPlayListener = new OnPlayListenerAdapter() {
+        @Override
+        public void onProgressUpdate(long currentTime, long duration) {
+            super.onProgressUpdate(currentTime, duration);
+//                Log.d(TAG, "currentTime=" + currentTime + " duration=" + duration);
+        }
+    };
+
+
+    OnSaveListener mOnSaveListener = new OnSaveListenerAdapter() {
+        @Override
+        public void onStart() {
+            mProgressBar.setVisibility(View.VISIBLE);
+            mSaveTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public void onDone() {
+            mSaveTime = System.currentTimeMillis() - mSaveTime;
+            Toast.makeText(VideoPlayActivity.this, "保存成功，耗时：" + mSaveTime + "ms", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+        @Override
+        public void onError() {
+            mProgressBar.setVisibility(View.INVISIBLE);
+            Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+
+
+
+
+
 }

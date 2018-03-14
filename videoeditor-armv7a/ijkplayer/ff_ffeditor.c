@@ -521,6 +521,9 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     if (es->mediaCodecEnc) {
         if (filt_frame->width && filt_frame->height) {
             mediacodec_encode_frame(es, &enc_pkt, filt_frame);
+        } else {
+            logd("frame w = h = 0");
+            return 0;
         }
     } else {
         ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
@@ -780,7 +783,7 @@ int ffeditor_save(EditorState *es) {
     //todo 插入 filter
 
     es->mediaCodecDec = false;
-    es->mediaCodecEnc = true;
+    es->mediaCodecEnc = false;
 
     if (es->mediaCodecEnc) {
         mediacodec_encode_init(es);

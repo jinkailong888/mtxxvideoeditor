@@ -74,6 +74,8 @@
 **************************************
 滤镜
 **************************************
+问题：测试发现同等输出设置下，
+
 
 **************************************
 保存
@@ -108,7 +110,22 @@ ffmpeg 若要集成硬编，使用 mediacodec 将 frame 编码为 ByteBuffer 后
 
 AVFrame  -->  YUV  -->  ByteBuffer  -->  硬码  -->  ByteBuffer  -->  AVPacket
 
+应该采用4.1的api：
+4.1 : getInputBuffers()  getOutputBuffers()
+4.3 : getInputBuffer()   getOutputBuffer()
+
+
+为何mtmvcore要在初始化的时候设置是否硬保，因为它的硬解和硬保是同时开启或关闭的
+其实这是不规范的，有点不灵活，但也是实用的，因为可以硬保就代表着设备可以硬解
+
 opengl：
+
+对于预览：
+开启gl渲染：mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", "fcc-_es2");
+问题：右侧有绿边
+分析：https://github.com/Bilibili/ijkplayer/issues/854
+
+对于保存：
 
 
 **************************************
