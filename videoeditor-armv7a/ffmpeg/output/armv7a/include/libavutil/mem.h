@@ -463,7 +463,7 @@ void av_freep(void *ptr);
 
 /**
  * Duplicate a string.
- * 复制字符串
+ *
  * @param s String to be duplicated
  * @return Pointer to a newly-allocated string containing a
  *         copy of `s` or `NULL` if the string cannot be allocated
