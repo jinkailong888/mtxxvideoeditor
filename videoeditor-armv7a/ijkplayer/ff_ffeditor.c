@@ -146,6 +146,7 @@ static int open_output_file(EditorState *es) {
     AVStream *in_stream;
     AVCodecContext *dec_ctx, *enc_ctx;
     AVCodec *encoder;
+    AVDictionary *encode_opts = NULL;
     int ret;
     unsigned int i;
     const char *filename;
@@ -215,8 +216,10 @@ static int open_output_file(EditorState *es) {
                 /* h264编码器特有设置域，具体见“ijk记录” */
                 av_opt_set(enc_ctx->priv_data, "preset", "ultrafast", 0);
                 av_opt_set(enc_ctx->priv_data, "lookahead", "0", 0);
+//                av_opt_set(enc_ctx->priv_data, "level", "4.1", 0);
                 av_opt_set(enc_ctx->priv_data, "2pass", "0", 0);
                 av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);
+                av_dict_set(&encode_opts, "profile", "baseline", 0);
 
                 //设置码率，只设置bit_rate是平均码率，不一定能控制住
                 if (!es->outputBitrate) {
@@ -270,7 +273,7 @@ static int open_output_file(EditorState *es) {
             }
 
             /* Third parameter can be used to pass settings to encoder */
-            ret = avcodec_open2(enc_ctx, encoder, NULL);
+            ret = avcodec_open2(enc_ctx, encoder, &encode_opts);
             if (ret < 0) {
                 loge("Cannot open video encoder for stream #%u\n", i);
                 return ret;
@@ -519,19 +522,16 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     av_init_packet(&enc_pkt);
 
     if (es->mediaCodecEnc) {
-        if (filt_frame->width && filt_frame->height) {
-            mediacodec_encode_frame(es, &enc_pkt, filt_frame);
-        } else {
-            logd("frame w = h = 0");
-            return 0;
-        }
+        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
     } else {
         ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
     }
 
     av_frame_free(&filt_frame);
-    if (ret < 0)
-        return ret;
+    if (ret < 0) {
+        loge("mediacodec_encode_frame ret = %d\n", ret);
+        return 0;
+    }
     if (!(*got_frame))
         return 0;
 
@@ -623,7 +623,7 @@ int ffeditor_save_thread(void *arg) {
 
     EditorState *es = arg;
     time_t c_start, c_end;
-    c_start = time(NULL);    //!< 单位为ms
+    c_start = time(NULL);    //!< 单位为s
 
     int ret;
     AVPacket packet = {.data = NULL, .size = 0};
@@ -654,7 +654,6 @@ int ffeditor_save_thread(void *arg) {
 #if CONFIG_FILTER
         if (filter_ctx[stream_index].filter_graph) {
 #else
-        if (1) {
 #endif
             frame = av_frame_alloc();
             if (!frame) {
@@ -666,32 +665,17 @@ int ffeditor_save_thread(void *arg) {
                                  stream_ctx[stream_index].dec_ctx->time_base);
             dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
                        avcodec_decode_audio4;
-
             logd("decoding frame\n");
             ret = dec_func(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
-
-
             if (ret < 0) {
                 av_frame_free(&frame);
                 loge("Decoding failed\n");
                 break;
             }
-
             if (got_frame) {
-
                 logd("frame width=%d,height=%d\n", frame->width, frame->height);
-
                 frame->pts = av_frame_get_best_effort_timestamp(frame);
-#if CONFIG_FILTER
                 ret = filter_encode_write_frame(es, frame, stream_index);
-#else
-                if (!frame) {
-                    ret = AVERROR(ENOMEM);
-                    break;
-                }
-                frame->pict_type = AV_PICTURE_TYPE_NONE;
-                ret = encode_write_frame(es, frame, stream_index, NULL);
-#endif
                 av_frame_free(&frame);
                 if (ret < 0)
                     goto end;
@@ -700,9 +684,7 @@ int ffeditor_save_thread(void *arg) {
             }
         } else {
             /* remux this frame without reencoding */
-
             av_log(NULL, AV_LOG_DEBUG, "remux this frame without reencoding\n");
-
             av_packet_rescale_ts(&packet,
                                  ifmt_ctx->streams[stream_index]->time_base,
                                  ofmt_ctx->streams[stream_index]->time_base);
@@ -719,13 +701,13 @@ int ffeditor_save_thread(void *arg) {
         /* flush filter */
 #if CONFIG_FILTER
         if (!filter_ctx[i].filter_graph)
-                       continue;
+            continue;
 #endif
 
 #if CONFIG_FILTER
         ret = filter_encode_write_frame(es, frame, i);
 #else
-        ret = encode_write_frame(es, frame, i, NULL);
+        //        ret = encode_write_frame(es, frame, i, NULL);
 #endif
         if (ret < 0) {
             loge("Flushing filter failed\n");

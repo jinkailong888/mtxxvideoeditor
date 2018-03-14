@@ -92,6 +92,13 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
 
     logd("mediacodec_encode_frame\n");
 
+    if (frame->width && frame->height) {
+
+    } else {
+        loge("frame w = h = 0");
+        return -1;
+    }
+
     int ret;
     uint8_t *data;
     ssize_t in_buf_id;
@@ -105,7 +112,7 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
 
     if (in_buf_id < 0) {
         loge("Failed to dequeue input buffer (status=%zd)\n", in_buf_id);
-        return AVERROR_EXTERNAL;
+        return -1;
     } else {
         logd("成功获取input buffer \n", in_buf_id);
         data = ff_AMediaCodec_getInputBuffer(es->mediaCodec, (size_t) in_buf_id, &size);
@@ -117,9 +124,13 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
         logd("AVFrame中提取出yuv \n");
         frame2yuv(es, frame, yuv_data);
 
+
         //将yuv数据添加到inputBuffer
         logd("将yuv数据添加到inputBuffer \n");
         memcpy(data, yuv_data, size);
+
+        av_free(yuv_data);
+
 
         //将inputBuffer添加到编码队列
         logd("将inputBuffer添加到编码队列 \n");
@@ -128,7 +139,7 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
 
         if (ret < 0) {
             loge("Failed to queue input buffer (status = %d)\n", ret);
-            return AVERROR_EXTERNAL;
+            return ret;
         }
     }
 
@@ -159,7 +170,7 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
             }
 
             if (info.size) {
-                data = ff_AMediaCodec_getOutputBuffer(es->mediaCodec, (size_t) out_buf_id,
+                data = ff_AMediaCodec_getOutputBuffer(es->mediaCodec,  out_buf_id,
                                                       &size);
                 if (!data) {
                     loge("Failed to get output buffer\n");
@@ -167,7 +178,7 @@ int mediacodec_encode_frame(EditorState *es, AVPacket *avpkt, const AVFrame *fra
                     logd("成功获取编码后的数据");
                     outBuf2avpkt(es, data, avpkt);
                 }
-                ret = ff_AMediaCodec_releaseOutputBuffer(es->mediaCodec, (size_t) out_buf_id, 0);
+                ret = ff_AMediaCodec_releaseOutputBuffer(es->mediaCodec, out_buf_id, 0);
                 if (ret < 0) {
                     loge("Failed to release output buffer\n");
                 }
@@ -219,9 +230,10 @@ void frame2yuv(EditorState *es, const AVFrame *frame, uint8_t *yuv_data) {
 }
 
 
-void outBuf2avpkt(EditorState *es, uint8_t *yuv_data, AVPacket *avpkt) {
+void outBuf2avpkt(EditorState *es, uint8_t *data, AVPacket *avpkt) {
 
-    avpkt->data = yuv_data;
+
+    memcpy(avpkt->data, data, strlen(data));
 
 
 }

@@ -6,7 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/ijk-example/ijk-example.iml" filepath="$PROJECT_DIR$/ijk-example/ijk-example.iml" />
       <module fileurl="file://$PROJECT_DIR$/mtxxvideoeditor.iml" filepath="$PROJECT_DIR$/mtxxvideoeditor.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" filepath="$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ijk-example/videoeditor-example.iml" filepath="$PROJECT_DIR$/ijk-example/videoeditor-example.iml" />
+      <module fileurl="file://D:\techgit\mtxxvideoeditor\ijk-example\videoeditor-example.iml" filepath="D:\techgit\mtxxvideoeditor\ijk-example\videoeditor-example.iml" />
     </modules>
   </component>
 </project>
