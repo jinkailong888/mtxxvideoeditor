@@ -187,6 +187,8 @@ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=colorchannelmix
 export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=colorbalance"
 export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=edgedetect"
 export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=eq"
+export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=null"
+export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-filter=anull"
 #
 ## External library support:
 export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-iconv"
