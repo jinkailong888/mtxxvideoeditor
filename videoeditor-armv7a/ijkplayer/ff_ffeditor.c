@@ -30,9 +30,9 @@ const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
 
 //加水印耗时与不加差不多，但改变色调耗时巨长，由4S涨到20+S
 //const char *ffeditor_video_filter_spec = "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3";
-const char *ffeditor_video_filter_spec = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
-        "scale=200:200[wm];[in][wm]overlay=W-w-5:H-h-5[out]";
-//const char *ffeditor_video_filter_spec = "null";
+//const char *ffeditor_video_filter_spec = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
+//        "scale=200:200[wm];[in][wm]overlay=W-w-5:H-h-5[out]";
+const char *ffeditor_video_filter_spec = "null";
 const char *ffeditor_audio_filter_spec = "anull";
 
 
@@ -527,9 +527,7 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
         }
     } else {
         ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
-
     }
-
 
     av_frame_free(&filt_frame);
     if (ret < 0)
@@ -611,6 +609,7 @@ static int flush_encoder(EditorState *es, unsigned int stream_index) {
 
     while (1) {
         logd("Flushing stream #%u encoder\n", stream_index);
+
         ret = encode_write_frame(es, NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
@@ -655,7 +654,7 @@ int ffeditor_save_thread(void *arg) {
 #if CONFIG_FILTER
         if (filter_ctx[stream_index].filter_graph) {
 #else
-            if (1) {
+        if (1) {
 #endif
             frame = av_frame_alloc();
             if (!frame) {
@@ -686,7 +685,12 @@ int ffeditor_save_thread(void *arg) {
 #if CONFIG_FILTER
                 ret = filter_encode_write_frame(es, frame, stream_index);
 #else
-                ret = encode_write_frame(frame, stream_index, NULL);
+                if (!frame) {
+                    ret = AVERROR(ENOMEM);
+                    break;
+                }
+                frame->pict_type = AV_PICTURE_TYPE_NONE;
+                ret = encode_write_frame(es, frame, stream_index, NULL);
 #endif
                 av_frame_free(&frame);
                 if (ret < 0)
@@ -715,14 +719,13 @@ int ffeditor_save_thread(void *arg) {
         /* flush filter */
 #if CONFIG_FILTER
         if (!filter_ctx[i].filter_graph)
-#else
-            if (1)
+                       continue;
 #endif
-            continue;
+
 #if CONFIG_FILTER
         ret = filter_encode_write_frame(es, frame, i);
 #else
-        ret = encode_write_frame(frame, i, NULL);
+        ret = encode_write_frame(es, frame, i, NULL);
 #endif
         if (ret < 0) {
             loge("Flushing filter failed\n");
@@ -768,8 +771,6 @@ int ffeditor_save_thread(void *arg) {
 
     c_end = time(NULL);
     logd("The save used %lf s by time()\n", difftime(c_end, c_start));
-
-
     return ret ? 1 : 0;
 
 }
@@ -782,7 +783,7 @@ int ffeditor_save(EditorState *es) {
     //todo 进度回调
     //todo 插入 filter
 
-    es->mediaCodecDec = false;
+    es->mediaCodecDec = true;
     es->mediaCodecEnc = false;
 
     if (es->mediaCodecEnc) {

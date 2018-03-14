@@ -97,9 +97,18 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
                 "concat,tcp,http,https,tls,file");
         //开启opengl渲染
-        //右侧有绿边
+        //todo 右侧有绿边
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
                 "fcc-_es2");
+
+//        drop frames when cpu is too slow
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
+
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
+
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+
+
         mRenderView = new SurfaceRenderView(mContext);
 //        mRenderView = new TextureRenderView(mContext);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(

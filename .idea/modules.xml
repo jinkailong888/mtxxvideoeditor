@@ -3,9 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/example/example.iml" filepath="$PROJECT_DIR$/example/example.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ijk-example/videoeditor-example.iml" filepath="$PROJECT_DIR$/ijk-example/videoeditor-example.iml" />
       <module fileurl="file://$PROJECT_DIR$/mtxxvideoeditor.iml" filepath="$PROJECT_DIR$/mtxxvideoeditor.iml" />
       <module fileurl="file://$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" filepath="$PROJECT_DIR$/videoeditor-armv7a/videoeditor-armv7a.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videoeditor-example/videoeditor-example.iml" filepath="$PROJECT_DIR$/videoeditor-example/videoeditor-example.iml" />
     </modules>
   </component>
 </project>

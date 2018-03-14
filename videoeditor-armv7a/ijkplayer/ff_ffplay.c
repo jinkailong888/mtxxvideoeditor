@@ -133,7 +133,7 @@ static AVPacket flush_pkt;
 //ssssssssssssssssset
 #define CONFIG_FILTER_VIDEO 0
 #define CONFIG_FILTER_AUDIO 0
-#define CONFIG_MEDIACODEC 0
+#define CONFIG_MEDIACODEC 1
 
 
 #if CONFIG_FILTER_VIDEO

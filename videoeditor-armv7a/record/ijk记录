@@ -82,7 +82,7 @@ https://github.com/Bilibili/ijkplayer/issues/3686
 setOption配置相关
 *****************************************
 mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
-"mediacodec"等配置项位于：ff_ffplaye_options.h
+"mediacodec"等配置项位于：ff_ffplaye_options.h   以及  option_table.h
 如何利用 AVDictionary 配置参数 : http://blog.csdn.net/encoder1234/article/details/54582676
 *****************************************
 metadata相关
