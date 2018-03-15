@@ -20,6 +20,11 @@ int mWidth;
 int mHeight;
 int mTextureSize;
 
+void unbindPixelBuffer() {
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    mPboIndex = (mPboIndex + 1) % 2;
+    mPboNewIndex = (mPboNewIndex + 1) % 2;
+}
 
 void initTexture() {
     glGenTextures(mTextureSize, mTextures);
@@ -35,22 +40,6 @@ void initTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void uploadTexture(AVFrame *frame) {
-    for (int i = 0; i < 3; ++i) {
-        glBindTexture(GL_TEXTURE_2D, mTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_LUMINANCE,
-                     mWidth,
-                     mHeight,
-                     0,
-                     GL_LUMINANCE,
-                     GL_UNSIGNED_BYTE,
-                     frame->data[i]);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
 bool checkEglError(char *msg) {
     int error;
     if ((error = eglGetError()) != EGL_SUCCESS) {
@@ -60,6 +49,34 @@ bool checkEglError(char *msg) {
     return true;
 }
 
+void initPBO() {
+    glVersion = (const char *) glGetString(GL_VERSION);
+    LOGI("opengl version:%s", glVersion);
+
+    mPboIndex = 0;
+    mPboNewIndex = 1;
+    mInitRecord = true;
+    mPboSize = mWidth * mHeight * 4;
+    LOGI("picture width,height:%d,%d", mWidth, mHeight);
+
+    glGenBuffers(2, mPboIds);
+    if (mPboIds[0] == 0 || mPboIds[1] == 0) {
+        LOGI("%s", "generate pbo fail");
+        return;
+    }
+    //绑定到第一个PBO
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[0]);
+    //设置内存大小
+    glBufferData(GL_PIXEL_PACK_BUFFER, mPboSize, NULL, GL_STATIC_READ);
+
+    //绑定到第而个PBO
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[1]);
+    //设置内存大小
+    glBufferData(GL_PIXEL_PACK_BUFFER, mPboSize, NULL, GL_STATIC_READ);
+
+    //解除绑定PBO
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+}
 
 bool setupEGL(int width, int height, int textureSize) {
     EGLConfig config;
@@ -131,42 +148,22 @@ bool setupEGL(int width, int height, int textureSize) {
     return result;
 }
 
-
-void unbindPixelBuffer() {
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-    mPboIndex = (mPboIndex + 1) % 2;
-    mPboNewIndex = (mPboNewIndex + 1) % 2;
-}
-
-
-void initPBO() {
-    glVersion = (const char *) glGetString(GL_VERSION);
-    LOGI("opengl version:%s", glVersion);
-
-    mPboIndex = 0;
-    mPboNewIndex = 1;
-    mInitRecord = true;
-    mPboSize = mWidth * mHeight * 4;
-    LOGI("picture width,height:%d,%d", mWidth, mHeight);
-
-    glGenBuffers(2, mPboIds);
-    if (mPboIds[0] == 0 || mPboIds[1] == 0) {
-        LOGI("%s", "generate pbo fail");
-        return;
+void uploadTexture(AVFrame *frame) {
+    for (int i = 0; i < 3; ++i) {
+        glBindTexture(GL_TEXTURE_2D, mTextures[i]);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_LUMINANCE,
+                     mWidth,
+                     mHeight,
+                     0,
+                     GL_LUMINANCE,
+                     GL_UNSIGNED_BYTE,
+                     frame->data[i]);
     }
-    //绑定到第一个PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[0]);
-    //设置内存大小
-    glBufferData(GL_PIXEL_PACK_BUFFER, mPboSize, NULL, GL_STATIC_READ);
-
-    //绑定到第而个PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[1]);
-    //设置内存大小
-    glBufferData(GL_PIXEL_PACK_BUFFER, mPboSize, NULL, GL_STATIC_READ);
-
-    //解除绑定PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
+
 
 unsigned char *readDataFromGPU(int width, int height) {
     if (strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
@@ -203,13 +200,9 @@ unsigned char *readDataFromGPU(int width, int height) {
     }
 }
 
-void destroyPixelBuffers() {
-    if (mPboIds != NULL) {
-        glDeleteBuffers(2, mPboIds);
-    }
-}
+void release() {
+    glDeleteBuffers(2, mPboIds);
 
-void deleteEGL() {
     if (mEGLDisplay != EGL_NO_DISPLAY) {
         eglDestroySurface(mEGLDisplay, mEGLSurface);
         eglDestroyContext(mEGLDisplay, mEGLContext);

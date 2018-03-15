@@ -15,18 +15,11 @@
 #define MTGLOFFSCREEN_GLUTIL_H
 
 #endif //MTGLOFFSCREEN_GLUTIL_H
-bool checkEglError(char *msg);
-
 bool setupEGL(int width, int height,int textureSize);
 
-void destroyPixelBuffers();
-
-void unbindPixelBuffer();
-
-void initPBO();
+void uploadTexture(AVFrame *frame);
 
 unsigned char *readDataFromGPU(int width, int height);
 
-void deleteEGL();
+void release();
 
-void uploadTexture(AVFrame *frame);
