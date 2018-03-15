@@ -20,11 +20,29 @@ set(include_dir
     ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg
     ${CMAKE_SOURCE_DIR}/ijkj4a
 )
+
+if (${ANDROID_PLATFORM_LEVEL} LESS 12)
+  message(FATAL_ERROR "OpenGL 2 is not supported before API level 11 \
+                      (currently using ${ANDROID_PLATFORM_LEVEL}).")
+  return()
+elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
+  add_definitions("-DDYNAMIC_ES3")
+  set(GL3STUB_SRC  ${pwd_dir}/android/gl3stub.c)
+  set(OPENGL_LIB GLESv2)
+else ()
+  set(OPENGL_LIB GLESv3)
+endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
+
 #将若干库链接到目标库文件
 set(link_lib
+    ${OPENGL_LIB}
     log
     android
+    OpenSLES
+    EGL
+    m
 )
+
 #设置编译选项
 set(cmake_c_flag_debug
 
@@ -34,6 +52,7 @@ set(cmake_cxx_flag_debug
 )
 #设置要编译的源文件
 set(source_files
+     ${GL3STUB_SRC}
      ${pwd_dir}/ff_cmdutils.c
      ${pwd_dir}/ff_ffplay.c
      ${pwd_dir}/ff_ffpipeline.c
@@ -51,7 +70,9 @@ set(source_files
      ${pwd_dir}/android/ffmpeg_api_jni.c
      ${pwd_dir}/android/ijkplayer_android.c
      ${pwd_dir}/android/ijkplayer_jni.c
+
      ${pwd_dir}/android/gl_util.c
+
 
      ${pwd_dir}/android/pipeline/ffpipeline_android.c
      ${pwd_dir}/android/pipeline/ffpipenode_android_mediacodec_vdec.c

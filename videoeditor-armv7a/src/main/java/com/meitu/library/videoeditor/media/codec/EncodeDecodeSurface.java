@@ -156,7 +156,6 @@ public class EncodeDecodeSurface {
                         if (VERBOSE) Log.d(TAG, "awaiting decode of frame " + decodeCount);
                         //long t = System.nanoTime();
                         // Log.d(TAG, "read cost " + (t-s) / 1000 + " us");
-                        if (decodeCount < MAX_FRAMES) {
                             //SDecoder.outputSurface.makeCurrent(1);
                             SDecoder.outputSurface.awaitNewImage();
                             SDecoder.outputSurface.drawImage(true);
@@ -173,8 +172,6 @@ public class EncodeDecodeSurface {
                             //SDecoder.outputSurface.saveBitmap();
                            /* long t4 = System.nanoTime();
                             Log.d(TAG, "set time cost " + (t4-t3) / 1000 + " us");*/
-
-                        }
                         decodeCount++;
                     }
 
@@ -183,10 +180,6 @@ public class EncodeDecodeSurface {
         }
 
         SEncoder.drainEncoder(true);
-        frameSaveTime = System.nanoTime() - startTime;
-        int numSaved = (MAX_FRAMES < decodeCount) ? MAX_FRAMES : decodeCount;
-        Log.d(TAG, "Saving " + numSaved + " frames took " +
-                (frameSaveTime / numSaved / 1000) + " us per frame");
     }
 
 

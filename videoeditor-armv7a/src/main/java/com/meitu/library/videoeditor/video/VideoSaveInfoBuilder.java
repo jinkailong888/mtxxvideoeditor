@@ -83,6 +83,11 @@ public class VideoSaveInfoBuilder {
         return this;
     }
 
+    public VideoSaveInfoBuilder setMediaCodec(boolean open) {
+        mVideoSaveInfo.setMediaCodec(open);
+        return this;
+    }
+
     /**
      * 开始保存
      */

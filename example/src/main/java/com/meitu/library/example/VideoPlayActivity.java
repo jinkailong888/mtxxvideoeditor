@@ -45,6 +45,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     private Switch mFilterSwitch;
     private Switch mTransFilterSwitch;
     private Switch mPartFilterSwitch;
+    private Switch mMediaCodecSwitch;
 
     private ProgressBar mProgressBar;
 
@@ -67,6 +68,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mMusicSwitch = findViewById(R.id.switchMusic);
         mFilterSwitch = findViewById(R.id.switchFilter);
         mPartFilterSwitch = findViewById(R.id.partFilter);
+        mMediaCodecSwitch = findViewById(R.id.mediaCodec);
         mProgressBar = findViewById(R.id.progressBar);
         mVideoPlayerView.setOnClickListener(this);
         mWaterMarkSwitch.setOnCheckedChangeListener(this);
@@ -95,7 +97,10 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     }
 
     public void save(View view) {
-        mVideoEditor.getSaveBuilder().setVideoSavePath(FileUtil.getSaveVideoOutputPath()).save();
+        mVideoEditor.getSaveBuilder()
+                .setVideoSavePath(FileUtil.getSaveVideoOutputPath())
+                .setMediaCodec(mMediaCodecSwitch.isChecked())
+                .save();
     }
 
     @Override
@@ -155,6 +160,9 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 }
                 mVideoEditor.clearFilter(0);
             }
+        }
+        if (mMediaCodecSwitch == compoundButton) {
+
         }
 
     }

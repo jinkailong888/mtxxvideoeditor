@@ -13,8 +13,8 @@ import com.meitu.library.videoeditor.media.gl.util.MTGLUtil;
 public class HomeFilter extends AbsMTGLFilter {
 
 
-    private static final String VERTEX_SHADER_ASSETS_PATH = "home/home.vs";
-    private static final String FRAGMENT_SHADER_ASSETS_PATH = "home/home.fs";
+    private static final String VERTEX_SHADER_ASSETS_PATH = "home2/home.vs";
+    private static final String FRAGMENT_SHADER_ASSETS_PATH = "home2/home.fs";
 
 
     @Override

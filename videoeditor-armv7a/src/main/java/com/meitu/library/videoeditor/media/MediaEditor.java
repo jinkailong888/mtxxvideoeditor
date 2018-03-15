@@ -288,7 +288,7 @@ public class MediaEditor extends Thread {
 //            new MediaEditor(srcPath, v).start();
             startTime = System.currentTimeMillis();
 
-            EncodeDecodeSurface test = new EncodeDecodeSurface( v);
+            EncodeDecodeSurface test = new EncodeDecodeSurface(v);
             try {
                 test.testEncodeDecodeSurface();
             } catch (Throwable a) {

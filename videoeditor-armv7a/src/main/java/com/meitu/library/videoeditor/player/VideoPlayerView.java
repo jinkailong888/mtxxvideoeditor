@@ -228,10 +228,11 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //            return;
 //        }
         pause();
-        //软保
-//        mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
-        //硬保
-        MediaEditor.save(v);
+        if (v.isMediaCodec()) {
+            MediaEditor.save(v);
+        } else {
+            mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
+        }
 
 
     }

@@ -5,7 +5,7 @@
 
 
 #define CONFIG_FILTER 1
-#define MY_TAG  "ffeditor"
+#define MY_TAG  "VideoEditor"
 
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
 #define logd(format, ...)  __android_log_print(ANDROID_LOG_DEBUG,  MY_TAG, format, ##__VA_ARGS__)
