@@ -28,3 +28,5 @@ void initPBO();
 unsigned char *readDataFromGPU(int width, int height);
 
 void deleteEGL();
+
+void uploadTexture(AVFrame *frame);
