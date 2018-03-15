@@ -5,7 +5,9 @@ package com.meitu.library.videoeditor.video;
  * 视频保存配置信息
  */
 
-public class VideoSaveInfo  {
+public class VideoSaveInfo {
+    //原视频
+    private String mSrcPath;
     // 视频输出宽度，默认与原视频相同
     private int mOutputWidth;
     // 视频输出高度，默认与原视频相同
@@ -14,6 +16,8 @@ public class VideoSaveInfo  {
     private int mOutputBitrate = 2000 * 1000 + 1;
     // 输出fps， 默认为30帧
     private int mFps = 30;
+    // I帧间隔秒数
+    private int mIFrameInterval = 1;
     // 视频保存地址
     private String mVideoSavePath;
     //是否硬解
@@ -23,13 +27,31 @@ public class VideoSaveInfo  {
     @Override
     public String toString() {
         return "VideoSaveInfo{" +
-                "mOutputWidth=" + mOutputWidth +
+                "mSrcPath='" + mSrcPath + '\'' +
+                ", mOutputWidth=" + mOutputWidth +
                 ", mOutputHeight=" + mOutputHeight +
                 ", mOutputBitrate=" + mOutputBitrate +
                 ", mFps=" + mFps +
+                ", mIFrameInterval=" + mIFrameInterval +
                 ", mVideoSavePath='" + mVideoSavePath + '\'' +
                 ", mMediaCodec=" + mMediaCodec +
                 '}';
+    }
+
+    public String getSrcPath() {
+        return mSrcPath;
+    }
+
+    public void setSrcPath(String srcPath) {
+        mSrcPath = srcPath;
+    }
+
+    public int getIFrameInterval() {
+        return mIFrameInterval;
+    }
+
+    public void setIFrameInterval(int IFrameInterval) {
+        mIFrameInterval = IFrameInterval;
     }
 
     public boolean isMediaCodec() {

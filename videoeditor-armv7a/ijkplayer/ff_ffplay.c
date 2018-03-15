@@ -133,7 +133,7 @@ static AVPacket flush_pkt;
 //ssssssssssssssssset
 #define CONFIG_FILTER_VIDEO 0
 #define CONFIG_FILTER_AUDIO 0
-#define CONFIG_MEDIACODEC 1
+#define CONFIG_MEDIACODEC 0
 
 
 #if CONFIG_FILTER_VIDEO
@@ -177,7 +177,7 @@ char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:g
 //char *filter_video_descr = "smartblur= 5:0.8:0:enable='between(t,1,2)'";
 //char *filter_video_descr = "edgedetect=mode=wires:low=0.1:high=0.4:enable='between(t,1,2)'";
 //char *filter_video_descr = "movie='/storage/emulated/0/VideoEditorDir/save.png',scale=50:50[wm];[in][wm]overlay=5:main_h-overlay_h-5:enable='between(t,1,2)',smartblur= 5:0.8:0:enable='between(t,1,2)'[out]";
-char *filter_video_descr = NULL;
+char *filter_video_descr = "null";
 
 #else
 char *filter_video_descr= NULL;

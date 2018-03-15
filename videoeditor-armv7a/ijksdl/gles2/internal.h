@@ -101,4 +101,10 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_rgb565();
 IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_rgb888();
 IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_rgbx8888();
 
+
+
+/** MeiTu  ***/
+const char *IJK_GLES2_getFragmentShader_test();
+const char *IJK_GLES2_getVertexShader_test();
+
 #endif

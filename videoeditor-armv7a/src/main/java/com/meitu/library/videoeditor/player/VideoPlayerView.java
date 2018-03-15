@@ -14,6 +14,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
+import com.meitu.library.videoeditor.media.MediaEditor;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.util.Tag;
@@ -220,13 +221,19 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     @Override
     public void save(final VideoSaveInfo v) {
+        v.setSrcPath(mIjkMediaPlayer.getDataSource());
         Log.d(TAG, "save VideoSaveInfo:" + v.toString());
 //        if (isSaving()) {
 //            Log.d(TAG, "is saving, do nothing");
 //            return;
 //        }
         pause();
-        mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
+        //软保
+//        mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
+        //硬保
+        MediaEditor.save(v);
+
+
     }
 
     @Override
