@@ -24,6 +24,9 @@ set(include_dir
 set(link_lib
     log
     android
+    OpenSLES
+    EGL
+    GLESv3
 )
 #设置编译选项
 set(cmake_c_flag_debug
