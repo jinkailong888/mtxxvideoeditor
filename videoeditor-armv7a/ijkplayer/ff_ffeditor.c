@@ -772,8 +772,11 @@ int ffeditor_save(EditorState *es) {
         mediacodec_encode_init(es);
     }
 
+
+
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
                                       "ffeditor_save_thread");
+
     if (!es->save_tid) {
         av_log(NULL, AV_LOG_ERROR, "SDL_CreateThread(): %s\n", SDL_GetError());
         return AVERROR(ENOMEM);

@@ -1,6 +1,5 @@
 package com.meitu.library.videoeditor.media;
 
-import android.app.Activity;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -10,13 +9,13 @@ import android.media.MediaMuxer;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
-import android.widget.Toast;
 
+import com.meitu.library.videoeditor.media.codec.EncodeDecodeSurface;
+import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.AbstractSequentialList;
 import java.util.ArrayList;
 
 
@@ -26,8 +25,7 @@ import java.util.ArrayList;
  */
 
 public class MediaEditor extends Thread {
-
-    private static final String TAG = "MediaEditor";
+    private final static String TAG = Tag.build("MediaEditor");
 
     private String mSrcPath;
 
@@ -40,6 +38,9 @@ public class MediaEditor extends Thread {
     private boolean mDecodeDone = false;
     private boolean mEncodeReadDone = false;
     private ArrayList<byte[]> mChunkDataList = new ArrayList<>();
+
+
+    private int mWidth, mHeight;
 
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -72,11 +73,20 @@ public class MediaEditor extends Thread {
             }
         }
 
-        //video
-        mMediaExtractor.selectTrack(videoIndex);
-        MediaFormat format = mMediaExtractor.getTrackFormat(videoIndex);
-        Log.d(TAG, "decode format: " + format.getString(MediaFormat.KEY_COLOR_FORMAT));
+        int trackIndex = videoIndex;
+
+        mMediaExtractor.selectTrack(trackIndex);
+        MediaFormat format = mMediaExtractor.getTrackFormat(trackIndex);
+//        Log.d(TAG, "decode format: " + format.getInteger(MediaFormat.KEY_COLOR_FORMAT));
+        Log.d(TAG, "decode width: " + format.getInteger(MediaFormat.KEY_WIDTH));
+        Log.d(TAG, "decode height: " + format.getInteger(MediaFormat.KEY_HEIGHT));
+        Log.d(TAG, "decode mimeType: " + format.getString(MediaFormat.KEY_MIME));
         String mimeType = format.getString(MediaFormat.KEY_MIME);
+
+        mWidth = format.getInteger(MediaFormat.KEY_WIDTH);
+        mHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
+
+
         try {
             mMediaDeCodec = MediaCodec.createDecoderByType(mimeType);
         } catch (IOException e) {
@@ -133,7 +143,10 @@ public class MediaEditor extends Thread {
                         byte[] data = new byte[mBufferInfo.size];
                         outputBuffer.get(data);
                         outputBuffer.clear();
-                        putData(data);
+                        if (mChunkDataList.size() < 20) {
+                            putData(data);
+                        }
+
                     }
                     mMediaDeCodec.releaseOutputBuffer(index, false);
                     break;
@@ -178,12 +191,19 @@ public class MediaEditor extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            MediaFormat mediaFormat = MediaFormat.createVideoFormat(mimeType, 1280, 720);
-            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
-            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 2000001);
-            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
-            mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+            MediaFormat mediaFormat = MediaFormat.createVideoFormat(mimeType, mWidth, mHeight);
+            if (mimeType.startsWith("video")) {
+                mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
+                mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 2000001);
+                mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
+                mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+            }
+            if (mimeType.startsWith("audio")) {
+                mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
+                mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, mHeight * mWidth * 15);
+                mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 60);
+                mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 30);
+            }
             mMediaEncodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             mMediaEncodec.start();
             new Thread(new EncodeRunnable()).start();
@@ -257,11 +277,25 @@ public class MediaEditor extends Thread {
         }
     }
 
+    public static long startTime;
 
-    public static void save(String srcPath, VideoSaveInfo v) {
+
+    public static void save(VideoSaveInfo v) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             Log.d(TAG, "SupportAvcCodec=" + SupportAvcCodec());
-            new MediaEditor(srcPath, v).start();
+
+
+//            new MediaEditor(srcPath, v).start();
+            startTime = System.currentTimeMillis();
+
+            EncodeDecodeSurface test = new EncodeDecodeSurface( v);
+            try {
+                test.testEncodeDecodeSurface();
+            } catch (Throwable a) {
+                a.printStackTrace();
+            }
+
+
         }
     }
 

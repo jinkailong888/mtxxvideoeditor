@@ -16,6 +16,7 @@ import com.meitu.library.videoeditor.player.VideoPlayer;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
+import com.meitu.library.videoeditor.util.AppHolder;
 import com.meitu.library.videoeditor.util.Debug;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoInfo;
@@ -71,6 +72,7 @@ public class VideoEditorImpl extends VideoEditor {
         Debug.setDebuggable(builder.debuggable);
         Debug.d(TAG, "start init VideoEditor");
         mApplicationContext = builder.activityContext.getApplicationContext();
+        AppHolder.hold(mApplicationContext);
         mActivityContext = builder.activityContext;
         mLifecycle = new Lifecycle(this, builder.activityContext);
         ((Application) mApplicationContext).registerActivityLifecycleCallbacks(mLifecycle);
@@ -159,13 +161,8 @@ public class VideoEditorImpl extends VideoEditor {
         }
         //秀秀中不支持导入多段视频，故多段视频分辨率必然相同，可直接设置保存分辨率为第一段视频分辨率
         if (videoSaveInfo.getOutputWidth() == 0 || videoSaveInfo.getOutputHeight() == 0) {
-            if (mIsMultipleVideo) {
-                videoSaveInfo.setOutputWidth(mVideoInfoList.get(0).getShowWidth());
-                videoSaveInfo.setOutputHeight(mVideoInfoList.get(0).getShowHeight());
-            } else {
-                videoSaveInfo.setOutputWidth(mVideoInfo.getShowWidth());
-                videoSaveInfo.setOutputHeight(mVideoInfo.getShowHeight());
-            }
+            videoSaveInfo.setOutputWidth(mVideoInfoList.get(0).getWidth());
+            videoSaveInfo.setOutputHeight(mVideoInfoList.get(0).getHeight());
         }
         mVideoPlayer.save(videoSaveInfo);
     }

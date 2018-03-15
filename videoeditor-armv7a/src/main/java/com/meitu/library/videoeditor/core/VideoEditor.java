@@ -32,6 +32,7 @@ public abstract class VideoEditor {
     @SuppressLint("StaticFieldLeak")
     private static Builder mBuilder = null;
 
+
     /**
      * 开始构造VideoEditor组件，必须在播放器activity onCreate时调用
      *

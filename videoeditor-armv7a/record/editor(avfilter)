@@ -114,9 +114,13 @@ AVFrame  -->  YUV  -->  ByteBuffer  -->  硬码  -->  ByteBuffer  -->  AVPacket
 4.1 : getInputBuffers()  getOutputBuffers()
 4.3 : getInputBuffer()   getOutputBuffer()
 
+mtmvcore ios启用硬解，android未使用硬解
+若用硬解+硬编（速度超快）
+需要解决的问题：
+1.音频混合
+2.安卓版本兼容性（若低于4.3，改用软解软编）
+3.视频格式兼容性（若不兼容，改用软解硬编，若硬编也不支持，改用软编）
 
-为何mtmvcore要在初始化的时候设置是否硬保，因为它的硬解和硬保是同时开启或关闭的
-其实这是不规范的，有点不灵活，但也是实用的，因为可以硬保就代表着设备可以硬解
 
 opengl：
 
