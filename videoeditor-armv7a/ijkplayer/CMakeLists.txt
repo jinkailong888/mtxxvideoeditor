@@ -24,9 +24,6 @@ set(include_dir
 set(link_lib
     log
     android
-    OpenSLES
-    EGL
-    GLESv3
 )
 #设置编译选项
 set(cmake_c_flag_debug
@@ -98,10 +95,14 @@ set_target_properties(ijksdl-lib PROPERTIES IMPORTED_LOCATION
                        ${lib_output_dir}/libijksdl.so)
 set(link_lib
   ${link_lib}
+  OpenSLES
+  EGL
+  GLESv3
   ffmpeg-lib
   ijksdl-lib
   ijksoundtouch-lib
   android-ndk-profiler-lib
+
 )
 
 #以下为固定语法，无需修改
