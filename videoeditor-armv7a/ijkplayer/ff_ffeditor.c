@@ -191,14 +191,18 @@ static int open_output_file(EditorState *es) {
             if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
 
                 //设置宽高，若未手动设置则默认与原视频相同
-                if (!es->outputWidth || !es->outputHeight) {
-                    es->outputWidth = dec_ctx->width;
-                    es->outputHeight = dec_ctx->height;
-                } else {
-                    int temp_outputWidth = es->outputWidth;
-                    es->outputWidth = es->rotation ? es->outputHeight : es->outputWidth;
-                    es->outputHeight = es->rotation ? temp_outputWidth : es->outputHeight;
-                }
+//                if (!es->outputWidth || !es->outputHeight) {
+//                    es->outputWidth = dec_ctx->width;
+//                    es->outputHeight = dec_ctx->height;
+//                } else {
+//                    int temp_outputWidth = es->outputWidth;
+//                    es->outputWidth = es->rotation ? es->outputHeight : es->outputWidth;
+//                    es->outputHeight = es->rotation ? temp_outputWidth : es->outputHeight;
+//                }
+                
+                es->outputWidth = dec_ctx->width;
+                es->outputHeight = dec_ctx->height;
+
                 enc_ctx->width = es->outputWidth;
                 enc_ctx->height = es->outputHeight;
                 logd("video src : w=%d,h=%d ; output : w=%d,h=%d",
@@ -219,7 +223,7 @@ static int open_output_file(EditorState *es) {
 //                av_opt_set(enc_ctx->priv_data, "level", "4.1", 0);
                 av_opt_set(enc_ctx->priv_data, "2pass", "0", 0);
                 av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);
-                av_dict_set(&encode_opts, "profile", "baseline", 0);
+//                av_dict_set(&encode_opts, "profile", "baseline", 0);
 
                 //设置码率，只设置bit_rate是平均码率，不一定能控制住
                 if (!es->outputBitrate) {
@@ -771,7 +775,6 @@ int ffeditor_save(EditorState *es) {
     if (es->mediaCodecEnc) {
         mediacodec_encode_init(es);
     }
-
 
 
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
