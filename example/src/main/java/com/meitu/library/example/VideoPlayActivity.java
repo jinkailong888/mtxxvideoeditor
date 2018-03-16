@@ -97,8 +97,12 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     }
 
     public void save(View view) {
+        String outputPath = mMediaCodecSwitch.isChecked() ?
+                FileUtil.getSaveVideoOutputPath("MediaCodecOutput") :
+                FileUtil.getSaveVideoOutputPath("FFmpegOutput");
+
         mVideoEditor.getSaveBuilder()
-                .setVideoSavePath(FileUtil.getSaveVideoOutputPath())
+                .setVideoSavePath(outputPath)
                 .setMediaCodec(mMediaCodecSwitch.isChecked())
                 .save();
     }
@@ -207,10 +211,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
         }
     };
-
-
-
-
 
 
 }

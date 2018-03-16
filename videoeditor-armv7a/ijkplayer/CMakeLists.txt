@@ -117,13 +117,10 @@ set_target_properties(ijksdl-lib PROPERTIES IMPORTED_LOCATION
 set(link_lib
   ${link_lib}
   OpenSLES
-  EGL
-  GLESv3
   ffmpeg-lib
   ijksdl-lib
   ijksoundtouch-lib
   android-ndk-profiler-lib
-
 )
 
 #以下为固定语法，无需修改
