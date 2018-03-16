@@ -18,7 +18,6 @@ public class EncodeDecodeSurface {
 
     private static final boolean VERBOSE = false;           // lots of logging
 
-    private static final int MAX_FRAMES = 400;       // stop extracting after this many
 
     SurfaceDecoder SDecoder = new SurfaceDecoder();
     SurfaceEncoder SEncoder = new SurfaceEncoder();
@@ -73,7 +72,7 @@ public class EncodeDecodeSurface {
         try {
 
             SEncoder.VideoEncodePrepare(videoSaveInfo);
-            SDecoder.SurfaceDecoderPrePare(videoSaveInfo,SEncoder.getEncoderSurface());
+            SDecoder.SurfaceDecoderPrePare(videoSaveInfo, SEncoder.getEncoderSurface());
             SEncoder.setExtractor(SDecoder.getExtractor());
             doExtract();
         } finally {
@@ -154,22 +153,22 @@ public class EncodeDecodeSurface {
                     SDecoder.decoder.releaseOutputBuffer(decoderStatus, doRender);
                     if (doRender) {
                         if (VERBOSE) Log.d(TAG, "awaiting decode of frame " + decodeCount);
-                        //long t = System.nanoTime();
+                        long t = System.nanoTime();
                         // Log.d(TAG, "read cost " + (t-s) / 1000 + " us");
-                            //SDecoder.outputSurface.makeCurrent(1);
-                            SDecoder.outputSurface.awaitNewImage();
-                            SDecoder.outputSurface.drawImage(true);
-                           /* long t2 = System.nanoTime();
-                            Log.d(TAG, "render cost " + (t2-t) / 1000 + " us");*/
+                        //SDecoder.outputSurface.makeCurrent(1);
+                        SDecoder.outputSurface.awaitNewImage();
+                        SDecoder.outputSurface.drawImage(true);
+                        long t2 = System.nanoTime();
+                        Log.d(TAG, "render cost " + (t2 - t) / 1000 + " us");
 
-                            //读数据采用的是direct texture方式，即直接从GPU的buffer里面读，默认读的是
-                            //后台surface里面的数据，所以读操作必须放在swapBuffers之前
-                            SEncoder.drainEncoder(false);
+                        //读数据采用的是direct texture方式，即直接从GPU的buffer里面读，默认读的是
+                        //后台surface里面的数据，所以读操作必须放在swapBuffers之前
+                        SEncoder.drainEncoder(false);
                            /* long t3 = System.nanoTime();
                             Log.d(TAG, "write cost " + (t3-t2) / 1000 + " us");*/
-                            SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
-                            SDecoder.outputSurface.swapBuffers();
-                            //SDecoder.outputSurface.saveBitmap();
+                        SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
+                        SDecoder.outputSurface.swapBuffers();
+                        //SDecoder.outputSurface.saveBitmap();
                            /* long t4 = System.nanoTime();
                             Log.d(TAG, "set time cost " + (t4-t3) / 1000 + " us");*/
                         decodeCount++;
@@ -180,6 +179,12 @@ public class EncodeDecodeSurface {
         }
 
         SEncoder.drainEncoder(true);
+
+        frameSaveTime = System.nanoTime() - startTime;
+        int numSaved =  decodeCount;
+        Log.d(TAG, "Saving " + numSaved + " frames took " +
+                (frameSaveTime / numSaved / 1000) + " us per frame");
+
     }
 
 

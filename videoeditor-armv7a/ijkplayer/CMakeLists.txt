@@ -72,6 +72,7 @@ set(source_files
      ${pwd_dir}/android/ijkplayer_jni.c
 
      ${pwd_dir}/android/gl_util.c
+     ${pwd_dir}/android/gl_jni.c
 
 
      ${pwd_dir}/android/pipeline/ffpipeline_android.c

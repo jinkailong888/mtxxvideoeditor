@@ -1,17 +1,12 @@
 package com.meitu.library.videoeditor.player;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.res.Resources;
-import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.media.MediaEditor;
@@ -21,7 +16,6 @@ import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -50,7 +44,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     private OnSaveListener mOnSaveListener;
     //播放监听器
     private OnPlayListener mOnPlayListener;
-    // SurfaceView，用于显示视频播放内容
+    //显示控件
     private IRenderView mRenderView;
     private IRenderView.ISurfaceHolder mSurfaceHolder;
     private Context mContext;
@@ -61,6 +55,9 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     private int mVideoSarNum;
     private int mVideoSarDen;
     private int mVideoRotationDegree;
+
+    //是否被用户手动暂停
+    private boolean mPause;
 
 
     public VideoPlayerView(@NonNull Context context) {
@@ -90,28 +87,10 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     private void initPlayer() {
         setLooping(true);
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "protocol_whitelist",
-                "ffconcat,file,http,https");
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
-                "concat,tcp,http,https,tls,file");
-        //开启opengl渲染
-        //todo 右侧有绿边
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
-                "fcc-_es2");
-
-//        drop frames when cpu is too slow
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
-
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
-
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
-
-
-        mRenderView = new SurfaceRenderView(mContext);
-//        mRenderView = new TextureRenderView(mContext);
+        setIjkPlayerOption();
+        //TextureRenderView支持角度旋转
+        mRenderView = new TextureRenderView(mContext);
+//        mRenderView = new SurfaceRenderView(mContext);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -119,7 +98,26 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         addView(mRenderView.getView(), lp);
         mRenderView.addRenderCallback(mSHCallback);
         mRenderView.setVideoRotation(mVideoRotationDegree);
+    }
 
+    private void setIjkPlayerOption() {
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "protocol_whitelist",
+                "ffconcat,file,http,https");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
+                "concat,tcp,http,https,tls,file");
+        //开启opengl渲染
+//        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
+//                "fcc-_es2");
+//        drop frames when cpu is too slow
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
+
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
+
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
     }
 
     private void initListener() {
@@ -132,6 +130,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //        mIjkMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 //        mIjkMediaPlayer.setOnTimedTextListener(mOnTimedTextListener);
     }
+
 
     /**
      * 开始调度 获取 播放进度
@@ -184,10 +183,16 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         }
     }
 
+    public void setGLFilter(Object render) {
+        mIjkMediaPlayer.setGLFilter(render);
+    }
+
     @Override
     public void prepare(boolean autoPlay) {
         Log.d(TAG, "prepare autoPlay = " + autoPlay);
         mPlayerStrategyInfo.setPrepareAutoPlay(autoPlay);
+
+
         if (mIjkMediaPlayer != null) {
             mIjkMediaPlayer.stop();
             mIjkMediaPlayer.prepareAsync();
@@ -198,7 +203,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     @Override
     public void start() {
         Log.d(TAG, "start");
-        if (mIjkMediaPlayer != null && !isPlaying()) {
+        if (mIjkMediaPlayer != null) {
             mIjkMediaPlayer.start();
         }
     }
@@ -216,6 +221,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         Log.d(TAG, "pause");
         if (mIjkMediaPlayer != null) {
             mIjkMediaPlayer.pause();
+            mPause = true;
         }
     }
 
@@ -227,7 +233,6 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //            Log.d(TAG, "is saving, do nothing");
 //            return;
 //        }
-        pause();
         if (v.isMediaCodec()) {
             MediaEditor.save(v);
         } else {
@@ -285,6 +290,19 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         mOnPlayListener = onPlayListener;
     }
 
+    @Override
+    public void onPause() {
+        if (!mPause) {
+            pause();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        if (!mPause) {
+            start();
+        }
+    }
 
     @Override
     public void release() {

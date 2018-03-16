@@ -21,6 +21,8 @@
 
 #include "ijksdl/gles2/internal.h"
 
+//todo 播放时滤镜脚本
+
 static const char g_shader[] = IJK_GLES_STRING(
     precision highp float;
     varying   highp vec2 vv2_Texcoord;

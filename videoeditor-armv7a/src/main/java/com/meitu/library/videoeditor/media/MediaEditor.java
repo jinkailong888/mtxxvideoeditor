@@ -286,6 +286,11 @@ public class MediaEditor extends Thread {
 
 
 //            new MediaEditor(srcPath, v).start();
+//            new MediaEditor(srcPath, v).start();
+//            new MediaEditor(srcPath, v).start();
+//            new MediaEditor(srcPath, v).start();
+
+
             startTime = System.currentTimeMillis();
 
             EncodeDecodeSurface test = new EncodeDecodeSurface(v);

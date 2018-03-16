@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .footer(R.layout.item_foot)
                 .footer(R.layout.item_foot)
-                .footer(R.layout.item_foot)
+//                .footer(R.layout.item_foot)
                 .bind(new FooterBind() {
                     @Override
                     public void onBind(ItemView itemView, int i) {
@@ -188,15 +188,15 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     });
                         }
-                        if (i == 3) {
-                            itemView.setText(R.id.footTv, "测试")
-                                    .setOnClickListener(R.id.footTv, new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            test();
-                                        }
-                                    });
-                        }
+//                        if (i == 3) {
+//                            itemView.setText(R.id.footTv, "测试")
+//                                    .setOnClickListener(R.id.footTv, new View.OnClickListener() {
+//                                        @Override
+//                                        public void onClick(View view) {
+//                                            test();
+//                                        }
+//                                    });
+//                        }
                     }
                 })
                 .into(mRecyclerView);

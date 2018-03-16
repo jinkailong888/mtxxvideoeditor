@@ -1,14 +1,9 @@
 package com.meitu.library.videoeditor.player;
 
-import android.graphics.Bitmap;
-
 import com.meitu.library.videoeditor.core.VideoEditor;
-import com.meitu.library.videoeditor.player.listener.OnGetFrameListener;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
-
-import java.util.List;
 
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
@@ -35,15 +30,22 @@ public interface VideoPlayer {
 
     void pause();
 
+    void setLooping(boolean looping);
+
     void save(VideoSaveInfo videoSaveInfo);
 
     void release();
 
-    void setLooping(boolean looping);
-
     void setOnSaveListener(OnSaveListener onSaveListener);
 
     void setOnPlayListener(OnPlayListener onPlayListener);
+
+    /**
+     * 生命周期
+     */
+    void onPause();
+
+    void onResume();
 
 
     /**
@@ -58,5 +60,12 @@ public interface VideoPlayer {
     long getCurrentPosition();
 
     IjkMediaPlayer getIjkMediaPlayer();
+
+
+    /**
+     * 视频编辑相关
+     */
+    void setGLFilter(Object render);
+
 
 }

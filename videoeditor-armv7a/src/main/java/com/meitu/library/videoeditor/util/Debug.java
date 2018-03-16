@@ -9,7 +9,6 @@ import android.util.Log;
 
 public class Debug {
 
-
     private static boolean debuggable;
 
     public static void setDebuggable(boolean debug) {

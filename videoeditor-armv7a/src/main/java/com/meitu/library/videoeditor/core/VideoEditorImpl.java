@@ -111,6 +111,10 @@ public class VideoEditorImpl extends VideoEditor {
         mFilterInfo = filterInfo;
     }
 
+    public void setGLFilter(Object render){
+        mVideoPlayer.setGLFilter(render);
+    }
+
 
     @Override
     public void prepare(boolean autoPlay) {
@@ -153,6 +157,9 @@ public class VideoEditorImpl extends VideoEditor {
     public void setVolume(float volume) {
 //        mVideoPlayer.set(volume, MTMVTimeLine.MTMV_VOLUME_OF_VIDEO_ORIGINAL_SOUND);
     }
+
+
+
 
     @Override
     public void save(VideoSaveInfo videoSaveInfo) {
@@ -308,13 +315,11 @@ public class VideoEditorImpl extends VideoEditor {
     // lifecycle Methods
     // ===========================================================
     void onResume() {
-        Debug.d(TAG, "onResume");
-        mVideoPlayer.start();
+        mVideoPlayer.onResume();
     }
 
     void onPause() {
-        Debug.d(TAG, "onPause");
-        mVideoPlayer.pause();
+        mVideoPlayer.onPause();
     }
 
 

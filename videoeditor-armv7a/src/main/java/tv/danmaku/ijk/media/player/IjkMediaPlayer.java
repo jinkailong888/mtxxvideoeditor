@@ -1313,6 +1313,9 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native void clearBgMusic() throws IllegalStateException;
 
 
+    public native void setGLFilter(Object filter);
+
+
     public native void save(boolean mediaCodec, String outputPath,
                             int outputWidth, int outputHeight,
                             int outputBitrate, int outputFps) throws IllegalStateException;

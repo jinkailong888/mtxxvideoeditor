@@ -56,7 +56,6 @@ public abstract class VideoEditor {
             activityContext = context;
         }
 
-
         /**
          * 是否开启底层日志
          *
@@ -135,6 +134,8 @@ public abstract class VideoEditor {
      */
     public abstract void setVideoPathWithFilter(@NonNull String path, @Nullable FilterInfo filterInfo);
 
+
+    public abstract void setGLFilter(Object render);
 
     /**
      * 加载视频资源，需先调用{@link VideoEditor#setVideoPathWithFilter(String, FilterInfo)} 或  {@link VideoEditor#setVideoPathWithFilter(List, List)} 设置要播放的视频

@@ -240,9 +240,10 @@ static int h264_parse_nal_header(H2645NAL *nal, void *logctx)
     nal->ref_idc = get_bits(gb, 2);
     nal->type    = get_bits(gb, 5);
 
-    av_log(logctx, AV_LOG_DEBUG,
-           "nal_unit_type: %d, nal_ref_idc: %d\n",
-           nal->type, nal->ref_idc);
+    /*** MeiTu 关闭此处log ***/
+//    av_log(logctx, AV_LOG_DEBUG,
+//           "nal_unit_type: %d, nal_ref_idc: %d\n",
+//           nal->type, nal->ref_idc);
 
     return 1;
 }

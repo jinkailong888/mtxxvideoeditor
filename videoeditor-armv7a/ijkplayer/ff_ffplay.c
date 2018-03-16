@@ -22,7 +22,7 @@
 
 #include "ff_ffplay.h"
 
-#define CONFIG_AVFILTER 1
+#define CONFIG_AVFILTER 0
 /**
  * @file
  * simple media player based on the FFmpeg libraries
@@ -133,6 +133,7 @@ static AVPacket flush_pkt;
 //ssssssssssssssssset
 #define CONFIG_FILTER_VIDEO 0
 #define CONFIG_FILTER_AUDIO 0
+//播放时就用ijk的硬件，兼容4.1及以上，不要采用ffmpeg集成的硬解（需5.0及以上）
 #define CONFIG_MEDIACODEC 0
 
 
@@ -195,6 +196,7 @@ char *audio_name2 = NULL;
 
 #if CONFIG_MEDIACODEC
 //若要开启硬解，设置硬解码器即可
+//播放使用ijk的硬解，放弃ffmpeg集成的硬解码器
 char *hd_video_codec_name = "h264_mediacodec";
 #else
 char *hd_video_codec_name = NULL;
@@ -1954,23 +1956,24 @@ configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, con
                                                                              \
     last_filter = filt_ctx;                                                  \
 } while (0)
-
-    if (ffp->autorotate) {
-        double theta = get_rotation(is->video_st);
-
-        if (fabs(theta - 90) < 1.0) {
-            INSERT_FILT("transpose", "clock");
-        } else if (fabs(theta - 180) < 1.0) {
-            INSERT_FILT("hflip", NULL);
-            INSERT_FILT("vflip", NULL);
-        } else if (fabs(theta - 270) < 1.0) {
-            INSERT_FILT("transpose", "cclock");
-        } else if (fabs(theta) > 1.0) {
-            char rotate_buf[64];
-            snprintf(rotate_buf, sizeof(rotate_buf), "%f*PI/180", theta);
-            INSERT_FILT("rotate", rotate_buf);
-        }
-    }
+       //旋转
+    //todo 会变黑，应该是滤镜没开
+//    if (ffp->autorotate) {
+//        double theta = get_rotation(is->video_st);
+//
+//        if (fabs(theta - 90) < 1.0) {
+//            INSERT_FILT("transpose", "clock");
+//        } else if (fabs(theta - 180) < 1.0) {
+//            INSERT_FILT("hflip", NULL);
+//            INSERT_FILT("vflip", NULL);
+//        } else if (fabs(theta - 270) < 1.0) {
+//            INSERT_FILT("transpose", "cclock");
+//        } else if (fabs(theta) > 1.0) {
+//            char rotate_buf[64];
+//            snprintf(rotate_buf, sizeof(rotate_buf), "%f*PI/180", theta);
+//            INSERT_FILT("rotate", rotate_buf);
+//        }
+//    }
 
 #ifdef FFP_AVFILTER_PLAYBACK_RATE
     if (fabsf(ffp->pf_playback_rate) > 0.00001 &&
@@ -2121,11 +2124,6 @@ static int audio_thread(void *arg) {
     VideoState *is = ffp->is;
     AVFrame *frame = av_frame_alloc();
     Frame *af;
-#if CONFIG_FILTER_AUDIO
-    int last_serial = -1;
-    int64_t dec_channel_layout;
-    int reconfigure;
-#endif
     int got_frame = 0;
     AVRational tb;
     int ret = 0;
@@ -4453,7 +4451,6 @@ static void ffp_show_version_int(FFPlayer *ffp, const char *module, unsigned ver
 
 // 播放入口
 int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
-
 
     assert(ffp);
     assert(!ffp->is);

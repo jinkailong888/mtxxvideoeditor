@@ -1,8 +1,10 @@
 #include "gl_util.h"
 #include "jni.h"
 
-#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
+#define MY_TAG  "opengl"
+#define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
+#define logd(format, ...)  __android_log_print(ANDROID_LOG_DEBUG,  MY_TAG, format, ##__VA_ARGS__)
+
 
 int mPboIndex;
 int mPboNewIndex;
@@ -43,7 +45,7 @@ void initTexture() {
 bool checkEglError(char *msg) {
     int error;
     if ((error = eglGetError()) != EGL_SUCCESS) {
-        LOGI("%s%s%d", msg, ": EGL error: 0x", error);
+        logd("%s%s%d", msg, ": EGL error: 0x", error);
         return false;
     }
     return true;
@@ -51,17 +53,17 @@ bool checkEglError(char *msg) {
 
 void initPBO() {
     glVersion = (const char *) glGetString(GL_VERSION);
-    LOGI("opengl version:%s", glVersion);
+    logd("opengl version:%s", glVersion);
 
     mPboIndex = 0;
     mPboNewIndex = 1;
     mInitRecord = true;
     mPboSize = mWidth * mHeight * 4;
-    LOGI("picture width,height:%d,%d", mWidth, mHeight);
+    logd("picture width,height:%d,%d", mWidth, mHeight);
 
     glGenBuffers(2, mPboIds);
     if (mPboIds[0] == 0 || mPboIds[1] == 0) {
-        LOGI("%s", "generate pbo fail");
+        logd("%s", "generate pbo fail");
         return;
     }
     //绑定到第一个PBO
@@ -102,33 +104,33 @@ bool setupEGL(int width, int height, int textureSize) {
 
     const EGLint mEGLContextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
     if ((mEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
-        LOGI("Tex eglGetDisplay() returned error %d", eglGetError());
+        logd("Tex eglGetDisplay() returned error %d", eglGetError());
         result = false;
     } else {
         bool ret = eglInitialize(mEGLDisplay, 0, 0);
         if (!ret) {
-            LOGI("init mEGLDisplay fail");
+            logd("init mEGLDisplay fail");
             result = false;
         }
     }
 
     if (!eglChooseConfig(mEGLDisplay, attribs, &config, 1, &numConfigs)) {
-        LOGI("eglChooseConfig() returned error %d", eglGetError());
+        logd("eglChooseConfig() returned error %d", eglGetError());
         result = false;
     }
 
     if (!(mEGLContext = eglCreateContext(mEGLDisplay, config, 0, mEGLContextAttribs))) {
-        LOGI("Tex eglCreateContext() returned error %d", eglGetError());
+        logd("Tex eglCreateContext() returned error %d", eglGetError());
     }
 
     if (!(mEGLSurface = eglCreatePbufferSurface(mEGLDisplay, config, pbuf_attribs))) {
-        LOGI("Tex eglCreatePbufferSurface() returned error %d", eglGetError());
+        logd("Tex eglCreatePbufferSurface() returned error %d", eglGetError());
         result = false;
     }
-    LOGI("About to make current. Display %p surface %p mEGLContext %p", mEGLDisplay, mEGLSurface,
+    logd("About to make current. Display %p surface %p mEGLContext %p", mEGLDisplay, mEGLSurface,
          mEGLContext);
     if (!eglMakeCurrent(mEGLDisplay, mEGLSurface, mEGLSurface, mEGLContext)) {
-        LOGI("Tex eglMakeCurrent() returned error %d", eglGetError());
+        logd("Tex eglMakeCurrent() returned error %d", eglGetError());
         result = false;
     }
 
@@ -139,16 +141,20 @@ bool setupEGL(int width, int height, int textureSize) {
         initTexture();
     }
 
-    if (result && strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
+//    if (result && strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
+
+    if (result) {
         initPBO();
     } else {
-        LOGI("%s", "can't make pbo");
+        logd("%s", "can't make pbo");
     }
 
     return result;
 }
 
-void uploadTexture(AVFrame *frame) {
+int* uploadTexture(AVFrame *frame) {
+    int da[mTextureSize];
+    int index=0;
     for (int i = 0; i < 3; ++i) {
         glBindTexture(GL_TEXTURE_2D, mTextures[i]);
         glTexImage2D(GL_TEXTURE_2D,
@@ -160,14 +166,19 @@ void uploadTexture(AVFrame *frame) {
                      GL_LUMINANCE,
                      GL_UNSIGNED_BYTE,
                      frame->data[i]);
+        da[index++]=mTextures[i];
+
     }
     glBindTexture(GL_TEXTURE_2D, 0);
+    return da;
 }
+
+
 
 
 unsigned char *readDataFromGPU(int width, int height) {
     if (strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
-        LOGI("opengl version:%s", glVersion);
+        logd("opengl version:%s", glVersion);
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
 
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
@@ -186,9 +197,9 @@ unsigned char *readDataFromGPU(int width, int height) {
                                                                        mPboSize,
                                                                        GL_MAP_READ_BIT);
         if (byteBuffer == NULL) {
-            LOGI("%s", "map buffer fail");
+            logd("%s", "map buffer fail");
         }
-        LOGI("pixel:%s", byteBuffer);
+        logd("pixel:%s", byteBuffer);
         //memcpy(data, byteBuffer, mPboSize);
         glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         unbindPixelBuffer();
