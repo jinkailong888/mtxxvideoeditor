@@ -23,7 +23,6 @@
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
 #include "ff_ffeditor.h"
-#include "ff_mediacodec.h"
 
 const int ffeditor_default_output_bitrate = 2000001;
 const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
@@ -535,7 +534,7 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
 
 
     if (es->mediaCodecEnc) {
-        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
+//        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
     } else {
         ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
     }
@@ -778,11 +777,11 @@ int ffeditor_save(EditorState *es) {
     //todo 进度回调
     //todo 插入 filter
 
-    es->mediaCodecDec = true;
-    es->mediaCodecEnc = false;
+    es->mediaCodecDec = false;//目前保存硬解在java层实现，后面转ndk实现时才可能会用到此参数
+    es->mediaCodecEnc = true;
 
     if (es->mediaCodecEnc) {
-        mediacodec_encode_init(es);
+//        mediacodec_encode_init(es);
     }
 
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
