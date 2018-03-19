@@ -18,8 +18,6 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <jni.h>
-#include <android/gl_jni.h>
-#include <android/gl_util.h>
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
 #include "ff_ffeditor.h"

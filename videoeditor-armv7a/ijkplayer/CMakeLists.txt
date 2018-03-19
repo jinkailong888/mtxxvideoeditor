@@ -61,8 +61,6 @@ set(source_files
      ${pwd_dir}/ijkplayer.c
 
      ${pwd_dir}/ff_ffeditor.c
-     ${pwd_dir}/ff_mediacodec_common.c
-     ${pwd_dir}/ff_mediacodec.c
 
      ${pwd_dir}/pipeline/ffpipeline_ffplay.c
      ${pwd_dir}/pipeline/ffpipenode_ffplay_vdec.c
@@ -70,10 +68,6 @@ set(source_files
      ${pwd_dir}/android/ffmpeg_api_jni.c
      ${pwd_dir}/android/ijkplayer_android.c
      ${pwd_dir}/android/ijkplayer_jni.c
-
-     ${pwd_dir}/android/gl_util.c
-     ${pwd_dir}/android/gl_jni.c
-
 
      ${pwd_dir}/android/pipeline/ffpipeline_android.c
      ${pwd_dir}/android/pipeline/ffpipenode_android_mediacodec_vdec.c
