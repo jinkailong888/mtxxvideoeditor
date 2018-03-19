@@ -41,7 +41,6 @@ set(cmake_cxx_flag_debug
 )
 #设置要编译的源文件
 set(source_files
-     ${GL3STUB_SRC}
      ${pwd_dir}/ff_cmdutils.c
      ${pwd_dir}/ff_ffplay.c
      ${pwd_dir}/ff_ffpipeline.c
@@ -50,8 +49,7 @@ set(source_files
      ${pwd_dir}/ijkplayer.c
 
      ${pwd_dir}/ff_ffeditor.c
-     ${pwd_dir}/ff_mediacodec_common.c
-     ${pwd_dir}/ff_mediacodec.c
+
 
      ${pwd_dir}/pipeline/ffpipeline_ffplay.c
      ${pwd_dir}/pipeline/ffpipenode_ffplay_vdec.c
@@ -60,8 +58,7 @@ set(source_files
      ${pwd_dir}/android/ijkplayer_android.c
      ${pwd_dir}/android/ijkplayer_jni.c
 
-     ${pwd_dir}/android/gl_util.c
-     ${pwd_dir}/android/gl_jni.c
+
 
 
      ${pwd_dir}/android/pipeline/ffpipeline_android.c

@@ -67,7 +67,7 @@ void initPBO() {
         logd("%s", "generate pbo fail");
         return;
     }
-    LOGI("PBO ID :%d,%d", mPboIds[0], mPboIds[1]);
+    logd("PBO ID :%d,%d", mPboIds[0], mPboIds[1]);
     //绑定到第一个PBO
     glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[0]);
     //设置内存大小
@@ -165,7 +165,7 @@ uint8_t *readDataFromGPU(int width, int height) {
             mHeight = height;
             initPBO();
         }
-        LOGI("%s", "enter glbind");
+        logd("%s", "enter glbind");
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
 
         glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, 0);
@@ -179,7 +179,7 @@ uint8_t *readDataFromGPU(int width, int height) {
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboNewIndex]);
 
-        LOGI("%s%o", "enter map",glMapBufferRange);
+        logd("%s%o", "enter map",glMapBufferRange);
 
         //glMapBufferRange会等待DMA传输完成，所以需要交替使用pbo,这边获取的是上一帧的内容
         uint8_t *byteBuffer = (uint8_t *) glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
