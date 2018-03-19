@@ -1,3 +1,14 @@
+工程结构：
+-------
+
+videoeditor-armv7a ：  视频编辑组件，仅支持 armv7a 架构
+
+ijk-example        :   IjkPlayer 自带 demo，用于封装参考及效果对比
+
+example            :   视频编辑组件 demo
+
+使用：
+-------
 
 第 1 步.编译
 
@@ -13,7 +24,9 @@
 windows 下暂不支持编译操作，为方便 windows 下开发，第 2 步运行所需 so 库已添加至 git 仓库.
 
 
-第 2 步.
+第 2 步.运行
+
+需安装 CMake、Ndk, 且 gradle 版本 ≥ 2.2. 可新建 project 勾选 Include C++ Support 测试 CMake 环境是否搭建成功.
 
 ```java
       run example
@@ -24,9 +37,8 @@ windows 下暂不支持编译操作，为方便 windows 下开发，第 2 步运
 libijkplayer.so 和 libijksdl.so 由 cmake 自动打包进 apk, libijkffmpeg.so 手动指向.
 
 
-
-
 接口设计：
+-------
 
 考虑到离屏保存功能需跨界面操作，而播放器的生命周期应随当前界面一同销毁，故有必要将保存模块独立出来。
 
@@ -49,6 +61,12 @@ libijkplayer.so 和 libijksdl.so 由 cmake 自动打包进 apk, libijkffmpeg.so 
   SaveModule.save(state,outputPath);
 
 ```
+
+过程记录：
+-------
+
+videoeditor-armv7a/record
+
 
 
 

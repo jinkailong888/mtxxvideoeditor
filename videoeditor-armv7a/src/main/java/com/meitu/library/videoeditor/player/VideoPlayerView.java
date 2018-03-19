@@ -87,6 +87,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     private void initPlayer() {
         setLooping(true);
+//        mIjkMediaPlayer.setSpeed(100);
         setIjkPlayerOption();
         //TextureRenderView支持角度旋转
         mRenderView = new TextureRenderView(mContext);
@@ -110,8 +111,8 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
                 "concat,tcp,http,https,tls,file");
         //开启opengl渲染
-//        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
-//                "fcc-_es2");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
+                "fcc-_es2");
 //        drop frames when cpu is too slow
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
 
