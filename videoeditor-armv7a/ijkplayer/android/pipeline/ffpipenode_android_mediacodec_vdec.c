@@ -21,9 +21,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#define CONFIG_MEDIACODEC_DECODE_AVFILTER 0
-
-
 #include "ffpipenode_android_mediacodec_vdec.h"
 #include "ijksdl/android/ijksdl_android_jni.h"
 #include "ijksdl/android/ijksdl_codec_android_mediaformat_java.h"
@@ -1553,8 +1550,7 @@ static int func_run_sync_loop(IJKFF_Pipenode *node) {
 //TODO 硬解方法
 static int func_run_sync(IJKFF_Pipenode *node) {
 
-    av_log(NULL, AV_LOG_DEBUG, "yhao func_run_sync 开始硬解");
-
+    av_log(NULL, AV_LOG_DEBUG, "开始 ijk硬解");
 
     JNIEnv *env = NULL;
     IJKFF_Pipenode_Opaque *opaque = node->opaque;
@@ -1571,19 +1567,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
     double duration;
     double pts;
 
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER
-    AVFilterGraph *graph = avfilter_graph_alloc();
-    AVFilterContext *filt_out = NULL, *filt_in = NULL;
-    int last_w = 0;
-    int last_h = 0;
-    enum AVPixelFormat last_format = -2;
-    int last_serial = -1;
-    int last_vfilter_idx = 0;
-    if (!graph) {
-        av_frame_free(&frame);
-        return AVERROR(ENOMEM);
-    }
-#endif
 
     if (!opaque->acodec) {
         ALOGE("无效硬解器,切换至软解\n");
@@ -1597,9 +1580,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
 
     frame = av_frame_alloc();
     if (!frame) {
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER
-        avfilter_graph_free(&graph);
-#endif
         goto fail;
     }
 
@@ -1686,13 +1666,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                 av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
                         "color_format is NONE \n", __func__);
             }
-
-
-            av_log(NULL, AV_LOG_ERROR,"%d",AV_PIX_FMT_NV21);
-
-            av_log(NULL, AV_LOG_ERROR,"frame->format %s ",SDL_AMediaCodec_getColorFormatName(frame->format));
-
-
             int i, planes;
             planes = av_pix_fmt_count_planes(frame->format);
             av_log(NULL, AV_LOG_ERROR,"frame->format %d, planes=%d, frame->data[0] %d ",frame->format,planes,frame->data[0]);
@@ -1701,84 +1674,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                 av_log(NULL, AV_LOG_ERROR," frame->data[%d]= %d ",i,frame->data[0]);
             }
 
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER
-            if (last_w != frame->width
-                || last_h != frame->height
-                || last_format != frame->format
-                || last_serial != is->viddec.pkt_serial
-                || ffp->vf_changed
-                || last_vfilter_idx != is->vfilter_idx) {
-                SDL_LockMutex(ffp->vf_mutex);
-                ffp->vf_changed = 0;
-                av_log(NULL, AV_LOG_DEBUG,
-                       "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
-                       last_w, last_h,
-                       (const char *) av_x_if_null(av_get_pix_fmt_name(last_format), "none"),
-                       last_serial,
-                       frame->width, frame->height,
-                       (const char *) av_x_if_null(av_get_pix_fmt_name(frame->format), "none"),
-                       is->viddec.pkt_serial);
-                avfilter_graph_free(&graph);
-                graph = avfilter_graph_alloc();
-                av_log(NULL, AV_LOG_DEBUG, "before configure_video_filters");
-                if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilter0, frame)) < 0) {
-                    // FIXME: post error
-
-                    SDL_UnlockMutex(ffp->vf_mutex);
-                    goto fail;
-                }
-
-                av_log(NULL, AV_LOG_DEBUG, "after configure_video_filters");
-
-                filt_in = is->in_video_filter;
-                filt_out = is->out_video_filter;
-                last_w = frame->width;
-                last_h = frame->height;
-                last_format = frame->format;
-                last_serial = is->viddec.pkt_serial;
-                last_vfilter_idx = is->vfilter_idx;
-                frame_rate = av_buffersink_get_frame_rate(filt_out);
-                SDL_UnlockMutex(ffp->vf_mutex);
-            }
-
-            ALOGE(" before av_buffersrc_add_frame frame->width=%d frame->height=%d", frame->width,frame->height);
-
-
-            //todo 报错返回 -22  frame.c:frame_copy_video  data[0]=0
-
-            ALOGE(" before av_buffersrc_add_frame ret=%d", ret);
-
-            ret = av_buffersrc_add_frame(filt_in, frame);
-
-            ALOGE(" after av_buffersrc_add_frame ret=%d", ret);
-
-
-            if (ret < 0)
-                goto fail;
-
-
-            while (ret >= 0) {
-                is->frame_last_returned_time = av_gettime_relative() / 1000000.0;
-
-                av_log(NULL, AV_LOG_DEBUG, " av_buffersink_get_frame_flags");
-
-                ret = av_buffersink_get_frame_flags(filt_out, frame, 0);
-                av_log(NULL, AV_LOG_DEBUG, " av_buffersink_get_frame_flags ret=%d", ret);
-
-
-                if (ret < 0) {
-                    if (ret == AVERROR_EOF)
-                        is->viddec.finished = is->viddec.pkt_serial;
-                    ret = 0;
-                    break;
-                }
-
-                is->frame_last_filter_delay =
-                        av_gettime_relative() / 1000000.0 - is->frame_last_returned_time;
-                if (fabs(is->frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0)
-                    is->frame_last_filter_delay = 0;
-                tb = av_buffersink_get_time_base(filt_out);
-#endif
                 av_log(NULL, AV_LOG_DEBUG, "加入到帧缓冲队列 pts=%lf", pts);
                 //  加入到帧缓冲队列     pts:时间戳
                 ret = ffp_queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
@@ -1791,14 +1686,9 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                 }
                 av_frame_unref(frame);
             }
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER
-        }
-#endif
+
     }
     fail:
-#if CONFIG_MEDIACODEC_DECODE_AVFILTER
-    avfilter_graph_free(&graph);
-#endif
     av_frame_free(&frame);
     opaque->abort = true;
     SDL_WaitThread(opaque->enqueue_thread, NULL);

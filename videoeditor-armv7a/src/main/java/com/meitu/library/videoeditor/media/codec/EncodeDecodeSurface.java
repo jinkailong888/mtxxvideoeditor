@@ -16,10 +16,6 @@ import java.nio.ByteBuffer;
 public class EncodeDecodeSurface {
     private final static String TAG = Tag.build("EncodeDecodeSurface");
 
-    private static final boolean VERBOSE = false;           // lots of logging
-
-    private static final int MAX_FRAMES = 400;       // stop extracting after this many
-
     SurfaceDecoder SDecoder = new SurfaceDecoder();
     SurfaceEncoder SEncoder = new SurfaceEncoder();
 
@@ -73,7 +69,7 @@ public class EncodeDecodeSurface {
         try {
 
             SEncoder.VideoEncodePrepare(videoSaveInfo);
-            SDecoder.SurfaceDecoderPrePare(videoSaveInfo,SEncoder.getEncoderSurface());
+            SDecoder.SurfaceDecoderPrePare(videoSaveInfo, SEncoder.getEncoderSurface());
             SEncoder.setExtractor(SDecoder.getExtractor());
             doExtract();
         } finally {
@@ -94,7 +90,7 @@ public class EncodeDecodeSurface {
         boolean outputDone = false;
         boolean inputDone = false;
         while (!outputDone) {
-            if (VERBOSE) Log.d(TAG, "loop");
+            Log.d(TAG, "loop");
 
             // Feed more data to the decoder.
             //long s = System.nanoTime();
@@ -107,7 +103,7 @@ public class EncodeDecodeSurface {
                         SDecoder.decoder.queueInputBuffer(inputBufIndex, 0, 0, 0L,
                                 MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                         inputDone = true;
-                        if (VERBOSE) Log.d(TAG, "sent input EOS");
+                        Log.d(TAG, "sent input EOS");
                     } else {
                         if (SDecoder.extractor.getSampleTrackIndex() != SDecoder.DecodetrackIndex) {
                             Log.w(TAG, "WEIRD: got sample from track " +
@@ -116,15 +112,15 @@ public class EncodeDecodeSurface {
                         long presentationTimeUs = SDecoder.extractor.getSampleTime();
                         SDecoder.decoder.queueInputBuffer(inputBufIndex, 0, chunkSize,
                                 presentationTimeUs, 0 /*flags*/);
-                        if (VERBOSE) {
-                            Log.d(TAG, "submitted frame " + inputChunk + " to dec, size=" +
-                                    chunkSize);
-                        }
+
+                        Log.d(TAG, "submitted frame " + inputChunk + " to dec, size=" +
+                                chunkSize);
+
                         inputChunk++;
                         SDecoder.extractor.advance();
                     }
                 } else {
-                    if (VERBOSE) Log.d(TAG, "input buffer not available");
+                    Log.d(TAG, "input buffer not available");
                 }
             }
 
@@ -132,20 +128,20 @@ public class EncodeDecodeSurface {
                 int decoderStatus = SDecoder.decoder.dequeueOutputBuffer(info, TIMEOUT_USEC);
                 if (decoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                     // no output available yet
-                    if (VERBOSE) Log.d(TAG, "no output from decoder available");
+                    Log.d(TAG, "no output from decoder available");
                 } else if (decoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                     // not important for us, since we're using Surface
-                    if (VERBOSE) Log.d(TAG, "decoder output buffers changed");
+                    Log.d(TAG, "decoder output buffers changed");
                 } else if (decoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     MediaFormat newFormat = SDecoder.decoder.getOutputFormat();
-                    if (VERBOSE) Log.d(TAG, "decoder output format changed: " + newFormat);
+                    Log.d(TAG, "decoder output format changed: " + newFormat);
                 } else if (decoderStatus < 0) {
 
                 } else { // decoderStatus >= 0
-                    if (VERBOSE) Log.d(TAG, "surface decoder given buffer " + decoderStatus +
+                    Log.d(TAG, "surface decoder given buffer " + decoderStatus +
                             " (size=" + info.size + ")");
                     if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                        if (VERBOSE) Log.d(TAG, "output EOS");
+                        Log.d(TAG, "output EOS");
                         outputDone = true;
                     }
 
@@ -153,25 +149,17 @@ public class EncodeDecodeSurface {
 
                     SDecoder.decoder.releaseOutputBuffer(decoderStatus, doRender);
                     if (doRender) {
-                        if (VERBOSE) Log.d(TAG, "awaiting decode of frame " + decodeCount);
-                        //long t = System.nanoTime();
-                        // Log.d(TAG, "read cost " + (t-s) / 1000 + " us");
-                            //SDecoder.outputSurface.makeCurrent(1);
-                            SDecoder.outputSurface.awaitNewImage();
-                            SDecoder.outputSurface.drawImage(true);
-                           /* long t2 = System.nanoTime();
-                            Log.d(TAG, "render cost " + (t2-t) / 1000 + " us");*/
-
-                            //读数据采用的是direct texture方式，即直接从GPU的buffer里面读，默认读的是
-                            //后台surface里面的数据，所以读操作必须放在swapBuffers之前
-                            SEncoder.drainEncoder(false);
-                           /* long t3 = System.nanoTime();
-                            Log.d(TAG, "write cost " + (t3-t2) / 1000 + " us");*/
-                            SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
-                            SDecoder.outputSurface.swapBuffers();
-                            //SDecoder.outputSurface.saveBitmap();
-                           /* long t4 = System.nanoTime();
-                            Log.d(TAG, "set time cost " + (t4-t3) / 1000 + " us");*/
+                        Log.d(TAG, "awaiting decode of frame " + decodeCount);
+                        long t = System.nanoTime();
+                        SDecoder.outputSurface.awaitNewImage();
+                        SDecoder.outputSurface.drawImage(true);
+                        long t2 = System.nanoTime();
+                        Log.d(TAG, "render cost " + (t2 - t) / 1000 + " us");
+                        //读数据采用的是direct texture方式，即直接从GPU的buffer里面读，默认读的是
+                        //后台surface里面的数据，所以读操作必须放在swapBuffers之前
+                        SEncoder.drainEncoder(false);
+                        SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
+                        SDecoder.outputSurface.swapBuffers();
                         decodeCount++;
                     }
 
@@ -180,6 +168,12 @@ public class EncodeDecodeSurface {
         }
 
         SEncoder.drainEncoder(true);
+
+        frameSaveTime = System.nanoTime() - startTime;
+        int numSaved = decodeCount;
+        Log.d(TAG, "Saving " + numSaved + " frames took " +
+                (frameSaveTime / numSaved / 1000) + " us per frame");
+
     }
 
 

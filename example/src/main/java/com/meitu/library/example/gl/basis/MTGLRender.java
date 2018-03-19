@@ -29,6 +29,7 @@ public class MTGLRender {
 
 
     public void surfaceCreated() {
+        Log.d(TAG, "surfaceCreated");
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         mFilter = new HomeFilter();
         mFilter.init();
@@ -36,10 +37,11 @@ public class MTGLRender {
     }
 
    public void onSizeChanged(int width,int height){
-
+       Log.d(TAG, "onSizeChanged width=" + width + " height=" + height);
    }
 
-    public int onDrawFrame(int[] textures) {
+    public void onDrawFrame(int[] textures) {
+        Log.d(TAG, "onDrawFrame ");
         long s = System.nanoTime();
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
@@ -47,7 +49,6 @@ public class MTGLRender {
         mFilter.draw(modelMatrix, textures);
         long t2 = System.nanoTime();
         //Log.d(TAG, "render cost " + (t2-s) / 1000 + " us");
-        return 1;
     }
 
 

@@ -14,70 +14,91 @@
     <ImageView
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:src="@drawable/save"
         android:layout_gravity="center|bottom"
         android:layout_marginBottom="30dp"
         android:onClick="save"
+        android:src="@drawable/save"
         />
 
 
     <LinearLayout
-        android:layout_gravity="start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_gravity="start"
         android:background="#3a000000"
+        android:orientation="vertical"
         >
 
         <Switch
             android:id="@+id/switchWaterMark"
-            android:text="水印"
-            android:textColor="#fff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:text="水印"
+            android:textColor="#fff"
             />
 
         <Switch
             android:id="@+id/switchMusic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:text="音乐"
             android:textColor="#fff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             />
 
         <Switch
             android:id="@+id/transFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:text="转场"
             android:textColor="#fff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             />
+
         <Switch
             android:id="@+id/switchFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:text="整段滤镜"
             android:textColor="#fff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             />
+
         <Switch
             android:id="@+id/partFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:text="首段滤镜"
             android:textColor="#fff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             />
+
         <Switch
             android:id="@+id/mediaCodec"
-            android:layout_margin="10dp"
-            android:text="MediaCodec"
-            android:textColor="#fff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="硬解硬保"
+            android:textColor="#fff"
+            />
+
+        <Switch
+            android:id="@+id/ffmpeg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="软解软保"
+            android:textColor="#fff"
+            />
+
+        <Switch
+            android:id="@+id/ffmpegMediaCodec"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="软解硬保"
+            android:textColor="#fff"
             />
 
 
@@ -85,7 +106,14 @@
 
     </LinearLayout>
 
-
+    <ImageView
+        android:id="@+id/pauseIv"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:visibility="invisible"
+        android:src="@drawable/pause"
+        />
 
 
     <ProgressBar
@@ -95,12 +123,6 @@
         android:layout_gravity="center"
         android:visibility="invisible"
         />
-
-
-
-
-
-
 
 
 </FrameLayout>

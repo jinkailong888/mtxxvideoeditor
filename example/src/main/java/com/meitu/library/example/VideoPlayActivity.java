@@ -13,6 +13,7 @@ import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import com.meitu.library.example.gl.basis.MTGLRender;
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.filter.FilterInfo;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
@@ -36,6 +37,12 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         View.OnClickListener {
 
     private static final String TAG = "VideoPlayActivity";
+
+    private static final int SAVE_MODE_FFMPEG = 1;
+    private static final int SAVE_MODE_FFMPEG_MEDIACODEC = 2;
+    private static final int SAVE_MODE_MEDIACODEC = 3; //默认
+    private int SAVE_MODE = SAVE_MODE_MEDIACODEC;
+
     private VideoEditor mVideoEditor;
 
     private View mVideoPlayerView;
@@ -46,6 +53,10 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     private Switch mTransFilterSwitch;
     private Switch mPartFilterSwitch;
     private Switch mMediaCodecSwitch;
+    private Switch mFFmpegSwitch;
+    private Switch mFFmpegMediaCodecSwitch;
+
+    private View mPauseView;
 
     private ProgressBar mProgressBar;
 
@@ -61,21 +72,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_target);
-
-        mVideoPlayerView = findViewById(R.id.videoPlayerView);
-        mWaterMarkSwitch = findViewById(R.id.switchWaterMark);
-        mTransFilterSwitch = findViewById(R.id.transFilter);
-        mMusicSwitch = findViewById(R.id.switchMusic);
-        mFilterSwitch = findViewById(R.id.switchFilter);
-        mPartFilterSwitch = findViewById(R.id.partFilter);
-        mMediaCodecSwitch = findViewById(R.id.mediaCodec);
-        mProgressBar = findViewById(R.id.progressBar);
-        mVideoPlayerView.setOnClickListener(this);
-        mWaterMarkSwitch.setOnCheckedChangeListener(this);
-        mMusicSwitch.setOnCheckedChangeListener(this);
-        mFilterSwitch.setOnCheckedChangeListener(this);
-        mTransFilterSwitch.setOnCheckedChangeListener(this);
-        mPartFilterSwitch.setOnCheckedChangeListener(this);
+        initView();
 
         filePaths = getIntent().getStringArrayListExtra(MainActivity.FILE_KEY);
 
@@ -87,6 +84,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .setNativeDebuggable(true)
                 .build();
 
+        mVideoEditor.setGLFilter(new MTGLRender());
+
         mVideoEditor.setVideoPathWithFilter(filePaths, null);
 
         mVideoEditor.prepare(true);
@@ -96,16 +95,18 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mVideoEditor.setOnSaveListener(mOnSaveListener);
     }
 
+
     public void save(View view) {
-        String outputPath = mMediaCodecSwitch.isChecked() ?
+        String outputPath = SAVE_MODE == SAVE_MODE_MEDIACODEC ?
                 FileUtil.getSaveVideoOutputPath("MediaCodecOutput") :
                 FileUtil.getSaveVideoOutputPath("FFmpegOutput");
 
         mVideoEditor.getSaveBuilder()
                 .setVideoSavePath(outputPath)
-                .setMediaCodec(mMediaCodecSwitch.isChecked())
+                .setMediaCodec(SAVE_MODE == SAVE_MODE_MEDIACODEC)
                 .save();
     }
+
 
     @Override
     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
@@ -115,7 +116,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             } else {
 //                mVideoEditor.clearWaterMark();
                 mVideoEditor.hideWatermark();
-
             }
         }
         if (mMusicSwitch == compoundButton) {
@@ -166,18 +166,43 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             }
         }
         if (mMediaCodecSwitch == compoundButton) {
-
+            if (b) {
+                mFFmpegSwitch.setChecked(false);
+                mFFmpegMediaCodecSwitch.setChecked(false);
+                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+            } else {
+                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+            }
+        }
+        if (mFFmpegSwitch == compoundButton) {
+            if (b) {
+                mMediaCodecSwitch.setChecked(false);
+                mFFmpegMediaCodecSwitch.setChecked(false);
+                SAVE_MODE = SAVE_MODE_FFMPEG;
+            } else {
+                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+            }
+        }
+        if (mFFmpegMediaCodecSwitch == compoundButton) {
+            if (b) {
+                mFFmpegMediaCodecSwitch.setChecked(false);
+            } else {
+                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+            }
         }
 
     }
+
 
     @Override
     public void onClick(View view) {
         if (view == mVideoPlayerView) {
             if (mVideoEditor.isPlaying()) {
                 mVideoEditor.pause();
+                mPauseView.setVisibility(View.VISIBLE);
             } else {
                 mVideoEditor.play();
+                mPauseView.setVisibility(View.INVISIBLE);
             }
         }
     }
@@ -211,6 +236,38 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
         }
     };
+
+
+    private void initView() {
+        mVideoPlayerView = findViewById(R.id.videoPlayerView);
+        mWaterMarkSwitch = findViewById(R.id.switchWaterMark);
+        mTransFilterSwitch = findViewById(R.id.transFilter);
+        mMusicSwitch = findViewById(R.id.switchMusic);
+        mFilterSwitch = findViewById(R.id.switchFilter);
+        mPartFilterSwitch = findViewById(R.id.partFilter);
+        mMediaCodecSwitch = findViewById(R.id.mediaCodec);
+        mFFmpegSwitch = findViewById(R.id.ffmpeg);
+        mFFmpegMediaCodecSwitch = findViewById(R.id.ffmpegMediaCodec);
+        mProgressBar = findViewById(R.id.progressBar);
+        mPauseView = findViewById(R.id.pauseIv);
+
+        mVideoPlayerView.setOnClickListener(this);
+        mWaterMarkSwitch.setOnCheckedChangeListener(this);
+        mMusicSwitch.setOnCheckedChangeListener(this);
+        mFilterSwitch.setOnCheckedChangeListener(this);
+        mTransFilterSwitch.setOnCheckedChangeListener(this);
+        mPartFilterSwitch.setOnCheckedChangeListener(this);
+        mFFmpegSwitch.setOnCheckedChangeListener(this);
+        mFFmpegMediaCodecSwitch.setOnCheckedChangeListener(this);
+        mMediaCodecSwitch.setOnCheckedChangeListener(this);
+
+        mWaterMarkSwitch.setEnabled(false);
+        mMusicSwitch.setEnabled(false);
+        mFilterSwitch.setEnabled(false);
+        mTransFilterSwitch.setEnabled(false);
+        mPartFilterSwitch.setEnabled(false);
+        mFFmpegMediaCodecSwitch.setEnabled(false);
+    }
 
 
 }

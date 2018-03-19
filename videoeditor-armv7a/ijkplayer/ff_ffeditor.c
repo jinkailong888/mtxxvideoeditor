@@ -18,10 +18,11 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <jni.h>
+#include <android/gl_jni.h>
+#include <android/gl_util.h>
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
 #include "ff_ffeditor.h"
-#include "ff_mediacodec.h"
 
 const int ffeditor_default_output_bitrate = 2000001;
 const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
@@ -29,6 +30,7 @@ const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
 
 
 //加水印耗时与不加差不多，但改变色调耗时巨长，由4S涨到20+S
+//设置rgba四个分量的变换关系，共接受16个参数, 灰阶效果
 //const char *ffeditor_video_filter_spec = "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3";
 //const char *ffeditor_video_filter_spec = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
 //        "scale=200:200[wm];[in][wm]overlay=W-w-5:H-h-5[out]";
@@ -199,7 +201,7 @@ static int open_output_file(EditorState *es) {
 //                    es->outputWidth = es->rotation ? es->outputHeight : es->outputWidth;
 //                    es->outputHeight = es->rotation ? temp_outputWidth : es->outputHeight;
 //                }
-                
+
                 es->outputWidth = dec_ctx->width;
                 es->outputHeight = dec_ctx->height;
 
@@ -525,8 +527,14 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
 
+    //todo gl渲染
+//    int *da = uploadTexture(filt_frame);
+//    onDrawFrame(da);
+//    filt_frame->data[0] = readDataFromGPU(720, 1280);
+
+
     if (es->mediaCodecEnc) {
-        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
+//        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
     } else {
         ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
     }
@@ -769,13 +777,12 @@ int ffeditor_save(EditorState *es) {
     //todo 进度回调
     //todo 插入 filter
 
-    es->mediaCodecDec = true;
-    es->mediaCodecEnc = false;
+    es->mediaCodecDec = false;//目前保存硬解在java层实现，后面转ndk实现时才可能会用到此参数
+    es->mediaCodecEnc = true;
 
     if (es->mediaCodecEnc) {
-        mediacodec_encode_init(es);
+//        mediacodec_encode_init(es);
     }
-
 
     es->save_tid = SDL_CreateThreadEx(&es->_save_tid, ffeditor_save_thread, es,
                                       "ffeditor_save_thread");

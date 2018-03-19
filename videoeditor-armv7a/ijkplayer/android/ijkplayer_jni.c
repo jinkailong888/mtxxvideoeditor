@@ -42,6 +42,7 @@
 #include "ijksdl/android/ijksdl_android_jni.h"
 #include "ijksdl/android/ijksdl_codec_android_mediadef.h"
 #include "ijkavformat/ijkavformat.h"
+#include "gl_jni.h"
 
 #define JNI_MODULE_PACKAGE      "tv/danmaku/ijk/media/player"
 #define JNI_CLASS_IJKPLAYER     "tv/danmaku/ijk/media/player/IjkMediaPlayer"
@@ -1221,6 +1222,14 @@ IjkMediaPlayer_clearBgMusic(JNIEnv *env, jobject thiz) {
 
 
 static void
+IjkMediaPlayer_setGLFilter(JNIEnv *env, jobject thiz,jobject filter){
+
+    gl_jni_setGLFilter(env, thiz, filter);
+
+}
+
+
+static void
 IjkMediaPlayer_save(JNIEnv *env, jobject thiz, jboolean mediaCodec, jstring outputPath,
                     jint outputWidth, jint outputHeight, jint outputBitrate, jint outputFps) {
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
@@ -1299,6 +1308,8 @@ static JNINativeMethod g_methods[] = {
         {       "setBgMusic",            "(Ljava/lang/String;IIFZ)V",                              (void *) IjkMediaPlayer_setBgMusic},
         {       "clearBgMusic",          "()V",                                                    (void *) IjkMediaPlayer_clearBgMusic},
 
+        {       "setGLFilter",           "(Ljava/lang/Object;)V",                                  (void *) IjkMediaPlayer_setGLFilter},
+
 
         {       "save",                  "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_save},
 
@@ -1335,6 +1346,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     //来设置java虚拟机（反调mediacodec时会用到）,或者使用解码器之前调用
     av_jni_set_java_vm(vm, NULL);
+    
+    gl_jni_init(env,vm);
+
 
     return JNI_VERSION_1_4;
 }
