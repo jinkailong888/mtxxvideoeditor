@@ -48,7 +48,7 @@ public class MTGLRender {
         setIdentityM(modelMatrix, 0);
         mFilter.draw(modelMatrix, textures);
         long t2 = System.nanoTime();
-        Log.d(TAG, "render cost " + (t2-s) / 1000 + " us");
+        //Log.d(TAG, "render cost " + (t2-s) / 1000 + " us");
     }
 
 

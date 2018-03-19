@@ -20,6 +20,10 @@
  */
 
 #include "internal.h"
+#include "gl_util.h"
+
+#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
 static void IJK_GLES2_printProgramInfo(GLuint program)
 {
@@ -424,6 +428,9 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
     }
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);      IJK_GLES2_checkError_TRACE("glDrawArrays");
+
+    uint8_t * data = readDataFromGPU(overlay->w,overlay->h);
+    LOGI("read data:%s",data);
 
     return GL_TRUE;
 }

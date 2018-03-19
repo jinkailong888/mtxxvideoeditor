@@ -279,6 +279,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         } else {
             surface = null;
         }
+
+        Surface surface1 = new MySurface(new SurfaceTexture(0),100,200);
         _setVideoSurface(surface);
         updateSurfaceScreenOn();
     }

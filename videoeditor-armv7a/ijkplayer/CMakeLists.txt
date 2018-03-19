@@ -61,6 +61,8 @@ set(source_files
      ${pwd_dir}/ijkplayer.c
 
      ${pwd_dir}/ff_ffeditor.c
+     ${pwd_dir}/ff_mediacodec_common.c
+     ${pwd_dir}/ff_mediacodec.c
 
      ${pwd_dir}/pipeline/ffpipeline_ffplay.c
      ${pwd_dir}/pipeline/ffpipenode_ffplay_vdec.c
