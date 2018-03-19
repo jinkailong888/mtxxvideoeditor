@@ -5330,7 +5330,6 @@ ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jint wid
     EditorState *es = ffp->es;
     if (!es)
         return;
-    es->mediaCodec = mediaCodec;
     es->outputPath = path;
     es->outputWidth = width;
     es->outputHeight = height;

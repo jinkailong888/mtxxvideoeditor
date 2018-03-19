@@ -9,7 +9,7 @@ FF_NDK_OS_NAME=linux-x86_64
 echo "运行环境：$UNAME_S"
 case "$UNAME_S" in
     Darwin)
-
+       FF_NDK_OS_NAME=darwin-x86_64
     ;;
     CYGWIN_NT-*)
        FF_NDK_OS_NAME=windows-x86_64
@@ -39,27 +39,48 @@ if [ -z "$FF_NDK" ]; then
     echo ""
     exit 1
 fi
+
+# 编译平台版本
+export FF_ANDROID_PLATFORM=android-14
+
 # 当前目录
 FF_PWD_DIR=$(pwd)
-# ffmpeg源码根目录
+# FFmpeg源码目录
 FF_FFMPEG_SOURCE=./ffmpeg-armv7a
+# x264源码目录
+FF_X264_SOURCE=$(pwd)/x264
+# aac源码目录
+FF_AAC_SOURCE=$(pwd)/fdk-aac-0.1.4
 
-#X264_INCLUDE=./x264/Android/arm/include
-#X264_BIN=./x264/Android/arm/lib
-#AAC_INCLUDE=./fdk-aac-0.1.4/Android/arm/include
-#AAC_BIN=./fdk-aac-0.1.4/Android/arm/lib
-X264_INCLUDE=/home/yhao/lib/x264/Android/arm/include
-X264_BIN=/home/yhao/lib/x264/Android/arm/lib
 
-AAC_INCLUDE=/home/yhao/lib/fdk-aac-0.1.4/Android/arm/include
-AAC_BIN=/home/yhao/lib/fdk-aac-0.1.4/Android/arm/lib
+echo ""
+echo "--------------------"
+echo "[*] make libx264"
+echo "--------------------"
 
-# 输出目录
+cd ${FF_X264_SOURCE}
+sh config.sh
+cd ..
+X264_INCLUDE=${FF_X264_SOURCE}/Android/arm/include
+X264_BIN=${FF_X264_SOURCE}/Android/arm/lib
+
+echo ""
+echo "--------------------"
+echo "[*] make libaac"
+echo "--------------------"
+
+cd ${FF_AAC_SOURCE}
+sh build.sh
+cd ..
+AAC_INCLUDE=${FF_AAC_SOURCE}/Android/arm/include
+AAC_BIN=${FF_AAC_SOURCE}/Android/arm/lib
+
+
+# FFmpeg输出目录
 FF_PREFIX=${FF_PWD_DIR}/output/${FF_ARCH}
 FF_SHARED_PREFIX=${FF_PWD_DIR}/ndkbuild/jni
 FF_SO_PREFIX=${FF_PWD_DIR}/../obj/${FF_ARCH}
-# 编译平台版本
-FF_ANDROID_PLATFORM=android-24
+
 # 交叉编译环境
 FF_SYSROOT=
 # 交叉编译工具链
@@ -86,7 +107,7 @@ if [ "$FF_ARCH" = "armv7a" ]; then
     FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS --enable-thumb"
     FF_EXTRA_CFLAGS="$FF_EXTRA_CFLAGS -march=armv7-a -mcpu=cortex-a8 -mfpu=vfpv3-d16 -mfloat-abi=softfp -mthumb"
     FF_EXTRA_LDFLAGS="$FF_EXTRA_LDFLAGS -Wl,--fix-cortex-a8"
-    FF_SYSROOT=${FF_NDK}platforms/${FF_ANDROID_PLATFORM}/arch-arm/
+    FF_SYSROOT=${FF_NDK}/platforms/${FF_ANDROID_PLATFORM}/arch-arm/
     FF_GCC_NAME="arm-linux-androideabi"
 
 elif [ "$FF_ARCH" = "armv5" ]; then
@@ -168,7 +189,7 @@ FF_CONFIGURE_FLAGS="$FF_CONFIGURE_FLAGS $COMMON_FF_CFG_FLAGS"
 
 
 # 交叉编译链
-FF_CROSS_PREFIX=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/bin/${FF_GCC_NAME}-
+FF_CROSS_PREFIX=${FF_NDK}/toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/bin/${FF_GCC_NAME}-
 
 #--------------------
 # FFmpeg 配置:
@@ -243,14 +264,14 @@ echo "[*] compile libffmpeg.so"
 echo "--------------------"
 
 
-FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9
+FF_LIB_GCC_DIR=${FF_NDK}/toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9
 
 if [ ! -d ${FF_LIB_GCC_DIR} ]; then
     echo ""
     echo "!! Can not find 4.9 directory for libgcc.a"
     echo "!! change to 4.9.x directory"
     echo ""
-    FF_LIB_GCC_DIR=${FF_NDK}toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9.x
+    FF_LIB_GCC_DIR=${FF_NDK}/toolchains/${FF_TOOLCHAIN_NAME}/prebuilt/${FF_NDK_OS_NAME}/lib/gcc/${FF_GCC_NAME}/4.9.x
 fi
 
 if [ ! -d ${FF_LIB_GCC_DIR} ]; then
@@ -279,18 +300,25 @@ ${FF_SHARED_PREFIX}/libijkffmpeg.so \
     libavformat/libavformat.a \
     libavutil/libavutil.a \
     libswscale/libswscale.a \
-    /home/yhao/lib/x264/Android/arm/lib/libx264.a \
-    /home/yhao/lib/fdk-aac-0.1.4/Android/arm/lib/libfdk-aac.a \
+    ${X264_BIN}/libx264.a \
+    ${AAC_BIN}/libfdk-aac.a \
     -lc -lm -lz -ldl -llog --dynamic-linker=/system/bin/linker \
     ${FF_LIB_GCC_DIR}/libgcc.a \
 
 
+make clean
 
 cd ./../ndkbuild/jni
 
 ndk-build
 
+rm -rf libijkffmpeg.so
+
+rm -rf /obj
+
 cp -f ./../libs/armeabi-v7a/libijkffmpeg.so ${FF_SO_PREFIX}/libijkffmpeg.so
+
+
 
 
 

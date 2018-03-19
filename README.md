@@ -1,12 +1,17 @@
 
-第 1 步.编译 FFmpeg (不支持windows)
+第 1 步.编译
 
-配置NDK环境变量：ANDROID_NDK
+需配置NDK环境变量, 如：ANDROID_NDK = /home/yhao/ndk/android-ndk-r14b
 
 ```java
       cd videoeditor-armv7a/ffmpeg
       sh compile.sh
 ```
+
+此步会重新编译 x264、aac 及 ffmpeg 库.
+
+windows 下暂不支持编译操作，为方便 windows 下开发，第 2 步运行所需 so 库已添加至 git 仓库.
+
 
 第 2 步.
 
@@ -14,11 +19,11 @@
       run example
 ```
 
-windows 下不支持编译操作，为方便 windows 下开发，第 2 步运行所需 so 库已添加至 git 仓库.
+此步会重新编译 cpufeatures、ijkj4a、ijkyuv、ijksdl、android-ndk-prof、ijksoundtouch 以及 ijkplayer 库.
 
-run example 操作会触发 videoeditor-armv7a 的编译工作，自动生成 so 库打包进 apk.
+libijkplayer.so 和 libijksdl.so 由 cmake 自动打包进 apk, libijkffmpeg.so 手动指向.
 
-目前 libijkplayer.so 和 libijksdl.so 由 cmake 自动打包进 apk, libijkffmpeg.so 手动指向.
+
 
 
 接口设计：
