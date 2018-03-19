@@ -20,6 +20,8 @@
  */
 
 #include "internal.h"
+#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
 static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer)
 {
@@ -77,7 +79,7 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
             ALOGE("[yuv420p] unexpected format %x\n", overlay->format);
             return GL_FALSE;
     }
-
+    LOGI("textures:%d,%d,%d",widths[0],widths[1],widths[2]);
     for (int i = 0; i < 3; ++i) {
         int plane = planes[i];
 
@@ -97,8 +99,13 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
     return GL_TRUE;
 }
 
+static GLboolean yuv420p_readTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay){
+
+}
+
 IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p()
 {
+    LOGI("%s","create 420p");
     ALOGI("create render yuv420p\n");
     IJK_GLES2_Renderer *renderer = IJK_GLES2_Renderer_create_base(IJK_GLES2_getFragmentShader_yuv420p());
     if (!renderer)
@@ -113,6 +120,7 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p()
     renderer->func_use            = yuv420p_use;
     renderer->func_getBufferWidth = yuv420p_getBufferWidth;
     renderer->func_uploadTexture  = yuv420p_uploadTexture;
+    renderer->func_readTexture = yuv420p_readTexture;
 
     return renderer;
 fail:

@@ -31,13 +31,14 @@
 #include "ijksdl/gles2/internal.h"
 
 #define IJK_EGL_RENDER_BUFFER 0
+#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
 typedef struct IJK_EGL_Opaque {
     IJK_GLES2_Renderer *renderer;
 } IJK_EGL_Opaque;
 
-static EGLBoolean IJK_EGL_isValid(IJK_EGL* egl)
-{
+static EGLBoolean IJK_EGL_isValid(IJK_EGL *egl) {
     if (egl &&
         egl->window &&
         egl->display &&
@@ -49,8 +50,7 @@ static EGLBoolean IJK_EGL_isValid(IJK_EGL* egl)
     return EGL_FALSE;
 }
 
-void IJK_EGL_terminate(IJK_EGL* egl)
-{
+void IJK_EGL_terminate(IJK_EGL *egl) {
     if (!IJK_EGL_isValid(egl))
         return;
 
@@ -72,8 +72,7 @@ void IJK_EGL_terminate(IJK_EGL* egl)
     egl->display = EGL_NO_DISPLAY;
 }
 
-static int IJK_EGL_getSurfaceWidth(IJK_EGL* egl)
-{
+static int IJK_EGL_getSurfaceWidth(IJK_EGL *egl) {
     EGLint width = 0;
     if (!eglQuerySurface(egl->display, egl->surface, EGL_WIDTH, &width)) {
         ALOGE("[EGL] eglQuerySurface(EGL_WIDTH) returned error %d", eglGetError());
@@ -83,8 +82,7 @@ static int IJK_EGL_getSurfaceWidth(IJK_EGL* egl)
     return width;
 }
 
-static int IJK_EGL_getSurfaceHeight(IJK_EGL* egl)
-{
+static int IJK_EGL_getSurfaceHeight(IJK_EGL *egl) {
     EGLint height = 0;
     if (!eglQuerySurface(egl->display, egl->surface, EGL_HEIGHT, &height)) {
         ALOGE("[EGL] eglQuerySurface(EGL_HEIGHT) returned error %d", eglGetError());
@@ -94,27 +92,26 @@ static int IJK_EGL_getSurfaceHeight(IJK_EGL* egl)
     return height;
 }
 
-static EGLBoolean IJK_EGL_setSurfaceSize(IJK_EGL* egl, int width, int height)
-{
+static EGLBoolean IJK_EGL_setSurfaceSize(IJK_EGL *egl, int width, int height) {
     if (!IJK_EGL_isValid(egl))
         return EGL_FALSE;
 
 #ifdef __ANDROID__
-    egl->width  = IJK_EGL_getSurfaceWidth(egl);
+    egl->width = IJK_EGL_getSurfaceWidth(egl);
     egl->height = IJK_EGL_getSurfaceHeight(egl);
 
     if (width != egl->width || height != egl->height) {
         int format = ANativeWindow_getFormat(egl->window);
         ALOGI("ANativeWindow_setBuffersGeometry(w=%d,h=%d) -> (w=%d,h=%d);",
-            egl->width, egl->height,
-            width, height);
+              egl->width, egl->height,
+              width, height);
         int ret = ANativeWindow_setBuffersGeometry(egl->window, width, height, format);
         if (ret) {
             ALOGE("[EGL] ANativeWindow_setBuffersGeometry() returned error %d", ret);
             return EGL_FALSE;
         }
 
-        egl->width  = IJK_EGL_getSurfaceWidth(egl);
+        egl->width = IJK_EGL_getSurfaceWidth(egl);
         egl->height = IJK_EGL_getSurfaceHeight(egl);
         return (egl->width && egl->height) ? EGL_TRUE : EGL_FALSE;
     }
@@ -126,8 +123,9 @@ static EGLBoolean IJK_EGL_setSurfaceSize(IJK_EGL* egl, int width, int height)
     return EGL_FALSE;
 }
 
-static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
-{
+static EGLBoolean
+IJK_EGL_makeCurrent(IJK_EGL *egl, EGLNativeWindowType window, int width, int height) {
+    bool isOffScreen = false;
     if (window && window == egl->window &&
         egl->display &&
         egl->surface &&
@@ -157,23 +155,23 @@ static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
     EGLint major, minor;
     if (!eglInitialize(display, &major, &minor)) {
         ALOGE("[EGL] eglInitialize failed\n");
-        return EGL_FALSE;   
+        return EGL_FALSE;
     }
-    ALOGI("[EGL] eglInitialize %d.%d\n", (int)major, (int)minor);
+    ALOGI("[EGL] eglInitialize %d.%d\n", (int) major, (int) minor);
 
 
     static const EGLint configAttribs[] = {
-        EGL_RENDERABLE_TYPE,    EGL_OPENGL_ES2_BIT,
-        EGL_SURFACE_TYPE,       EGL_WINDOW_BIT,
-        EGL_BLUE_SIZE,          8,
-        EGL_GREEN_SIZE,         8,
-        EGL_RED_SIZE,           8,
-        EGL_NONE
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+            EGL_BLUE_SIZE, 8,
+            EGL_GREEN_SIZE, 8,
+            EGL_RED_SIZE, 8,
+            EGL_NONE
     };
 
     static const EGLint contextAttribs[] = {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
-        EGL_NONE
+            EGL_CONTEXT_CLIENT_VERSION, 2,
+            EGL_NONE
     };
 
     EGLConfig config;
@@ -184,6 +182,7 @@ static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
         return EGL_FALSE;
     }
 
+
 #ifdef __ANDROID__
     {
         EGLint native_visual_id = 0;
@@ -193,20 +192,39 @@ static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
             return EGL_FALSE;
         }
 
-        int32_t width  = ANativeWindow_getWidth(window);
+        int32_t width = ANativeWindow_getWidth(window);
         int32_t height = ANativeWindow_getWidth(window);
-        ALOGI("[EGL] ANativeWindow_setBuffersGeometry(f=%d);", native_visual_id);
-        int ret = ANativeWindow_setBuffersGeometry(window, width, height, native_visual_id);
-        if (ret) {
-            ALOGE("[EGL] ANativeWindow_setBuffersGeometry(format) returned error %d", ret);
-            eglTerminate(display);
-            return EGL_FALSE;
+        LOGI("frame size:%d,%d", width, height);
+        if (width == 1 && height == 1) {
+            isOffScreen = true;
+        }
+
+        if (!isOffScreen) {
+            ALOGI("[EGL] ANativeWindow_setBuffersGeometry(f=%d);", native_visual_id);
+            int ret = ANativeWindow_setBuffersGeometry(window, width, height, native_visual_id);
+            if (ret) {
+                ALOGE("[EGL] ANativeWindow_setBuffersGeometry(format) returned error %d", ret);
+                eglTerminate(display);
+                return EGL_FALSE;
+            }
         }
     }
 #endif
+    EGLSurface surface;
+    if (isOffScreen) {
+        LOGI("%s", "is offscrren, start create pbuffer surface");
+        LOGI("frame size:%d,%d", width, height);
+        const EGLint pbuf_attribs[] = {
+                EGL_WIDTH, width,
+                EGL_HEIGHT, height,
+                EGL_NONE};
+        surface = eglCreatePbufferSurface(display, config, pbuf_attribs);
+    } else {
+        surface = eglCreateWindowSurface(display, config, window, NULL);
+    }
 
-    EGLSurface surface = eglCreateWindowSurface(display, config, window, NULL);
     if (surface == EGL_NO_SURFACE) {
+        LOGI("%s", "surface is null");
         ALOGE("[EGL] eglCreateWindowSurface failed\n");
         eglTerminate(display);
         return EGL_FALSE;
@@ -221,11 +239,14 @@ static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
     }
 
     if (!eglMakeCurrent(display, surface, surface, context)) {
+        LOGI("%s", "make current fail");
         ALOGE("[EGL] elgMakeCurrent() failed (new)\n");
         eglDestroyContext(display, context);
         eglDestroySurface(display, surface);
         eglTerminate(display);
         return EGL_FALSE;
+    }else{
+        LOGI("%s", "make current suc");
     }
 
 #if 0
@@ -258,15 +279,14 @@ static EGLBoolean IJK_EGL_makeCurrent(IJK_EGL* egl, EGLNativeWindowType window)
 #endif
 
     IJK_GLES2_Renderer_setupGLES();
-
+    LOGI("%s", "make egl succ");
     egl->context = context;
     egl->surface = surface;
     egl->display = display;
     return EGL_TRUE;
 }
 
-static EGLBoolean IJK_EGL_prepareRenderer(IJK_EGL* egl, SDL_VoutOverlay *overlay)
-{
+static EGLBoolean IJK_EGL_prepareRenderer(IJK_EGL *egl, SDL_VoutOverlay *overlay) {
     assert(egl);
     assert(egl->opaque);
 
@@ -296,12 +316,13 @@ static EGLBoolean IJK_EGL_prepareRenderer(IJK_EGL* egl, SDL_VoutOverlay *overlay
         return EGL_FALSE;
     }
 
-    glViewport(0, 0, egl->width, egl->height);  IJK_GLES2_checkError_TRACE("glViewport");
+    glViewport(0, 0, egl->width, egl->height);
+    IJK_GLES2_checkError_TRACE("glViewport");
     return EGL_TRUE;
 }
 
-static EGLBoolean IJK_EGL_display_internal(IJK_EGL* egl, EGLNativeWindowType window, SDL_VoutOverlay *overlay)
-{
+static EGLBoolean
+IJK_EGL_display_internal(IJK_EGL *egl, EGLNativeWindowType window, SDL_VoutOverlay *overlay) {
     IJK_EGL_Opaque *opaque = egl->opaque;
 
     if (!IJK_EGL_prepareRenderer(egl, overlay)) {
@@ -311,7 +332,7 @@ static EGLBoolean IJK_EGL_display_internal(IJK_EGL* egl, EGLNativeWindowType win
 
     if (!IJK_GLES2_Renderer_renderOverlay(opaque->renderer, overlay)) {
         ALOGE("[EGL] IJK_GLES2_render failed\n");
-        return EGL_FALSE; 
+        return EGL_FALSE;
     }
 
     eglSwapBuffers(egl->display, egl->surface);
@@ -319,8 +340,7 @@ static EGLBoolean IJK_EGL_display_internal(IJK_EGL* egl, EGLNativeWindowType win
     return EGL_TRUE;
 }
 
-EGLBoolean IJK_EGL_display(IJK_EGL* egl, EGLNativeWindowType window, SDL_VoutOverlay *overlay)
-{
+EGLBoolean IJK_EGL_display(IJK_EGL *egl, EGLNativeWindowType window, SDL_VoutOverlay *overlay) {
     EGLBoolean ret = EGL_FALSE;
     if (!egl)
         return EGL_FALSE;
@@ -329,7 +349,8 @@ EGLBoolean IJK_EGL_display(IJK_EGL* egl, EGLNativeWindowType window, SDL_VoutOve
     if (!opaque)
         return EGL_FALSE;
 
-    if (!IJK_EGL_makeCurrent(egl, window))
+
+    if (!IJK_EGL_makeCurrent(egl, window, overlay->w, overlay->h))
         return EGL_FALSE;
 
     ret = IJK_EGL_display_internal(egl, window, overlay);
@@ -338,16 +359,14 @@ EGLBoolean IJK_EGL_display(IJK_EGL* egl, EGLNativeWindowType window, SDL_VoutOve
     return ret;
 }
 
-void IJK_EGL_releaseWindow(IJK_EGL* egl)
-{
+void IJK_EGL_releaseWindow(IJK_EGL *egl) {
     if (!egl || !egl->opaque || !egl->opaque->renderer)
         return;
 
     IJK_EGL_terminate(egl);
 }
 
-void IJK_EGL_free(IJK_EGL *egl)
-{
+void IJK_EGL_free(IJK_EGL *egl) {
     if (!egl)
         return;
 
@@ -357,8 +376,7 @@ void IJK_EGL_free(IJK_EGL *egl)
     free(egl);
 }
 
-void IJK_EGL_freep(IJK_EGL **egl)
-{
+void IJK_EGL_freep(IJK_EGL **egl) {
     if (!egl || !*egl)
         return;
 
@@ -367,12 +385,11 @@ void IJK_EGL_freep(IJK_EGL **egl)
 }
 
 static SDL_Class g_class = {
-    .name = "EGL",
+        .name = "EGL",
 };
 
-IJK_EGL *IJK_EGL_create()
-{
-    IJK_EGL *egl = (IJK_EGL*) mallocz(sizeof(IJK_EGL));
+IJK_EGL *IJK_EGL_create() {
+    IJK_EGL *egl = (IJK_EGL *) mallocz(sizeof(IJK_EGL));
     if (!egl)
         return NULL;
 

@@ -37,6 +37,7 @@ public abstract class AbsMTGLFilter {
     private int positionCoordinates;
     private int textureCoordinates;
     private int[] inputImageTextures;
+    private int yuvTypeLocation;
 
     private int uMatrixLocation;
 
@@ -47,6 +48,9 @@ public abstract class AbsMTGLFilter {
     private static final String INPUT_IMAGE_TEXTURE_0 = "u_texture0";
     private static final String INPUT_IMAGE_TEXTURE_1 = "u_texture1";
     private static final String INPUT_IMAGE_TEXTURE_2 = "u_texture2";
+
+
+    private static final String YUV_TYPE = "yuvType";
 
 
     private int mProgram;
@@ -102,6 +106,7 @@ public abstract class AbsMTGLFilter {
 
 
     public final void init() {
+        inputImageTextures = new int[3];
         mVertexShader = MTGLUtil.compileShader(GLES20.GL_VERTEX_SHADER, getVertexShaderResource());
         mFragmentShader = MTGLUtil.compileShader(GLES20.GL_FRAGMENT_SHADER, getFragmentShaderResource());
         mProgram = MTGLUtil.buildProgram(mVertexShader, mFragmentShader);
@@ -110,6 +115,7 @@ public abstract class AbsMTGLFilter {
         positionCoordinates = glGetAttribLocation(mProgram, POSITION_COORDINATES);
         textureCoordinates = glGetAttribLocation(mProgram, TEXTURE_COORDINATES);
         uMatrixLocation = glGetUniformLocation(mProgram, U_MATRIX);
+        yuvTypeLocation = glGetUniformLocation(mProgram, YUV_TYPE);
         inputImageTextures[0] = glGetUniformLocation(mProgram, INPUT_IMAGE_TEXTURE_0);
         inputImageTextures[1] = glGetUniformLocation(mProgram, INPUT_IMAGE_TEXTURE_1);
         inputImageTextures[2] = glGetUniformLocation(mProgram, INPUT_IMAGE_TEXTURE_2);
@@ -153,7 +159,9 @@ public abstract class AbsMTGLFilter {
         glUseProgram(mProgram);
         glUniformMatrix4fv(uMatrixLocation, 1, false, matrix, 0);
         //set active texture unit to unit 0
-        for (int i = 0; i < 2; ++i) {
+        int yuvType = textures.length == 3 ? 0 : 2;
+
+        for (int i = 0; i < textures.length; ++i) {
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, textures[i]);
 
@@ -163,8 +171,10 @@ public abstract class AbsMTGLFilter {
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
             glUniform1i(inputImageTextures[i], i);
+
         }
 
+        glUniform1i(yuvTypeLocation, yuvType);
 
         updateData();
         mData.bindData(this);

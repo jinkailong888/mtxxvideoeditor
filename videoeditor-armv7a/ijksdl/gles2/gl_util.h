@@ -1,33 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <GLES3/gl3.h>
+#include <GLES2/gl2.h>
+#include "gl3stub.h"
 #include <stdbool.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <dlfcn.h>
 #include <string.h>
 #include<android/log.h>
+#include <ijksdl/ffmpeg/ijksdl_inc_ffmpeg.h>
 
 
 #ifndef MTGLOFFSCREEN_GLUTIL_H
 #define MTGLOFFSCREEN_GLUTIL_H
 
 #endif //MTGLOFFSCREEN_GLUTIL_H
-bool checkEglError(char *msg);
-
-//初始化gl
-bool setupEGL(int width, int height);
-
-//保存完释放
-void destroyPixelBuffers();
+//bool setupEGL(int width, int height,int textureSize);
 
 
-void unbindPixelBuffer();
+void uploadTexture(AVFrame *frame);
 
-void initPBO(int width,int height);
-
-//
 unsigned char *readDataFromGPU(int width, int height);
 
-//保存完释放
-void deleteEGL();
+void release();
+

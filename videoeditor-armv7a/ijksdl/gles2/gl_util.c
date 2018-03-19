@@ -20,6 +20,7 @@ int mWidth;
 int mHeight;
 int mTextureSize;
 
+
 void unbindPixelBuffer() {
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     mPboIndex = (mPboIndex + 1) % 2;
@@ -50,20 +51,21 @@ bool checkEglError(char *msg) {
 }
 
 void initPBO() {
-    glVersion = (const char *) glGetString(GL_VERSION);
+    gl3stubInit();
+    //glVersion = (const char *) glGetString(GL_VERSION);
     LOGI("opengl version:%s", glVersion);
 
     mPboIndex = 0;
     mPboNewIndex = 1;
-    mInitRecord = true;
-    mPboSize = mWidth * mHeight * 4;
-    LOGI("picture width,height:%d,%d", mWidth, mHeight);
+    mPboSize = mWidth * mHeight * 3 / 2;
+
 
     glGenBuffers(2, mPboIds);
     if (mPboIds[0] == 0 || mPboIds[1] == 0) {
         LOGI("%s", "generate pbo fail");
         return;
     }
+    LOGI("PBO ID :%d,%d", mPboIds[0], mPboIds[1]);
     //绑定到第一个PBO
     glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[0]);
     //设置内存大小
@@ -148,29 +150,22 @@ bool setupEGL(int width, int height, int textureSize) {
     return result;
 }
 
-void uploadTexture(AVFrame *frame) {
-    for (int i = 0; i < 3; ++i) {
-        glBindTexture(GL_TEXTURE_2D, mTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_LUMINANCE,
-                     mWidth,
-                     mHeight,
-                     0,
-                     GL_LUMINANCE,
-                     GL_UNSIGNED_BYTE,
-                     frame->data[i]);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
 
+uint8_t *readDataFromGPU(int width, int height) {
 
-unsigned char *readDataFromGPU(int width, int height) {
+    glVersion = (const char *) glGetString(GL_VERSION);
+
     if (strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
-        LOGI("opengl version:%s", glVersion);
+        if (mInitRecord) {
+            mWidth = width;
+            mHeight = height;
+            initPBO();
+        }
+        LOGI("%s", "enter glbind");
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
 
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
 
         if (mInitRecord) {//第一帧没有数据跳出
             unbindPixelBuffer();
@@ -180,9 +175,10 @@ unsigned char *readDataFromGPU(int width, int height) {
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboNewIndex]);
 
+        LOGI("%s%o", "enter map",glMapBufferRange);
 
         //glMapBufferRange会等待DMA传输完成，所以需要交替使用pbo,这边获取的是上一帧的内容
-        unsigned char *byteBuffer = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
+        uint8_t *byteBuffer = (uint8_t *) glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
                                                                        mPboSize,
                                                                        GL_MAP_READ_BIT);
         if (byteBuffer == NULL) {
@@ -194,8 +190,9 @@ unsigned char *readDataFromGPU(int width, int height) {
         unbindPixelBuffer();
         return byteBuffer;
     } else {
-        unsigned char data[width * height * 4];
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        int size = width * height * 3 / 2;
+        uint8_t *data = (uint8_t *) malloc(sizeof(uint8_t) * size);
+        glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, data);
         return data;
     }
 }
