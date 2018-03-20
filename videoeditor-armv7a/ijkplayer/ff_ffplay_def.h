@@ -295,10 +295,12 @@ typedef struct VideoState {
     AVFormatContext *ic;
     int realtime;
 
+    //时钟，默认音频始终为主时钟，音频播放参考之
     Clock audclk;
     Clock vidclk;
     Clock extclk;
 
+    //解码后队列
     FrameQueue pictq;
     FrameQueue subpq;
     FrameQueue sampq;
@@ -308,7 +310,7 @@ typedef struct VideoState {
     Decoder subdec;
 
     int audio_stream;
-
+    //音视频同步类型
     int av_sync_type;
     void *handle;
     double audio_clock;
@@ -399,6 +401,7 @@ typedef struct VideoState {
     SDL_Thread *video_refresh_tid;
     SDL_Thread _video_refresh_tid;
 
+    //缓冲
     int buffering_on;
     int pause_req;
 
@@ -703,6 +706,7 @@ typedef struct FFPlayer {
 
     int64_t playable_duration_ms;
 
+    //播放器是否处于缓冲状态
     int packet_buffering;
     int pictq_size;
     int max_fps;
@@ -784,7 +788,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp) {
     ffp->seek_by_bytes = -1;
     ffp->display_disable = 0;
     ffp->show_status = 0;
-    ffp->av_sync_type = AV_SYNC_AUDIO_MASTER;
+    ffp->av_sync_type = AV_SYNC_AUDIO_MASTER; //音视频同步类型默认为以音频为主
     ffp->start_time = AV_NOPTS_VALUE;
     ffp->duration = AV_NOPTS_VALUE;
     ffp->fast = 1;

@@ -22,12 +22,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+
+/**
+ *   互斥锁操作封装
+ */
+
 #include "ijksdl_mutex.h"
 #include <errno.h>
 #include <assert.h>
 #include <sys/time.h>
 #include "ijksdl_inc_internal.h"
 
+
+/**
+ * 创建互斥锁
+ * @return
+ */
 SDL_mutex *SDL_CreateMutex(void)
 {
     SDL_mutex *mutex;
@@ -43,6 +53,10 @@ SDL_mutex *SDL_CreateMutex(void)
     return mutex;
 }
 
+/**
+ * 销毁互斥锁
+ * @param mutex
+ */
 void SDL_DestroyMutex(SDL_mutex *mutex)
 {
     if (mutex) {
@@ -59,6 +73,11 @@ void SDL_DestroyMutexP(SDL_mutex **mutex)
     }
 }
 
+/**
+ * 加锁
+ * @param mutex
+ * @return
+ */
 int SDL_LockMutex(SDL_mutex *mutex)
 {
     assert(mutex);
@@ -68,6 +87,11 @@ int SDL_LockMutex(SDL_mutex *mutex)
     return pthread_mutex_lock(&mutex->id);
 }
 
+/**
+ * 解锁
+ * @param mutex
+ * @return
+ */
 int SDL_UnlockMutex(SDL_mutex *mutex)
 {
     assert(mutex);
@@ -77,6 +101,13 @@ int SDL_UnlockMutex(SDL_mutex *mutex)
     return pthread_mutex_unlock(&mutex->id);
 }
 
+
+/**
+ * pthread_cond_init 函数按参数attr指定的属性创建一个条件变量
+   并将条件变量ID 赋值给参数cond，创建失败则返回错误代码
+   当需要重新初始化或释放一个条件变量时，应用程序必须保证这个条件变量未被使用
+ * @return
+ */
 SDL_cond *SDL_CreateCond(void)
 {
     SDL_cond *cond;
@@ -92,6 +123,10 @@ SDL_cond *SDL_CreateCond(void)
     return cond;
 }
 
+/**
+ * 销毁条件变量
+ * @param cond
+ */
 void SDL_DestroyCond(SDL_cond *cond)
 {
     if (cond) {
@@ -163,6 +198,12 @@ int SDL_CondWaitTimeout(SDL_cond *cond, SDL_mutex *mutex, uint32_t ms)
     return -1;
 }
 
+/**
+ * 阻塞在条件变量上
+ * @param cond 条件变量
+ * @param mutex  互斥锁
+ * @return 成功返回0；任何其他返回值都表示错误
+ */
 int SDL_CondWait(SDL_cond *cond, SDL_mutex *mutex)
 {
     assert(cond);

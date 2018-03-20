@@ -33,6 +33,8 @@
 static JavaVM *g_jvm;
 
 static pthread_key_t g_thread_key;
+
+//pthread_once函数使用初值为PTHREAD_ONCE_INIT的once_control变量保证init_routine()函数在本进程执行序列中仅执行一次
 static pthread_once_t g_key_once = PTHREAD_ONCE_INIT;
 
 JavaVM *SDL_JNI_GetJvm()
@@ -52,6 +54,10 @@ static void SDL_JNI_ThreadDestroyed(void* value)
 
 static void make_thread_key()
 {
+    //创建线程私有数据
+    //从 TSD 池中分配一项，将其地址值赋给 key 供以后访问使用
+    //第 2 个参数是一个销毁函数，为 NULL 时则调用默认的销毁函数进行相关的数据注销
+    //      在线程退出时(调用 pthread_exit() 函数)时将以 key 锁关联的数据作为参数调用它，以释放分配的缓冲区，或是关闭文件流等
     pthread_key_create(&g_thread_key, SDL_JNI_ThreadDestroyed);
 }
 
@@ -86,6 +92,8 @@ void SDL_JNI_DetachThreadEnv()
 
     ALOGI("%s: [%d]\n", __func__, (int)gettid());
 
+    //在多线程编程环境下，尽管pthread_once()调用会出现在多个线程中，
+    //make_thread_key()函数仅执行一次，究竟在哪个线程中执行是不定的，是由内核调度来决定
     pthread_once(&g_key_once, make_thread_key);
 
     JNIEnv *env = pthread_getspecific(g_thread_key);

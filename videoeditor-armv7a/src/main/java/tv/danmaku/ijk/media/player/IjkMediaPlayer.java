@@ -720,6 +720,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     /**
      * Sets the player to be looping or non-looping.
+     * loopCount设置为0则无限循环播放
      *
      * @param looping whether to loop or not
      */

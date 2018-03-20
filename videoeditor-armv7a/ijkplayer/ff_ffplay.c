@@ -181,7 +181,7 @@ char *filter_video_eq = "eq=contrast=0.3:brightness=0.3:saturation=0.3:gamma=1:g
 char *filter_video_descr = "null";
 
 #else
-char *filter_video_descr= NULL;
+char *filter_video_descr = NULL;
 #endif
 
 #if CONFIG_FILTER_AUDIO
@@ -368,7 +368,14 @@ static void packet_queue_start(PacketQueue *q) {
     SDL_UnlockMutex(q->mutex);
 }
 
-/* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
+/**
+ * 从 AVPacket 队列中取出一个 AVPacket
+ * @param q  AVPacket 队列
+ * @param pkt [out] 取出的AVPacket
+ * @param block
+ * @param serial
+ * @return  如果播放暂停返回-1;如果成功取出返回1; 0 if no packet and > 0 if packet.
+ */
 static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial) {
     MyAVPacketList *pkt1;
     int ret;
@@ -660,7 +667,10 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
             do {
                 if (d->queue->nb_packets == 0)
                     SDL_CondSignal(d->empty_queue_cond);
-                if (packet_queue_get_or_buffering(ffp, d->queue, &pkt, &d->pkt_serial,
+                if (packet_queue_get_or_buffering(ffp,
+                                                  d->queue,
+                                                  &pkt,
+                                                  &d->pkt_serial,
                                                   &d->finished) < 0)
                     return -1;
                 if (pkt.data == flush_pkt.data) {
@@ -1300,22 +1310,28 @@ static void step_to_next_frame_l(FFPlayer *ffp) {
 static double compute_target_delay(FFPlayer *ffp, double delay, VideoState *is) {
     double sync_threshold, diff = 0;
 
-    /* update delay to follow master synchronisation source */
+    //如果视频时钟不是主时钟,则通过 重复显示 或 删除 视频帧来调整显示的正确性
     if (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER) {
-        /* if video is slave, we try to correct big delays by
-           duplicating or deleting a frame */
+
+        //视频时钟与主时钟（默认为音频时钟）的差值
         diff = get_clock(&is->vidclk) - get_master_clock(is);
 
         /* skip or repeat frame. We take into account the
            delay to compute the threshold. I still don't know
            if it is the best guess */
+
+        //限制在 AV_SYNC_THRESHOLD_MIN 0.04 和 AV_SYNC_THRESHOLD_MAX 0.1 之间，如果超出范围则返回阈值
         sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
+
+
         /* -- by bbcallen: replace is->max_frame_duration with AV_NOSYNC_THRESHOLD */
         if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD) {
-            if (diff <= -sync_threshold)
+            if (diff <= -sync_threshold)//如果视频时钟减主时钟差值
                 delay = FFMAX(0, delay + diff);
+
             else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
                 delay = delay + diff;
+
             else if (diff >= sync_threshold)
                 delay = 2 * delay;
         }
@@ -1359,7 +1375,11 @@ static void video_refresh(FFPlayer *opaque, double *remaining_time) {
 
     Frame *sp, *sp2;
 
-    if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
+    if (!is->paused
+        &&
+        get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK  //音视频同步类型
+        &&
+        is->realtime)
         check_external_clock_speed(is);
 
     if (!ffp->display_disable && is->show_mode != SHOW_MODE_VIDEO && is->audio_st) {
@@ -1379,9 +1399,9 @@ static void video_refresh(FFPlayer *opaque, double *remaining_time) {
             double last_duration, duration, delay;
             Frame *vp, *lastvp;
 
-            /* dequeue the picture */
             // 从帧缓冲队列中读取上一帧
             lastvp = frame_queue_peek_last(&is->pictq);
+
             // 从帧缓冲队列中读取当前要显示的帧
             vp = frame_queue_peek(&is->pictq);
 
@@ -1396,17 +1416,19 @@ static void video_refresh(FFPlayer *opaque, double *remaining_time) {
             if (is->paused)
                 goto display;
 
-            /* compute nominal last_duration */
-            // lastvp是上一帧，vp是当前帧，
-            // last_duration则是根据当前帧和上一帧的pts，计算出来上一帧的显示时间
+            // 根据当前帧和上一帧的pts，计算出来上一帧的显示时间
             last_duration = vp_duration(is, lastvp, vp);
+
             // 计算出显示当前帧需要等待的时间
             delay = compute_target_delay(ffp, last_duration, is);
 
-            // system time
+            // 系统时间
             time = av_gettime_relative() / 1000000.0;
+
             if (isnan(is->frame_timer) || time < is->frame_timer)
                 is->frame_timer = time;
+
+
             // frame_timer + delay = 当前帧的播放时间
             // 如果还没到播放时间 直接跳转至display 等待下一次 refresh 显示
             if (time < is->frame_timer + delay) {
@@ -1414,15 +1436,16 @@ static void video_refresh(FFPlayer *opaque, double *remaining_time) {
                 goto display;
             }
 
+            //根据音频时钟，只要需要延时，即delay大于0，就需要更新累加到frame_timer当中
+            is->frame_timer += delay;
+
             // 如果当前这一帧的播放时间已经过了
             // 并且其和当前系统时间的差值超过了AV_SYNC_THRESHOLD_MAX
-            is->frame_timer += delay;
             if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
                 // 则将当前这一帧的播放时间改为系统时间
                 is->frame_timer = time;
 
 
-            // 丢帧
             SDL_LockMutex(is->pictq.mutex);
             if (!isnan(vp->pts))
                 update_video_pts(is, vp->pts, vp->pos, vp->serial);
@@ -1581,7 +1604,7 @@ static int
 queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos,
               int serial) {
     VideoState *is = ffp->is;
-    Frame *vp;
+    Frame *vp; //帧缓冲队列的可写入位置
     int video_accurate_seek_fail = 0;
     int64_t video_seek_pos = 0;
     int64_t now = 0;
@@ -1670,6 +1693,7 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
            av_get_picture_type_char(src_frame->pict_type), pts);
 #endif
 
+    //获取帧缓冲队列的可写入位置，若队列满了，则等待至队列中有空闲的位置
     if (!(vp = frame_queue_peek_writable(&is->pictq)))
         return -1;
 
@@ -1687,8 +1711,6 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
         if (vp->width != src_frame->width || vp->height != src_frame->height)
             ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, src_frame->width, src_frame->height);
 
-        av_log(NULL, AV_LOG_INFO, "FFP_MSG_VIDEO_SIZE_CHANGED width=%d,height=%d", src_frame->width,
-               src_frame->height);
         vp->allocated = 0;
         vp->width = src_frame->width;
         vp->height = src_frame->height;
@@ -2136,10 +2158,8 @@ static int audio_thread(void *arg) {
     int64_t deviation = 0;
     int64_t deviation2 = 0;
     int64_t deviation3 = 0;
-
     if (!frame)
         return AVERROR(ENOMEM);
-
     do {
         ffp_audio_statistic_l(ffp);
         if ((got_frame = decoder_decode_frame(ffp, &is->auddec, frame, NULL)) < 0)
@@ -2248,58 +2268,6 @@ static int audio_thread(void *arg) {
                 audio_accurate_seek_fail = 0;
             }
 
-#if CONFIG_FILTER_AUDIO
-            dec_channel_layout = get_valid_channel_layout(frame->channel_layout,
-                                                          av_frame_get_channels(frame));
-
-            reconfigure =
-                    cmp_audio_fmts(is->audio_filter_src.fmt, is->audio_filter_src.channels,
-                                   frame->format, av_frame_get_channels(frame)) ||
-                    is->audio_filter_src.channel_layout != dec_channel_layout ||
-                    is->audio_filter_src.freq != frame->sample_rate ||
-                    is->auddec.pkt_serial != last_serial ||
-                    ffp->af_changed;
-
-            if (reconfigure) {
-                SDL_LockMutex(ffp->af_mutex);
-                ffp->af_changed = 0;
-                char buf1[1024], buf2[1024];
-                av_get_channel_layout_string(buf1, sizeof(buf1), -1,
-                                             is->audio_filter_src.channel_layout);
-                av_get_channel_layout_string(buf2, sizeof(buf2), -1, dec_channel_layout);
-                av_log(NULL, AV_LOG_DEBUG,
-                       "Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
-                       is->audio_filter_src.freq, is->audio_filter_src.channels,
-                       av_get_sample_fmt_name(is->audio_filter_src.fmt), buf1, last_serial,
-                       frame->sample_rate, av_frame_get_channels(frame),
-                       av_get_sample_fmt_name(frame->format), buf2, is->auddec.pkt_serial);
-
-                is->audio_filter_src.fmt = frame->format;
-                is->audio_filter_src.channels = av_frame_get_channels(frame);
-                is->audio_filter_src.channel_layout = dec_channel_layout;
-                is->audio_filter_src.freq = frame->sample_rate;
-                last_serial = is->auddec.pkt_serial;
-
-                if ((ret = configure_audio_filters(ffp, ffp->afilters, 1)) < 0) {
-                    SDL_UnlockMutex(ffp->af_mutex);
-                    goto the_end;
-                }
-                SDL_UnlockMutex(ffp->af_mutex);
-            }
-
-            if ((ret = av_buffersrc_add_frame(is->in_audio_filter1, frame)) < 0){
-                av_log(NULL, AV_LOG_ERROR,"av_buffersrc_add_frame in_audio_filter1 end");
-                goto the_end;
-            }
-
-            if ((ret = av_buffersrc_add_frame(is->in_audio_filter2, frame)) < 0){
-                av_log(NULL, AV_LOG_ERROR,"av_buffersrc_add_frame in_audio_filter2 end");
-                goto the_end;
-            }
-
-            while ((ret = av_buffersink_get_frame_flags(is->out_audio_filter, frame, 0)) >= 0) {
-                tb = av_buffersink_get_time_base(is->out_audio_filter);
-#endif
             //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
             if (!(af = frame_queue_peek_writable(&is->sampq)))
                 goto the_end;
@@ -2312,19 +2280,9 @@ static int audio_thread(void *arg) {
             av_frame_move_ref(af->frame, frame);
             frame_queue_push(&is->sampq);
 
-#if CONFIG_FILTER_AUDIO
-            if (is->audioq.serial != is->auddec.pkt_serial)
-                break;
-        }
-        if (ret == AVERROR_EOF)
-            is->auddec.finished = is->auddec.pkt_serial;
-#endif
         }
     } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
     the_end:
-#if CONFIG_FILTER_AUDIO
-    avfilter_graph_free(&is->agraph);
-#endif
     av_frame_free(&frame);
     return ret;
 }
@@ -2332,6 +2290,7 @@ static int audio_thread(void *arg) {
 static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *name) {
     av_log(NULL, AV_LOG_DEBUG, "***decoder_start:%s", name);
     packet_queue_start(d->queue);
+    //创建解码线程，并开始解码
     d->decoder_tid = SDL_CreateThreadEx(&d->_decoder_tid, fn, arg, name);
     if (!d->decoder_tid) {
         av_log(NULL, AV_LOG_ERROR, "SDL_CreateThread(): %s\n", SDL_GetError());
@@ -2340,11 +2299,12 @@ static int decoder_start(Decoder *d, int (*fn)(void *), void *arg, const char *n
     return 0;
 }
 
+/**
+ * 软解
+ * @param arg
+ * @return
+ */
 static int ffplay_video_thread(void *arg) {
-
-    //软解才走这里
-    av_log(NULL, AV_LOG_DEBUG, "***ffplay_video_thread***");
-
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
     AVFrame *frame = av_frame_alloc();
@@ -2370,7 +2330,6 @@ static int ffplay_video_thread(void *arg) {
         av_frame_free(&frame);
         return AVERROR(ENOMEM);
     }
-
 #else
     ffp_notify_msg2(ffp, FFP_MSG_VIDEO_ROTATION_CHANGED, ffp_get_video_rotate_degrees(ffp));
 #endif
@@ -2390,9 +2349,7 @@ static int ffplay_video_thread(void *arg) {
             continue;
 
         if (ffp->get_frame_mode) {
-
             av_log(NULL, AV_LOG_DEBUG, "ffplay_video_thread get_frame_mode");
-
             if (!ffp->get_img_info || ffp->get_img_info->count <= 0) {
                 av_frame_unref(frame);
                 continue;
@@ -2507,12 +2464,12 @@ static int ffplay_video_thread(void *arg) {
                 is->frame_last_filter_delay = 0;
             tb = av_buffersink_get_time_base(filt_out);
 #endif
-            duration = (frame_rate.num && frame_rate.den ? av_q2d(
-                    (AVRational) {frame_rate.den, frame_rate.num}) : 0);
-            pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            ret = queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
-                                is->viddec.pkt_serial);
-            av_frame_unref(frame);
+        duration = (frame_rate.num && frame_rate.den ? av_q2d(
+                (AVRational) {frame_rate.den, frame_rate.num}) : 0);
+        pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+        ret = queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
+                            is->viddec.pkt_serial);
+        av_frame_unref(frame);
 #if CONFIG_FILTER_VIDEO
         }
 #endif
@@ -2533,8 +2490,9 @@ static int video_thread(void *arg) {
     int ret = 0;
 
     if (ffp->node_vdec) {
-
         //根据软硬解码设置的不同调用不同的方法
+        //软解调用 ffp_video_thread 方法
+        //硬解调用 ffpipenode_android_mediacodec_vdec.c 的 func_run_sync 方法
         ret = ffpipenode_run_sync(ffp->node_vdec);
 
     }
@@ -2913,6 +2871,15 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len) {
     }
 }
 
+/**
+ * 打开audio输出设备，根据配置
+ * @param opaque
+ * @param wanted_channel_layout
+ * @param wanted_nb_channels
+ * @param wanted_sample_rate
+ * @param audio_hw_params
+ * @return
+ */
 static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wanted_nb_channels,
                       int wanted_sample_rate, struct AudioParams *audio_hw_params) {
     FFPlayer *ffp = opaque;
@@ -3017,13 +2984,15 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     int stream_lowres = ffp->lowres;
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return -1;
+    //创建解码器上下文，设置默认参数
     avctx = avcodec_alloc_context3(NULL);
     if (!avctx)
         return AVERROR(ENOMEM);
-
+    //将原视频参数拷贝到解码器上下文中
     ret = avcodec_parameters_to_context(avctx, ic->streams[stream_index]->codecpar);
     if (ret < 0)
         goto fail;
+    //
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
     // 获取解码器
     codec = avcodec_find_decoder(avctx->codec_id);
@@ -3077,7 +3046,11 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
 #endif
 
-    opts = filter_codec_opts(ffp->codec_opts, avctx->codec_id, ic, ic->streams[stream_index],
+    //设置打开解码器时的配置项
+    opts = filter_codec_opts(ffp->codec_opts,
+                             avctx->codec_id,
+                             ic,
+                             ic->streams[stream_index],
                              codec);
     if (!av_dict_get(opts, "threads", NULL, 0))
         av_dict_set(&opts, "threads", "auto", 0);
@@ -3085,6 +3058,8 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
+
+    //打开解码器
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         goto fail;
     }
@@ -3100,39 +3075,11 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-#if CONFIG_FILTER_AUDIO
-            {
-                AVFilterContext *sink;
-                is->audio_filter_src.freq = avctx->sample_rate;
-                is->audio_filter_src.channels = avctx->channels;
-                is->audio_filter_src.channel_layout = get_valid_channel_layout(avctx->channel_layout,
-                                                                               avctx->channels);
-                is->audio_filter_src.fmt = avctx->sample_fmt;
-                SDL_LockMutex(ffp->af_mutex);
-
-                char *filter = filter_audio_descr;
-                av_log(NULL, AV_LOG_DEBUG, "set audio filter:%s", filter);
-
-    //            if ((ret = configure_audio_filters(ffp, ffp->afilters, 0)) < 0) {
-                if ((ret = configure_audio_filters(ffp, filter, 0)) < 0) {
-                    SDL_UnlockMutex(ffp->af_mutex);
-                    av_log(NULL, AV_LOG_ERROR,
-                           "*********AVMEDIA_TYPE_AUDIO*****configure_audio_filters****");
-                    goto fail;
-                }
-                ffp->af_changed = 0;
-                SDL_UnlockMutex(ffp->af_mutex);
-                sink = is->out_audio_filter;
-                sample_rate = av_buffersink_get_sample_rate(sink);
-                nb_channels = av_buffersink_get_channels(sink);
-                channel_layout = av_buffersink_get_channel_layout(sink);
-            }
-#else
             sample_rate = avctx->sample_rate;
             nb_channels = avctx->channels;
             channel_layout = avctx->channel_layout;
-#endif
-            /* prepare audio output */
+
+            // 打开audio output设备
             if ((ret = audio_open(ffp, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) <
                 0)
                 goto fail;
@@ -3166,19 +3113,17 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         case AVMEDIA_TYPE_VIDEO:
             is->video_stream = stream_index;
             is->video_st = ic->streams[stream_index];
-
             decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
-
             // 创建视频解码器,实际上就是根据软/硬解配置指定对应的函数指针，指向不同的解码方法
             // 下面的decoder_start方法执行
             ffp->node_vdec = ffpipeline_open_video_decoder(ffp->pipeline, ffp);
-
             if (!ffp->node_vdec) {
                 goto fail;
             }
             //开始解码
             if ((ret = decoder_start(&is->viddec, video_thread, ffp, "ff_video_dec")) < 0)
                 goto out;
+
             is->queue_attachments_req = 1;
 
             if (ffp->max_fps >= 0) {
@@ -3269,6 +3214,17 @@ static int is_realtime(AVFormatContext *s) {
 
 
 /* this thread gets the stream from the disk or the network */
+/**
+ * 文件读取线程，主要用于读取AVPacket：
+ * 1.打开文件，分离音视频流
+ * 2.若存在音/视频流，则创建对应的解码线程
+ * 3.设置 metadata 信息
+ * 4.读取音/视频的 AVPacket ，加到  AVPacket 缓冲队列
+ * 5.是否读取受限于播放状态、AVPacket 缓冲队列大小
+ *
+ * @param arg FFPlayer
+ * @return
+ */
 static int read_thread(void *arg) {
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
@@ -3403,6 +3359,7 @@ static int read_thread(void *arg) {
 
 #endif
     /* if seeking requested, we execute it */
+    //如果 seek
     if (ffp->start_time != AV_NOPTS_VALUE) {
         int64_t timestamp;
 
@@ -3487,10 +3444,9 @@ static int read_thread(void *arg) {
 
     ret = -1;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
-        // 打开视频解码器,并创建视频解码线程 -->stream_component_open(FFPlayer *ffp, int stream_index)
+        // 打开视频解码器,并创建视频解码线程
         ret = stream_component_open(ffp, st_index[AVMEDIA_TYPE_VIDEO]);
     }
-
 
     if (is->show_mode == SHOW_MODE_NONE)
         is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
@@ -3501,6 +3457,7 @@ static int read_thread(void *arg) {
     }
     ffp_notify_msg1(ffp, FFP_MSG_COMPONENT_OPEN);
 
+    //设置metadata信息
     ijkmeta_set_avformat_context_l(ffp->meta, ic);
     ffp->stat.bit_rate = ic->bit_rate;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0)
@@ -3511,7 +3468,8 @@ static int read_thread(void *arg) {
         ijkmeta_set_int64_l(ffp->meta, IJKM_KEY_TIMEDTEXT_STREAM, st_index[AVMEDIA_TYPE_SUBTITLE]);
 
     if (is->video_stream < 0 && is->audio_stream < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
+        av_log(NULL, AV_LOG_FATAL,
+               "Failed to open file '%s'，is->video_stream < 0 && is->audio_stream < 0 \n",
                is->filename);
         ret = -1;
         goto fail;
@@ -3529,21 +3487,27 @@ static int read_thread(void *arg) {
     if (ffp->infinite_buffer < 0 && is->realtime)
         ffp->infinite_buffer = 1;
 
+    //资源准备好后是否自动播放
     if (!ffp->start_on_prepared)
         toggle_pause(ffp, 1);
+
     if (is->video_st && is->video_st->codecpar) {
         AVCodecParameters *codecpar = is->video_st->codecpar;
+        //通知上层视频宽高信息，对于旋转的有角度的视频，此处通知的宽高有误
         ffp_notify_msg3(ffp, FFP_MSG_VIDEO_SIZE_CHANGED, codecpar->width, codecpar->height);
+        /*** MeiTu ***/
         EditorState *es = ffp->es;
         es->videoWidth = codecpar->width;
         es->videoHeight = codecpar->height;
         av_log(NULL, AV_LOG_DEBUG, "videoWidth=%d,videoHeight=%d\n", es->videoWidth,
                es->videoHeight);
-        config_watermark(ffp);
+//        config_watermark(ffp);
+        /*** MeiTu end ***/
         ffp_notify_msg3(ffp, FFP_MSG_SAR_CHANGED, codecpar->sample_aspect_ratio.num,
                         codecpar->sample_aspect_ratio.den);
     }
     ffp->prepared = true;
+    //通知上层视频的音频流和视频流已打开，准备完毕
     ffp_notify_msg1(ffp, FFP_MSG_PREPARED);
     if (!ffp->start_on_prepared) {
         while (is->pause_req && !is->abort_request) {
@@ -3581,6 +3545,7 @@ static int read_thread(void *arg) {
             continue;
         }
 #endif
+        //如果调整播放进度
         if (is->seek_req) {
             int64_t seek_target = is->seek_pos;
             int64_t seek_min = is->seek_rel > 0 ? seek_target - is->seek_rel + 2 : INT64_MIN;
@@ -3588,8 +3553,10 @@ static int read_thread(void *arg) {
 // FIXME the +-2 is due to rounding being not done in the correct direction in generation
 //      of the seek_pos/seek_rel variables
 
+            //开始缓冲
             ffp_toggle_buffering(ffp, 1);
             ffp_notify_msg3(ffp, FFP_MSG_BUFFERING_UPDATE, 0, 0);
+            //seek file
             ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR,
@@ -3670,7 +3637,7 @@ static int read_thread(void *arg) {
             is->queue_attachments_req = 0;
         }
 
-        /* if the queue are full, no need to read more */
+        //如果 AVPavket队列满了，就不用再去读取文件了
         if (ffp->infinite_buffer < 1 && !is->seek_req &&
             #ifdef FFP_MERGE
             (is->audioq.size + is->videoq.size + is->subtitleq.size > MAX_QUEUE_SIZE
@@ -3680,30 +3647,39 @@ static int read_thread(void *arg) {
              || (stream_has_enough_packets(is->audio_st, is->audio_stream, &is->audioq, MIN_FRAMES)
                  &&
                  stream_has_enough_packets(is->video_st, is->video_stream, &is->videoq, MIN_FRAMES)
-                 && stream_has_enough_packets(is->subtitle_st, is->subtitle_stream, &is->subtitleq,
-                                              MIN_FRAMES)))) {
+                 &&
+                 stream_has_enough_packets(is->subtitle_st, is->subtitle_stream, &is->subtitleq,
+                                           MIN_FRAMES)))) {
             if (!is->eof) {
                 ffp_toggle_buffering(ffp, 0);
             }
-            /* wait 10 ms */
+            /* 暂停 10 ms 后再去读 */
             SDL_LockMutex(wait_mutex);
             SDL_CondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
             SDL_UnlockMutex(wait_mutex);
             continue;
         }
-        if ((!is->paused || completed) &&
+
+        //如果播放完
+        if ((!is->paused || completed)//如果未暂停 或 播放完毕
+            &&
+            //如果没有音频流或音频播放完
             (!is->audio_st || (is->auddec.finished == is->audioq.serial &&
-                               frame_queue_nb_remaining(&is->sampq) == 0)) &&
+                               frame_queue_nb_remaining(&is->sampq) == 0))
+            &&
+            //如果没有视频流或视频播放完
             (!is->video_st || (is->viddec.finished == is->videoq.serial &&
                                frame_queue_nb_remaining(&is->pictq) == 0))) {
-            if (ffp->loop != 1 && (!ffp->loop || --ffp->loop)) {
+            //loop设为0则无限循环播放，设为1代表只播一次
+            if (ffp->loop != 1 && (!ffp->loop || --ffp->loop)) {//如果循环播放
                 stream_seek(is, ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0, 0, 0);
-            } else if (ffp->autoexit) {
+            } else if (ffp->autoexit) {//自动退出
                 ret = AVERROR_EOF;
                 goto fail;
             } else {
+                //统计共解码多少帧等播放信息
                 ffp_statistic_l(ffp);
-                if (completed) {
+                if (completed) { //播放完了
                     av_log(ffp, AV_LOG_INFO, "ffp_toggle_buffering: eof\n");
                     SDL_LockMutex(wait_mutex);
                     // infinite wait may block shutdown
@@ -3712,13 +3688,17 @@ static int read_thread(void *arg) {
                     SDL_UnlockMutex(wait_mutex);
                     if (!is->abort_request)
                         continue;
-                } else {
+                } else { //初次判定播放完了
                     completed = 1;
                     ffp->auto_resume = 0;
 
-                    // TODO: 0 it's a bit early to notify complete here
+                    //取消缓冲
                     ffp_toggle_buffering(ffp, 0);
+
+                    //暂停播放
                     toggle_pause(ffp, 1);
+
+                    // TODO: 0 it's a bit early to notify complete here
                     if (ffp->error) {
                         av_log(ffp, AV_LOG_INFO, "ffp_toggle_buffering: error: %d\n", ffp->error);
                         ffp_notify_msg1(ffp, FFP_MSG_ERROR);
@@ -3730,8 +3710,10 @@ static int read_thread(void *arg) {
             }
         }
         pkt->flags = 0;
-        // 读取媒体数据，得到的是音视频分离的解码前数据
+        // 读取媒体数据，得到音/视频解码前数据 AVPacket
         ret = av_read_frame(ic, pkt);
+
+        //如果读取失败
         if (ret < 0) {
             int pb_eof = 0;
             int pb_error = 0;
@@ -3776,12 +3758,14 @@ static int read_thread(void *arg) {
                 ffp->error = 0;
             }
             if (is->eof) {
+                //如果文件结束，取消缓冲
                 ffp_toggle_buffering(ffp, 0);
                 SDL_Delay(100);
             }
             SDL_LockMutex(wait_mutex);
             SDL_CondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
             SDL_UnlockMutex(wait_mutex);
+            //统计播放信息
             ffp_statistic_l(ffp);
             continue;
         } else {
@@ -3801,7 +3785,6 @@ static int read_thread(void *arg) {
             }
         }
 
-        /* check if packet is in play range specified by user, then queue, otherwise discard */
         // 检查数据包是否在用户指定的播放范围内,如果在就放入队列
         stream_start_time = ic->streams[pkt->stream_index]->start_time;
         pkt_ts = pkt->pts == AV_NOPTS_VALUE ? pkt->dts : pkt->pts;
@@ -3828,6 +3811,7 @@ static int read_thread(void *arg) {
         ffp_statistic_l(ffp);
 
         if (ffp->packet_buffering) {
+            //获取从SDL库初始化(定时器模块初始化)开始到当前的运行时间(ms)
             io_tick_counter = SDL_GetTickHR();
             if ((!ffp->first_video_frame_rendered && is->video_st) ||
                 (!ffp->first_audio_frame_rendered && is->audio_st)) {
@@ -3886,8 +3870,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     }
 #endif
 
-    /* start video display */
-    // 创建音视频解码data队列
+    // 创建音视频解码后的数据（AVFrame）存放队列, 第三个参数为队列可容放最大值
     if (frame_queue_init(&is->pictq, &is->videoq, ffp->pictq_size, 1) < 0)
         goto fail;
     if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
@@ -3895,6 +3878,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
         goto fail;
 
+    // 创建音视频解码前的数据（AVPacket）存放队列
     if (packet_queue_init(&is->videoq) < 0 ||
         packet_queue_init(&is->audioq) < 0 ||
         packet_queue_init(&is->subtitleq) < 0)
@@ -3936,17 +3920,21 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     is->pause_req = !ffp->start_on_prepared;
 
     //创建显示线程
-    av_log(NULL, AV_LOG_INFO, "=========创建显示线程==========\n");
-    is->video_refresh_tid = SDL_CreateThreadEx(&is->_video_refresh_tid, video_refresh_thread, ffp,
+    is->video_refresh_tid = SDL_CreateThreadEx(&is->_video_refresh_tid,
+                                               video_refresh_thread,
+                                               ffp,
                                                "ff_vout");
     if (!is->video_refresh_tid) {
         av_freep(&ffp->is);
         return NULL;
     }
 
-    // 创建数据读取线程  --> read_thread(void *arg)
-    av_log(NULL, AV_LOG_INFO, "=========创建数据读取线程==========\n");
-    is->read_tid = SDL_CreateThreadEx(&is->_read_tid, read_thread, ffp, "ff_read");
+    // 创建数据读取线程，其内部创建了解码线程
+    is->read_tid = SDL_CreateThreadEx(&is->_read_tid,
+                                      read_thread,
+                                      ffp,
+                                      "ff_read");
+
     if (!is->read_tid) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateThread(): %s\n", SDL_GetError());
         fail:
@@ -3985,6 +3973,7 @@ static int video_refresh_thread(void *arg) {
     double remaining_time = 0.0;
     while (!is->abort_request) {
         if (remaining_time > 0.0)
+            //休眠
             av_usleep((int) (int64_t) (remaining_time * 1000000.0));
         remaining_time = REFRESH_RATE;
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
@@ -4489,6 +4478,8 @@ int ffp_prepare_async_l(FFPlayer *ffp, const char *file_name) {
     av_log(NULL, AV_LOG_INFO, "===================\n");
 
     av_opt_set_dict(ffp, &ffp->player_opts);
+
+    //创建音频输出设备
     if (!ffp->aout) {
         ffp->aout = ffpipeline_open_audio_output(ffp->pipeline, ffp);
         if (!ffp->aout)
@@ -4921,6 +4912,11 @@ void ffp_check_buffering_l(FFPlayer *ffp) {
     }
 }
 
+/**
+ * 软解解码
+ * @param ffp
+ * @return
+ */
 int ffp_video_thread(FFPlayer *ffp) {
     return ffplay_video_thread(ffp);
 }
@@ -5342,7 +5338,7 @@ int ffp_save_l(FFPlayer *ffp) {
     VideoState *is = ffp->is;
     if (!is)
         return EIJK_NULL_IS_PTR;
-    ffp->es->videoPath=is->filename;
+    ffp->es->videoPath = is->filename;
     ffeditor_save(ffp->es);
     return 0;
 }

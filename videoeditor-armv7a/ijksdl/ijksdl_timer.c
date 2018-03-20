@@ -42,6 +42,13 @@ int nanosleep(const struct timespec *, struct timespec *) __DARWIN_ALIAS_C(nanos
 
 #include "ijksdl_log.h"
 
+
+/**
+ * 暂停进程
+ * @param ms
+ * nanosleep函数使进程进入 TASK_INTERRUPTIBLE
+ * 没等到规定的时间就因为其它信号而唤醒，此时函数返回-1，且剩余的时间会被记录在elapsed中
+ */
 void SDL_Delay(Uint32 ms)
 {
     int was_error;
@@ -56,7 +63,10 @@ void SDL_Delay(Uint32 ms)
         was_error = nanosleep(&tv, &elapsed);
     } while (was_error);
 }
-
+/**
+ * 获取从SDL库初始化(定时器模块初始化)开始到当前的运行时间(ms)
+ * @return
+ */
 Uint64 SDL_GetTickHR(void)
 {
     Uint64 clock;

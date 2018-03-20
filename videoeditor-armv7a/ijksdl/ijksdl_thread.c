@@ -27,39 +27,64 @@
 #include <unistd.h>
 #include "ijksdl_inc_internal.h"
 #include "ijksdl_thread.h"
+
 #ifdef __ANDROID__
+
 #include "ijksdl/android/ijksdl_android_jni.h"
+
 #endif
 
 #if !defined(__APPLE__)
+
 // using ios implement for autorelease
-static void *SDL_RunThread(void *data)
-{
+static void *SDL_RunThread(void *data) {
     SDL_Thread *thread = data;
-    ALOGI("SDL_RunThread: [%d] %s\n", (int)gettid(), thread->name);
+    ALOGI("SDL_RunThread: [%d] %s\n", (int) gettid(), thread->name);
+    //给线程设置名字
     pthread_setname_np(pthread_self(), thread->name);
+    //运行
     thread->retval = thread->func(thread->data);
 #ifdef __ANDROID__
+    //线程运行完后一定要 DetachCurrentThread，否则会异常
     SDL_JNI_DetachThreadEnv();
 #endif
     return NULL;
 }
 
-SDL_Thread *SDL_CreateThreadEx(SDL_Thread *thread, int (*fn)(void *), void *data, const char *name)
-{
+
+
+/**
+ * 对于 pthread_create 函数
+ * android/pthread库函数
+ *
+ * int pthread_create(
+ * pthread_t* __pthread_ptr,
+ * pthread_attr_t const* __attr,
+ * void* (*__start_routine)(void*),
+ * void*);
+ *
+ * @param __pthread_ptr   线程id指针，用于存放创建好的线程的id值
+ * @param __attr 线程属性，来源于POSIX线程库。对应linux,  android设置成null即可。作为gcc标准方法使用时，它可以传递很多参数，比如:PTHREAD_CREATE_JOINABLE,PTHREAD_CREATE_DETACH等
+ * @param __start_routine 函数指针，用于指向子线程的操作函数
+ * @param                 参数指针，用于传递参数
+ * @return
+ */
+SDL_Thread *
+SDL_CreateThreadEx(SDL_Thread *thread, int (*fn)(void *), void *data, const char *name) {
     thread->func = fn;
     thread->data = data;
     strlcpy(thread->name, name, sizeof(thread->name) - 1);
+    //创建线程并开始运行
     int retval = pthread_create(&thread->id, NULL, SDL_RunThread, thread);
     if (retval)
         return NULL;
 
     return thread;
 }
+
 #endif
 
-int SDL_SetThreadPriority(SDL_ThreadPriority priority)
-{
+int SDL_SetThreadPriority(SDL_ThreadPriority priority) {
     struct sched_param sched;
     int policy;
     pthread_t thread = pthread_self();
@@ -84,8 +109,7 @@ int SDL_SetThreadPriority(SDL_ThreadPriority priority)
     return 0;
 }
 
-void SDL_WaitThread(SDL_Thread *thread, int *status)
-{
+void SDL_WaitThread(SDL_Thread *thread, int *status) {
     assert(thread);
     if (!thread)
         return;
@@ -96,8 +120,7 @@ void SDL_WaitThread(SDL_Thread *thread, int *status)
         *status = thread->retval;
 }
 
-void SDL_DetachThread(SDL_Thread *thread)
-{
+void SDL_DetachThread(SDL_Thread *thread) {
     assert(thread);
     if (!thread)
         return;

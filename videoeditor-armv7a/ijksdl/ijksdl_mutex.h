@@ -44,6 +44,7 @@ int         SDL_UnlockMutex(SDL_mutex *mutex);
 typedef struct SDL_cond {
     pthread_cond_t id;
 } SDL_cond;
+//条件变量：http://blog.csdn.net/ithomer/article/details/6031723
 
 SDL_cond   *SDL_CreateCond(void);
 void        SDL_DestroyCond(SDL_cond *cond);

@@ -6,6 +6,7 @@ filter相关
 setOption配置相关
 metadata相关
 h264编码器特有的设置域
+线程相关
 ×××××××××××××××××××××××××××××××××××××××××
 
 *****************************************
@@ -127,3 +128,13 @@ h264编码器特有的设置域
    * 无延时输出
    */
   av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);
+
+
+*****************************************
+线程相关
+*****************************************
+ijk线程相关操作位于ijksdl_thread.c，封装了pthread库
+以解码为例：
+d->decoder_tid = SDL_CreateThreadEx(&d->_decoder_tid, fn, arg, name);
+在 SDL_CreateThreadEx 方法其实是调用 pthread_create 方法
+ijk 封装了线程的初始化和销毁操作，见 ijksdl_thread.c 的 SDL_RunThread方法

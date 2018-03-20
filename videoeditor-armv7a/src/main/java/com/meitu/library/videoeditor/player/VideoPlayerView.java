@@ -87,7 +87,6 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     private void initPlayer() {
         setLooping(true);
-//        mIjkMediaPlayer.setSpeed(100);
         setIjkPlayerOption();
         //TextureRenderView支持角度旋转
         mRenderView = new TextureRenderView(mContext);

@@ -1547,7 +1547,7 @@ static int func_run_sync_loop(IJKFF_Pipenode *node) {
     return ret;
 }
 
-//TODO 硬解方法
+//TODO 硬解解码
 static int func_run_sync(IJKFF_Pipenode *node) {
 
     av_log(NULL, AV_LOG_DEBUG, "开始 ijk硬解");
