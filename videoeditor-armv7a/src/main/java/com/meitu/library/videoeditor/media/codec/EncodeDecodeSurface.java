@@ -192,8 +192,7 @@ public class EncodeDecodeSurface {
 
 
     private static long computePresentationTimeNsec(int frameIndex) {
-        final long ONE_BILLION = 1000000000;
-        return frameIndex * ONE_BILLION / 30;
+        return frameIndex * 1000000000L / 30;
     }
 
 

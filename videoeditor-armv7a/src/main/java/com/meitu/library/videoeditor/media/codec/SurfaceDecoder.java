@@ -22,7 +22,7 @@ public class SurfaceDecoder {
     private final static String TAG = Tag.build("SurfaceDecoder");
 
     MediaCodec decoder = null;
-
+         
     CodecOutputSurface outputSurface = null;
 
     MediaExtractor extractor = null;
