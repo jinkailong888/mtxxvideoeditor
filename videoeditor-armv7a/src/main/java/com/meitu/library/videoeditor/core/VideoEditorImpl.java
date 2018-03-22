@@ -111,8 +111,8 @@ public class VideoEditorImpl extends VideoEditor {
         mFilterInfo = filterInfo;
     }
 
-    public void setGLFilter(Object render){
-        mVideoPlayer.setGLFilter(render);
+    public void setGLFilter(boolean open){
+        mVideoPlayer.setGLFilter(open);
     }
 
 
@@ -171,6 +171,7 @@ public class VideoEditorImpl extends VideoEditor {
             videoSaveInfo.setOutputWidth(mVideoInfoList.get(0).getWidth());
             videoSaveInfo.setOutputHeight(mVideoInfoList.get(0).getHeight());
         }
+        videoSaveInfo.setRotate(mVideoInfoList.get(0).getRotateAngle());
         mVideoPlayer.save(videoSaveInfo);
     }
 

@@ -45,12 +45,13 @@ public abstract class VideoEditor {
 
 
     public static class Builder {
-        public Context activityContext;
+        Context activityContext;
         @IdRes
-        public int playerViewId;
+        int playerViewId;
         List<FilterInfo> filterInfoList;
         boolean debuggable;
         public boolean nativeDebuggable;
+        public boolean saveMode;
 
         Builder(Context context) {
             activityContext = context;
@@ -101,6 +102,16 @@ public abstract class VideoEditor {
         }
 
         /**
+         * 注册滤镜，使用滤镜前必须先注册
+         *
+         * @return VideoEditor构造器
+         */
+        public Builder setSaveMode(boolean saveMode) {
+            this.saveMode = saveMode;
+            return this;
+        }
+
+        /**
          * 构造VideoEditor
          *
          * @return VideoEditor
@@ -135,7 +146,7 @@ public abstract class VideoEditor {
     public abstract void setVideoPathWithFilter(@NonNull String path, @Nullable FilterInfo filterInfo);
 
 
-    public abstract void setGLFilter(Object render);
+    public abstract void setGLFilter(boolean open);
 
     /**
      * 加载视频资源，需先调用{@link VideoEditor#setVideoPathWithFilter(String, FilterInfo)} 或  {@link VideoEditor#setVideoPathWithFilter(List, List)} 设置要播放的视频

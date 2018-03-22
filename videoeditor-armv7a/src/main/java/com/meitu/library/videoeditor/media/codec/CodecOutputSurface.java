@@ -29,17 +29,17 @@ public class CodecOutputSurface
     private MTGLRender mTextureRender;
     private SurfaceTexture mSurfaceTexture;
     private Surface mSurface;
-    public Surface EncodeSurface;
+    private Surface EncodeSurface;
 
     private EGLDisplay mEGLDisplay = EGL14.EGL_NO_DISPLAY;
     private EGLContext mEGLContext = EGL14.EGL_NO_CONTEXT;
     private EGLContext mEGLContextEncoder = EGL14.EGL_NO_CONTEXT;
     private EGLSurface mEGLSurface = EGL14.EGL_NO_SURFACE;
     private EGLSurface mEGLSurfaceEncoder = EGL14.EGL_NO_SURFACE;
-    int mWidth;
-    int mHeight;
+    private int mWidth;
+    private int mHeight;
 
-    private Object mFrameSyncObject = new Object();     // guards mFrameAvailable
+    private final Object mFrameSyncObject = new Object();     // guards mFrameAvailable
     private boolean mFrameAvailable;
 
     private ByteBuffer mPixelBuf;                       // used by saveFrame()
@@ -49,7 +49,7 @@ public class CodecOutputSurface
      * new EGL context and surface will be made current.  Creates a Surface that can be passed
      * to MediaCodec.configure().
      */
-    public CodecOutputSurface(int width, int height,Surface surface) {
+    public CodecOutputSurface(int width, int height, Surface surface, boolean filter) {
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException();
         }
@@ -58,15 +58,16 @@ public class CodecOutputSurface
 
         eglSetup(surface);
         makeCurrent(1);
-        setup();
+        setup(filter);
     }
 
     /**
      * Creates interconnected instances of TextureRender, SurfaceTexture, and Surface.
+     * @param filter
      */
-    private void setup() {
+    private void setup(boolean filter) {
         mTextureRender = new MTGLRender();
-        mTextureRender.surfaceCreated();
+        mTextureRender.surfaceCreated(filter);
 
         if (VERBOSE) Log.d(TAG, "textureID=" + mTextureRender.getTextureId());
         mSurfaceTexture = new SurfaceTexture(mTextureRender.getTextureId());

@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.meitu.library.videoeditor.util.AppHolder;
+import com.meitu.library.videoeditor.util.Tag;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -47,8 +48,9 @@ public class MTGLUtil {
     /**
      * 统一日志输出tag
      */
-    private static final String LOG_TAG = "[MT_OpenGl]";
-    private static final String TAG = "MTGLUtil";
+    private final static String TAG = Tag.build("MTGLUtil");
+
+
 
     public static final String cacheTexturePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
 
@@ -71,19 +73,6 @@ public class MTGLUtil {
     };
 
 
-    /**
-     * 日志输出
-     */
-    public static void d(String tag, String content) {
-        Log.d(LOG_TAG, tag + "--->" + content);
-    }
-
-    /**
-     * 日志输出
-     */
-    private static void e(String tag, String content) {
-        Log.e(LOG_TAG, tag + "--->" + content);
-    }
 
     /**
      * 读取assets目录下文件
@@ -136,7 +125,7 @@ public class MTGLUtil {
         final int[] textureObjectId = new int[1];
         glGenTextures(1, textureObjectId, 0);
         if (textureObjectId[0] == 0) {
-            MTGLUtil.e(TAG, "创建纹理失败");
+            Log.e(TAG, "创建纹理失败");
             return 0;
         }
         glBindTexture(GL_TEXTURE_2D, textureObjectId[0]);
@@ -191,7 +180,7 @@ public class MTGLUtil {
         final int shaderObjectId = glCreateShader(type);
 
         if (shaderObjectId == 0) {
-            MTGLUtil.e(TAG, "创建shader失败");
+            Log.e(TAG, "创建shader失败");
             return 0;
         }
         glShaderSource(shaderObjectId, shadeCode);
@@ -200,7 +189,7 @@ public class MTGLUtil {
         if (MTGLUtil.DEBUG) {
             final int[] compileStatus = new int[1];
             glGetShaderiv(shaderObjectId, GL_COMPILE_STATUS, compileStatus, 0);
-            MTGLUtil.d(TAG, "GL_COMPILE_STATUS: " + compileStatus[0]
+            Log.d(TAG, "GL_COMPILE_STATUS: " + compileStatus[0]
                     + "\n日志:" + glGetShaderInfoLog(shaderObjectId));
             if (compileStatus[0] == 0) {
                 glDeleteShader(shaderObjectId);
@@ -221,7 +210,7 @@ public class MTGLUtil {
     private static int linkProgram(int vertexShaderId, int fragmentShaderId) {
         final int programObjectId = glCreateProgram();
         if (programObjectId == 0) {
-            MTGLUtil.e(TAG, "创建program失败");
+            Log.e(TAG, "创建program失败");
             return 0;
         }
 
@@ -233,7 +222,7 @@ public class MTGLUtil {
         if (MTGLUtil.DEBUG) {
             final int[] linkStatus = new int[1];
             glGetProgramiv(programObjectId, GL_LINK_STATUS, linkStatus, 0);
-            MTGLUtil.d(TAG, "GL_LINK_STATUS：" + linkStatus[0]
+            Log.d(TAG, "GL_LINK_STATUS：" + linkStatus[0]
                     + "\n日志:" + glGetProgramInfoLog(programObjectId));
             if (linkStatus[0] == 0) {
                 glDeleteProgram(programObjectId);
@@ -254,7 +243,7 @@ public class MTGLUtil {
         glValidateProgram(programObjectId);
         final int[] validateStatus = new int[1];
         glGetProgramiv(programObjectId, GL_VALIDATE_STATUS, validateStatus, 0);
-        MTGLUtil.d(TAG, "GL_VALIDATE_STATUS：" + validateStatus[0]
+        Log.d(TAG, "GL_VALIDATE_STATUS：" + validateStatus[0]
                 + "\n日志:" + glGetProgramInfoLog(programObjectId));
 
         return validateStatus[0] != 0;
@@ -284,7 +273,7 @@ public class MTGLUtil {
     public static void saveTexture(Bitmap bitmap) {
         File folder = new File(cacheTexturePath);
         if (!folder.exists() && !folder.mkdirs()) {
-            MTGLUtil.d(TAG, "path is not exist");
+            Log.d(TAG, "path is not exist");
             return;
         }
         final String jpegName = cacheTexturePath + "des.jpg";
@@ -304,7 +293,7 @@ public class MTGLUtil {
     public static void deleteCacheTextures() {
         File folder = new File(cacheTexturePath);
         if (!folder.exists()) {
-            MTGLUtil.d(TAG, "path is not exist");
+            Log.d(TAG, "path is not exist");
             return;
         }
         for (File file : folder.listFiles()) {

@@ -67,7 +67,8 @@ public class VideoInfoTool {
     public static void fillVideoInfo(VideoInfo videoInfo) {
         boolean isOpen = FFmpegApi.open(videoInfo.getVideoPath());
         if (isOpen) {
-            videoInfo.setDuration((long) (FFmpegApi.getVideoDuration()));
+            videoInfo.setDuration(FFmpegApi.getVideoDuration());
+            videoInfo.setRotateAngle((int) FFmpegApi.getVideoRotation());
             videoInfo.setWidth(FFmpegApi.getVideoWidth());
             videoInfo.setHeight(FFmpegApi.getVideoHeight());
             Debug.d(TAG, "fillVideoInfo " + videoInfo.toString());
@@ -100,7 +101,7 @@ public class VideoInfoTool {
             rf.writeBytes(FFconcatHead + "\r\n");
             for (VideoInfo videoInfo : videoInfoList) {
                 rf.writeBytes("file '" + videoInfo.getVideoPath() + "'\r\n");
-                BigDecimal b = new BigDecimal( (double) videoInfo.getDuration() / 1000);
+                BigDecimal b = new BigDecimal((double) videoInfo.getDuration() / 1000);
                 double duration = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
                 rf.writeBytes("duration " + duration + "\r\n");
             }

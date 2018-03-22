@@ -61,16 +61,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:text="整段滤镜"
-            android:textColor="#fff"
-            />
-
-        <Switch
-            android:id="@+id/partFilter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:text="首段滤镜"
+            android:text="滤镜"
             android:textColor="#fff"
             />
 

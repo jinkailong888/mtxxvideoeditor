@@ -21,24 +21,29 @@
 
 #include "ijksdl/gles2/internal.h"
 
-//todo 播放时滤镜脚本
-
 static const char g_shader[] = IJK_GLES_STRING(
     precision highp float;
     varying   highp vec2 vv2_Texcoord;
-    attribute highp vec4 av4_Position;
-    attribute highp vec2 av2_Texcoord;
-    uniform         mat4 um4_ModelViewProjection;
+    uniform         mat3 um3_ColorConversion;
+    uniform   lowp  sampler2D us2_SamplerX;
+    uniform   lowp  sampler2D us2_SamplerY;
+    uniform   lowp  sampler2D us2_SamplerZ;
 
     void main()
     {
-        gl_Position  = um4_ModelViewProjection * av4_Position;
-        vv2_Texcoord = av2_Texcoord.xy;
+        mediump vec3 yuv;
+        lowp    vec3 rgb;
 
+        yuv.x = (texture2D(us2_SamplerX, vv2_Texcoord).r - (16.0 / 255.0));
+        yuv.y = (texture2D(us2_SamplerY, vv2_Texcoord).r - 0.5);
+        yuv.z = (texture2D(us2_SamplerZ, vv2_Texcoord).r - 0.5);
+        rgb = um3_ColorConversion * yuv;
+        gl_FragColor = vec4(rgb, 1);
+        gl_FragColor.r = gl_FragColor.r * 1.3;
     }
 );
 
-const char *IJK_GLES2_getVertexShader_default()
+const char *IJK_GLES2_getFragmentShader_yuv420p_meitu()
 {
     return g_shader;
 }

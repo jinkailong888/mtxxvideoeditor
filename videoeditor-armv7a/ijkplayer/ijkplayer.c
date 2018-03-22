@@ -104,12 +104,12 @@ void ijkmp_change_state_l(IjkMediaPlayer *mp, int new_state) {
     ffp_notify_msg1(mp->ffplayer, FFP_MSG_PLAYBACK_STATE_CHANGED);
 }
 
-IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *)) {
+IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *), bool saveMode) {
     IjkMediaPlayer *mp = (IjkMediaPlayer *) mallocz(sizeof(IjkMediaPlayer));
     if (!mp)
         goto fail;
 
-    mp->ffplayer = ffp_create();
+    mp->ffplayer = ffp_create(saveMode);
     if (!mp->ffplayer)
         goto fail;
 
@@ -824,6 +824,13 @@ void ijkmp_clearBgMusic(IjkMediaPlayer *mp) {
     assert(mp);
             MPTRACE("ijkmp_clearBgMusic()\n");
     ffp_clearBgMusic(mp->ffplayer);
+}
+
+
+void ijkmp_setGLFilter(IjkMediaPlayer *mp, jboolean filter) {
+    assert(mp);
+            MPTRACE("ijkmp_clearBgMusic()\n");
+    ffp_setGLFilter(mp->ffplayer,filter);
 }
 
 

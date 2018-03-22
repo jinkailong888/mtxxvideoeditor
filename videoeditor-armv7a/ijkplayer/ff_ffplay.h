@@ -46,7 +46,7 @@ void ffp_io_stat_complete_register(void (*cb)(const char *url,
                                               int64_t read_bytes, int64_t total_size,
                                               int64_t elpased_time, int64_t total_duration));
 
-FFPlayer *ffp_create();
+FFPlayer *ffp_create(bool b);
 
 void ffp_destroy(FFPlayer *ffp);
 
@@ -216,6 +216,8 @@ void ffp_setBgMusic(FFPlayer *ffp,
                     jboolean loop);
 
 void ffp_clearBgMusic(FFPlayer *ffp);
+
+void ffp_setGLFilter(FFPlayer *ffp,jboolean filter);
 
 void ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jint width,
                        jint height,

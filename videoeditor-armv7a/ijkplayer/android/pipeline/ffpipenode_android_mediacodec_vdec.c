@@ -1547,11 +1547,8 @@ static int func_run_sync_loop(IJKFF_Pipenode *node) {
     return ret;
 }
 
-//TODO 硬解解码
+// 硬解解码
 static int func_run_sync(IJKFF_Pipenode *node) {
-
-    av_log(NULL, AV_LOG_DEBUG, "开始 ijk硬解");
-
     JNIEnv *env = NULL;
     IJKFF_Pipenode_Opaque *opaque = node->opaque;
     FFPlayer *ffp = opaque->ffp;
@@ -1584,9 +1581,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
     }
 
     // 创建数据入队线程
-
-    ALOGE("创建数据入队线程\n");
-
     opaque->enqueue_thread = SDL_CreateThreadEx(&opaque->_enqueue_thread, enqueue_thread_func, node,
                                                 "amediacodec_input_thread");
     if (!opaque->enqueue_thread) {
@@ -1594,8 +1588,6 @@ static int func_run_sync(IJKFF_Pipenode *node) {
         ret = -1;
         goto fail;
     }
-
-    ALOGE("解码\n");
 
     //  解码
     while (!q->abort_request) {
@@ -1653,39 +1645,18 @@ static int func_run_sync(IJKFF_Pipenode *node) {
                     }
                 }
             }
-            if(frame->format == AV_PIX_FMT_NONE) {
-                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
-                              "color_format is AV_PIX_FMT_NONE \n", __func__);
-            } else if(frame->format == AV_PIX_FMT_YUV420P){
-                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
-                              "color_format is AV_PIX_FMT_YUV420P \n", __func__);
-            }else if(frame->format == AV_PIX_FMT_NV21){
-                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
-                              "color_format is AV_PIX_FMT_NV21 \n", __func__);
-            }else{
-                av_log(NULL, AV_LOG_ERROR,"%s:mediacodec_get_ffmpeg_color_format: "
-                        "color_format is NONE \n", __func__);
-            }
-            int i, planes;
-            planes = av_pix_fmt_count_planes(frame->format);
-            av_log(NULL, AV_LOG_ERROR,"frame->format %d, planes=%d, frame->data[0] %d ",frame->format,planes,frame->data[0]);
 
-            for (i = 0; i < planes; i++){
-                av_log(NULL, AV_LOG_ERROR," frame->data[%d]= %d ",i,frame->data[0]);
+            //  加入到帧缓冲队列
+            ret = ffp_queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
+                                    is->viddec.pkt_serial);
+            if (ret) {
+                if (frame->opaque)
+                    SDL_VoutAndroid_releaseBufferProxyP(opaque->weak_vout,
+                                                        (SDL_AMediaCodecBufferProxy **) &frame->opaque,
+                                                        false);
             }
-
-                av_log(NULL, AV_LOG_DEBUG, "加入到帧缓冲队列 pts=%lf", pts);
-                //  加入到帧缓冲队列     pts:时间戳
-                ret = ffp_queue_picture(ffp, frame, pts, duration, av_frame_get_pkt_pos(frame),
-                                        is->viddec.pkt_serial);
-                if (ret) {
-                    if (frame->opaque)
-                        SDL_VoutAndroid_releaseBufferProxyP(opaque->weak_vout,
-                                                            (SDL_AMediaCodecBufferProxy **) &frame->opaque,
-                                                            false);
-                }
-                av_frame_unref(frame);
-            }
+            av_frame_unref(frame);
+        }
 
     }
     fail:

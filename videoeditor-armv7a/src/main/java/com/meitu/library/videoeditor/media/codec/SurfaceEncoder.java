@@ -10,6 +10,7 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.Surface;
 
+import com.meitu.asm.Cost;
 import com.meitu.library.videoeditor.media.MediaEditor;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
@@ -21,7 +22,8 @@ import java.nio.ByteBuffer;
 public class SurfaceEncoder {
     private final static String TAG = Tag.build("SurfaceEncoder");
 
-    private static final boolean VERBOSE = false;           // lots of logging
+    private static final int ENCODE_TIME_OUT = 9000;
+
     private static final String MIME_TYPE = "video/avc";    // H.264 Advanced Video Coding
 
     MediaCodec encoder = null;
@@ -43,6 +45,7 @@ public class SurfaceEncoder {
     public void setExtractor(MediaExtractor extractor) {
         this.extractor = extractor;
         audioTrackId = mMuxer.addTrack(getAudioMediaFormat(extractor));
+        mMuxer.setOrientationHint(mVideoSaveInfo.getRotate());
     }
 
     public void VideoEncodePrepare(VideoSaveInfo mVideoSaveInfo) {
@@ -74,28 +77,81 @@ public class SurfaceEncoder {
         }
         mTrackIndex = -1;
         mMuxerStarted = false;
+
+//        new Thread(DrainEncoder).start();
     }
 
 
+    /**
+     *
+     */
+    Runnable DrainEncoder = new Runnable() {
+        @Override
+        public void run() {
+            ByteBuffer[] encoderOutputBuffers = encoder.getOutputBuffers();
+            while (true) {
+                int index = encoder.dequeueOutputBuffer(mBufferInfo, ENCODE_TIME_OUT);
+                switch (index) {
+                    case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
+                        if (mMuxerStarted) {
+                            throw new RuntimeException("format changed twice");
+                        }
+                        MediaFormat newFormat = encoder.getOutputFormat();
+                        mTrackIndex = mMuxer.addTrack(newFormat);
+                        mMuxer.start();
+                        mMuxerStarted = true;
+                        break;
+                    case MediaCodec.INFO_TRY_AGAIN_LATER:
+                        Log.d(TAG, "编码当前帧超时");
+                        break;
+                    case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
+                        encoderOutputBuffers = encoder.getOutputBuffers();
+                        Log.d(TAG, "encode output buffers changed");
+                        break;
+                    default:
+                        Log.d(TAG, "编码得到压缩数据");
+                        ByteBuffer byteBuffer = encoderOutputBuffers[index];
+                        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                            mBufferInfo.size = 0;
+                        }
+                        if (mBufferInfo.size != 0) {
+                            if (!mMuxerStarted) {
+                                throw new RuntimeException("muxer hasn't started");
+                            }
+                            byteBuffer.position(mBufferInfo.offset);
+                            byteBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
+                            mMuxer.writeSampleData(index, byteBuffer, mBufferInfo);
+                        }
+                        encoder.releaseOutputBuffer(index, false);
+                        break;
+                }
+
+                if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                    Log.d(TAG, "所有帧编码完毕");
+                    break;
+                }
+            }
+        }
+    };
+
     public void drainEncoder(boolean endOfStream) {
-        final int TIMEOUT_USEC = 1000;
-        if (VERBOSE) Log.d(TAG, "drainEncoder(" + endOfStream + ")");
 
         if (endOfStream) {
-            if (VERBOSE) Log.d(TAG, "sending EOS to encoder");
+            Log.d(TAG, "sending EOS to encoder");
             encoder.signalEndOfInputStream();
         }
 
         ByteBuffer[] encoderOutputBuffers = encoder.getOutputBuffers();
 
         while (true) {
-            int encoderStatus = encoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
+            //todo  dequeueOutputBuffer  出队列方法耗时，包含编码操作
+            int encoderStatus = encoder.dequeueOutputBuffer(mBufferInfo, ENCODE_TIME_OUT);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 // no output available yet
                 if (!endOfStream) {
                     break;      // out of while
                 } else {
-                    if (VERBOSE) Log.d(TAG, "no output available, spinning to await EOS");
+                    Log.d(TAG, "no output available, spinning to await EOS");
                 }
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                 // not expected for an encoder
@@ -127,12 +183,7 @@ public class SurfaceEncoder {
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                     // The codec config data was pulled out and fed to the muxer when we got
                     // the INFO_OUTPUT_FORMAT_CHANGED status.  Ignore it.
-                    if (VERBOSE) Log.d(TAG, "ignoring BUFFER_FLAG_CODEC_CONFIG");
-
-                    MediaFormat format =
-                            MediaFormat.createVideoFormat(MIME_TYPE, mVideoSaveInfo.getOutputWidth(),
-                                    mVideoSaveInfo.getOutputHeight());
-                    format.setByteBuffer("csd-0", encodedData);
+                    Log.d(TAG, "ignoring BUFFER_FLAG_CODEC_CONFIG");
                     mBufferInfo.size = 0;
                 }
 
@@ -145,8 +196,13 @@ public class SurfaceEncoder {
                     encodedData.position(mBufferInfo.offset);
                     encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
 
+                    long t = System.nanoTime();
                     mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
-                    if (VERBOSE) Log.d(TAG, "sent " + mBufferInfo.size + " bytes to muxer");
+                    long t2 = System.nanoTime();
+
+                    Log.d(TAG, "writeSampleData cost " + (t2 - t) / 1000 + " us");
+
+                    Log.d(TAG, "sent " + mBufferInfo.size + " bytes to muxer");
                 }
 
                 encoder.releaseOutputBuffer(encoderStatus, false);
@@ -155,7 +211,7 @@ public class SurfaceEncoder {
                     if (!endOfStream) {
                         Log.w(TAG, "reached end of stream unexpectedly");
                     } else {
-                        if (VERBOSE) Log.d(TAG, "end of stream reached");
+                        Log.d(TAG, "end of stream reached");
 
                         Log.d(TAG, "save video 耗时 : " + (
                                 System.currentTimeMillis() - MediaEditor.startTime));
@@ -163,6 +219,7 @@ public class SurfaceEncoder {
                         long t = System.currentTimeMillis();
 
                         writeAudio();
+
 
                         Log.d(TAG, "save audio 耗时 : " + (
                                 System.currentTimeMillis() - t));

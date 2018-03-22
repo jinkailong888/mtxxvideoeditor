@@ -21,8 +21,6 @@ public class SurfaceDecoder {
 
     private final static String TAG = Tag.build("SurfaceDecoder");
 
-    private static final boolean VERBOSE = false;           // lots of logging
-
     MediaCodec decoder = null;
 
     CodecOutputSurface outputSurface = null;
@@ -35,7 +33,7 @@ public class SurfaceDecoder {
 
     public int DecodetrackIndex;
 
-    void SurfaceDecoderPrePare(VideoSaveInfo videoSaveInfo, Surface encodersurface) {
+    void SurfaceDecoderPrePare(VideoSaveInfo videoSaveInfo, Surface encodersurface, boolean filter) {
         try {
             File inputFile = new File(videoSaveInfo.getSrcPath());   // must be an absolute path
 
@@ -51,13 +49,11 @@ public class SurfaceDecoder {
             extractor.selectTrack(DecodetrackIndex);
 
             MediaFormat format = extractor.getTrackFormat(DecodetrackIndex);
-            if (VERBOSE) {
-                Log.d(TAG, "Video size is " + format.getInteger(MediaFormat.KEY_WIDTH) + "x" +
-                        format.getInteger(MediaFormat.KEY_HEIGHT));
-            }
+            Log.d(TAG, "Video size is " + format.getInteger(MediaFormat.KEY_WIDTH) + "x" +
+                    format.getInteger(MediaFormat.KEY_HEIGHT));
 
             outputSurface = new CodecOutputSurface(videoSaveInfo.getOutputWidth(),
-                    videoSaveInfo.getOutputHeight(), encodersurface);
+                    videoSaveInfo.getOutputHeight(), encodersurface, filter);
 
             String mime = format.getString(MediaFormat.KEY_MIME);
             decoder = MediaCodec.createDecoderByType(mime);
@@ -75,6 +71,7 @@ public class SurfaceDecoder {
         // Select the first video track we find, ignore the rest.
         int numTracks = extractor.getTrackCount();
         for (int i = 0; i < numTracks; i++) {
+            //todo  通过此方式可获取视频宽高、角度、时长，后面和FFmpegApi工具做兼容
             MediaFormat format = extractor.getTrackFormat(i);
             String mime = format.getString(MediaFormat.KEY_MIME);
             if (mime.startsWith("video/")) {

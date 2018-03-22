@@ -2,18 +2,14 @@ package com.meitu.library.example;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CompoundButton;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import com.meitu.library.example.gl.basis.MTGLRender;
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.filter.FilterInfo;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
@@ -21,12 +17,9 @@ import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.player.listener.adapter.OnPlayListenerAdapter;
 import com.meitu.library.videoeditor.player.listener.adapter.OnSaveListenerAdapter;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
-import com.meitu.library.videoeditor.watermark.WaterMarkPosition;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import tv.danmaku.ijk.media.player.ffmpeg.FFmpegApi;
 
 /**
  * Created by wyh3 on 2018/1/22.
@@ -51,7 +44,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     private Switch mMusicSwitch;
     private Switch mFilterSwitch;
     private Switch mTransFilterSwitch;
-    private Switch mPartFilterSwitch;
     private Switch mMediaCodecSwitch;
     private Switch mFFmpegSwitch;
     private Switch mFFmpegMediaCodecSwitch;
@@ -82,9 +74,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .registerFilters(mFilters)
                 .setDebuggable(true)
                 .setNativeDebuggable(true)
+//                .setSaveMode(true) //保存模式
                 .build();
-
-        mVideoEditor.setGLFilter(new MTGLRender());
 
         mVideoEditor.setVideoPathWithFilter(filePaths, null);
 
@@ -129,11 +120,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             }
         }
         if (mFilterSwitch == compoundButton) {
-            if (b) {
-                mVideoEditor.setFilter(mFilters.get(1));
-            } else {
-                mVideoEditor.clearFilter();
-            }
+            mVideoEditor.setGLFilter(b);
         }
         if (mTransFilterSwitch == compoundButton) {
             if (b) {
@@ -148,21 +135,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                     return;
                 }
                 mVideoEditor.setTransitionEffect(TransitionEffect.None);
-            }
-        }
-        if (mPartFilterSwitch == compoundButton) {
-            if (b) {
-                if (filePaths.size() <= 1) {
-                    Toast.makeText(this, "添加2段及以上视频才能设置分段滤镜", Toast.LENGTH_SHORT).show();
-                    mPartFilterSwitch.setChecked(false);
-                    return;
-                }
-                mVideoEditor.setFilter(0, mFilters.get(1));
-            } else {
-                if (filePaths.size() <= 1) {
-                    return;
-                }
-                mVideoEditor.clearFilter(0);
             }
         }
         if (mMediaCodecSwitch == compoundButton) {
@@ -244,7 +216,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mTransFilterSwitch = findViewById(R.id.transFilter);
         mMusicSwitch = findViewById(R.id.switchMusic);
         mFilterSwitch = findViewById(R.id.switchFilter);
-        mPartFilterSwitch = findViewById(R.id.partFilter);
         mMediaCodecSwitch = findViewById(R.id.mediaCodec);
         mFFmpegSwitch = findViewById(R.id.ffmpeg);
         mFFmpegMediaCodecSwitch = findViewById(R.id.ffmpegMediaCodec);
@@ -256,16 +227,13 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mMusicSwitch.setOnCheckedChangeListener(this);
         mFilterSwitch.setOnCheckedChangeListener(this);
         mTransFilterSwitch.setOnCheckedChangeListener(this);
-        mPartFilterSwitch.setOnCheckedChangeListener(this);
         mFFmpegSwitch.setOnCheckedChangeListener(this);
         mFFmpegMediaCodecSwitch.setOnCheckedChangeListener(this);
         mMediaCodecSwitch.setOnCheckedChangeListener(this);
 
         mWaterMarkSwitch.setEnabled(false);
         mMusicSwitch.setEnabled(false);
-        mFilterSwitch.setEnabled(false);
         mTransFilterSwitch.setEnabled(false);
-        mPartFilterSwitch.setEnabled(false);
         mFFmpegMediaCodecSwitch.setEnabled(false);
     }
 

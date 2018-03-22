@@ -1,7 +1,7 @@
 #include "gl_util.h"
 #include "jni.h"
 
-#define MY_TAG  "opengl"
+#define MY_TAG  "gl_util"
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
 #define logd(format, ...)  __android_log_print(ANDROID_LOG_DEBUG,  MY_TAG, format, ##__VA_ARGS__)
 

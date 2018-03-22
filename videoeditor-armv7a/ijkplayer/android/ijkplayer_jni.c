@@ -393,7 +393,9 @@ IjkMediaPlayer_release(JNIEnv *env, jobject thiz) {
     ijkmp_dec_ref_p(&mp);
 }
 
-static void IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this);
+
+static void
+IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this,jboolean save_mode) ;
 
 static void
 IjkMediaPlayer_reset(JNIEnv *env, jobject thiz) {
@@ -405,7 +407,7 @@ IjkMediaPlayer_reset(JNIEnv *env, jobject thiz) {
     jobject weak_thiz = (jobject) ijkmp_set_weak_thiz(mp, NULL);
 
     IjkMediaPlayer_release(env, thiz);
-    IjkMediaPlayer_native_setup(env, thiz, weak_thiz);
+    IjkMediaPlayer_native_setup(env, thiz, weak_thiz,false);
 
     ijkmp_dec_ref_p(&mp);
 }
@@ -754,9 +756,10 @@ IjkMediaPlayer_native_init(JNIEnv *env) {
 }
 
 static void
-IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this) {
+IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this,jboolean save_mode) {
             MPTRACE("%s\n", __func__);
-    IjkMediaPlayer *mp = ijkmp_android_create(message_loop);
+
+    IjkMediaPlayer *mp = ijkmp_android_create(message_loop, save_mode);
     JNI_CHECK_GOTO(mp, env, "java/lang/OutOfMemoryError",
                    "mpjni: native_setup: ijkmp_create() failed", LABEL_RETURN);
 
@@ -1204,7 +1207,7 @@ IjkMediaPlayer_setBgMusic(JNIEnv *env, jobject thiz,
                    LABEL_RETURN);
     const char *path = (*env)->GetStringUTFChars(env, musicPath, NULL);
 
-    ijkmp_setBgMusic(mp,path,startTime,duration,speed,loop);
+    ijkmp_setBgMusic(mp, path, startTime, duration, speed, loop);
     LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
 }
@@ -1222,10 +1225,13 @@ IjkMediaPlayer_clearBgMusic(JNIEnv *env, jobject thiz) {
 
 
 static void
-IjkMediaPlayer_setGLFilter(JNIEnv *env, jobject thiz,jobject filter){
-
-//    gl_jni_setGLFilter(env, thiz, filter);
-
+IjkMediaPlayer_setGLFilter(JNIEnv *env, jobject thiz, jboolean filter) {
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: clearBgMusic: null mp",
+                   LABEL_RETURN);
+    ijkmp_setGLFilter(mp,filter);
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
 }
 
 
@@ -1273,7 +1279,7 @@ static JNINativeMethod g_methods[] = {
         {       "setVolume",             "(FF)V",                                                  (void *) IjkMediaPlayer_setVolume},
         {       "getAudioSessionId",     "()I",                                                    (void *) IjkMediaPlayer_getAudioSessionId},
         {       "native_init",           "()V",                                                    (void *) IjkMediaPlayer_native_init},
-        {       "native_setup",          "(Ljava/lang/Object;)V",                                  (void *) IjkMediaPlayer_native_setup},
+        {       "native_setup",          "(Ljava/lang/Object;Z)V",                                 (void *) IjkMediaPlayer_native_setup},
         {       "native_finalize",       "()V",                                                    (void *) IjkMediaPlayer_native_finalize},
 
         {       "_setOption",            "(ILjava/lang/String;Ljava/lang/String;)V",               (void *) IjkMediaPlayer_setOption},
@@ -1308,7 +1314,7 @@ static JNINativeMethod g_methods[] = {
         {       "setBgMusic",            "(Ljava/lang/String;IIFZ)V",                              (void *) IjkMediaPlayer_setBgMusic},
         {       "clearBgMusic",          "()V",                                                    (void *) IjkMediaPlayer_clearBgMusic},
 
-        {       "setGLFilter",           "(Ljava/lang/Object;)V",                                  (void *) IjkMediaPlayer_setGLFilter},
+        {       "setGLFilter",           "(Z)V",                                                   (void *) IjkMediaPlayer_setGLFilter},
 
 
         {       "save",                  "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_save},
@@ -1346,7 +1352,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     //来设置java虚拟机（反调mediacodec时会用到）,或者使用解码器之前调用
     av_jni_set_java_vm(vm, NULL);
-    
+
 //    gl_jni_init(env,vm);
 
 

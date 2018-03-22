@@ -9,6 +9,5 @@ void main()
     vec2 positionToUse = textureCoordinate;
     
     gl_FragColor.rgb = texture2D(inputImageTexture, positionToUse).rgb;
-    gl_FragColor.a = 1.0;
-    gl_FragColor.r = 1.1;
+    gl_FragColor.r = gl_FragColor.r * 1.3;
 }

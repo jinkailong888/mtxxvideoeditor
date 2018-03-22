@@ -1,6 +1,7 @@
 package com.meitu.library.videoeditor.player;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -10,6 +11,8 @@ import android.widget.FrameLayout;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.media.MediaEditor;
+import com.meitu.library.videoeditor.media.save.SaveFilters;
+import com.meitu.library.videoeditor.media.save.SaveTask;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.util.Tag;
@@ -59,6 +62,9 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     //是否被用户手动暂停
     private boolean mPause;
 
+    //是否开启滤镜
+    private boolean filter;
+
 
     public VideoPlayerView(@NonNull Context context) {
         this(context, null);
@@ -75,7 +81,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     @Override
     public void init(VideoEditor.Builder builder) {
-        mIjkMediaPlayer = new IjkMediaPlayer();
+        mIjkMediaPlayer = new IjkMediaPlayer(builder.saveMode);
         if (builder.nativeDebuggable) {
             IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
         }
@@ -101,8 +107,10 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     }
 
     private void setIjkPlayerOption() {
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
+        //硬解码得到的视频帧格式无法进行gl渲染
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
+//        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
+
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "protocol_whitelist",
@@ -110,8 +118,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist",
                 "concat,tcp,http,https,tls,file");
         //开启opengl渲染
-        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format",
-                "fcc-_es2");
+        mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", "fcc-_es2");
 //        drop frames when cpu is too slow
         mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
 
@@ -183,8 +190,9 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         }
     }
 
-    public void setGLFilter(Object render) {
-        mIjkMediaPlayer.setGLFilter(render);
+    public void setGLFilter(boolean open) {
+        mIjkMediaPlayer.setGLFilter(open);
+        this.filter = open;
     }
 
     @Override
@@ -234,10 +242,16 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //            return;
 //        }
         if (v.isMediaCodec()) {
-            MediaEditor.save(v);
+            MediaEditor.save(v,filter);
         } else {
             mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         }
+
+//        SaveFilters saveFilters = new SaveFilters();
+//        saveFilters.setFilter(filter);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+//            SaveTask.save(v,saveFilters);
+//        }
 
 
     }

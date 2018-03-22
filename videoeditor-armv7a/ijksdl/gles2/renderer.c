@@ -22,7 +22,7 @@
 #include "internal.h"
 #include "gl_util.h"
 
-#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
+#define TAG "renderer" // 这个是自定义的LOG的标识
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
 static void IJK_GLES2_printProgramInfo(GLuint program)
@@ -167,6 +167,7 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create(SDL_VoutOverlay *overlay)
     IJK_GLES2_printString("Extensions", GL_EXTENSIONS);
 
     IJK_GLES2_Renderer *renderer = NULL;
+
     switch (overlay->format) {
         case SDL_FCC_RV16:      renderer = IJK_GLES2_Renderer_create_rgb565(); break;
         case SDL_FCC_RV24:      renderer = IJK_GLES2_Renderer_create_rgb888(); break;
@@ -175,8 +176,8 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create(SDL_VoutOverlay *overlay)
         case SDL_FCC_NV12:      renderer = IJK_GLES2_Renderer_create_yuv420sp(); break;
         case SDL_FCC__VTB:      renderer = IJK_GLES2_Renderer_create_yuv420sp_vtb(overlay); break;
 #endif
-        case SDL_FCC_YV12:      renderer = IJK_GLES2_Renderer_create_yuv420p(); break;
-        case SDL_FCC_I420:      renderer = IJK_GLES2_Renderer_create_yuv420p(); break;
+        case SDL_FCC_YV12:      renderer = IJK_GLES2_Renderer_create_yuv420p(overlay->filter); break;
+        case SDL_FCC_I420:      renderer = IJK_GLES2_Renderer_create_yuv420p(overlay->filter); break;
         case SDL_FCC_I444P10LE: renderer = IJK_GLES2_Renderer_create_yuv444p10le(); break;
         default:
             ALOGE("[GLES2] unknown format %4s(%d)\n", (char *)&overlay->format, overlay->format);

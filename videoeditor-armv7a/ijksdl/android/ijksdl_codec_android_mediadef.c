@@ -144,7 +144,7 @@ const char *SDL_AMediaCodec_getColorFormatName(int colorFormat)
         return "QCOM_FormatYUV420PackedSemiPlanar16m2ka";
     case _AMEDIACODEC__OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka:
         return "QCOM_FormatYUV420PackedSemiPlanar64x32Tile2m8ka";
-    case _AMEDIACODEC__OMX_QCOM_COLOR_FORMATYUV420PackedSemiPlanar32m:
+    case _AMEDIACODEC__OMX_QCOM_COLOR_FORMATYUV420PackedSemiPlanar32m:  //
         return "QCOM_FORMATYUV420PackedSemiPlanar32m";
     case _AMEDIACODEC__OMX_QCOM_COLOR_FORMATYUV420PackedSemiPlanar32mMultiView:
         return "QCOM_FORMATYUV420PackedSemiPlanar32mMultiView";

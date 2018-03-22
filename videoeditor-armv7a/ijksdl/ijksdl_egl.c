@@ -31,7 +31,7 @@
 #include "ijksdl/gles2/internal.h"
 
 #define IJK_EGL_RENDER_BUFFER 0
-#define TAG "myDemo-jni" // 这个是自定义的LOG的标识
+#define TAG "ijksdl_egl" // 这个是自定义的LOG的标识
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
 typedef struct IJK_EGL_Opaque {
@@ -293,7 +293,8 @@ static EGLBoolean IJK_EGL_prepareRenderer(IJK_EGL *egl, SDL_VoutOverlay *overlay
     IJK_EGL_Opaque *opaque = egl->opaque;
 
     if (!IJK_GLES2_Renderer_isValid(opaque->renderer) ||
-        !IJK_GLES2_Renderer_isFormat(opaque->renderer, overlay->format)) {
+        !IJK_GLES2_Renderer_isFormat(opaque->renderer, overlay->format)||
+            overlay->changed) {
 
         IJK_GLES2_Renderer_reset(opaque->renderer);
         IJK_GLES2_Renderer_freeP(&opaque->renderer);

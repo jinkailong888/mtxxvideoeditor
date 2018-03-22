@@ -15,6 +15,13 @@ public class HomeFilter extends AbsMTGLFilter {
 
     private static final String VERTEX_SHADER_ASSETS_PATH = "home/home.vs";
     private static final String FRAGMENT_SHADER_ASSETS_PATH = "home/home.fs";
+    private static final String FRAGMENT_SHADER_ASSETS_PATH_MEITU = "home/homemeitu.fs";
+    private boolean filter;
+
+    public HomeFilter(boolean filter) {
+        super();
+        this.filter = filter;
+    }
 
 
     @Override
@@ -24,7 +31,7 @@ public class HomeFilter extends AbsMTGLFilter {
 
     @Override
     protected String getFragmentShaderResource() {
-        return MTGLUtil.readAssetsText(FRAGMENT_SHADER_ASSETS_PATH);
+        return MTGLUtil.readAssetsText(filter ? FRAGMENT_SHADER_ASSETS_PATH_MEITU : FRAGMENT_SHADER_ASSETS_PATH);
     }
 
     @Override
@@ -58,7 +65,7 @@ public class HomeFilter extends AbsMTGLFilter {
     }
 
     @Override
-    protected void handleActionMove(float x, float y,float scale,float apeck) {
+    protected void handleActionMove(float x, float y, float scale, float apeck) {
 
     }
 

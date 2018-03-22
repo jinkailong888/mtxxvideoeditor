@@ -6,7 +6,7 @@ package com.meitu.library.videoeditor.video;
  */
 
 public class VideoSaveInfo {
-    //原视频
+    //原视频地址
     private String mSrcPath;
     // 视频输出宽度，默认与原视频相同
     private int mOutputWidth;
@@ -18,6 +18,8 @@ public class VideoSaveInfo {
     private int mFps = 30;
     // I帧间隔秒数
     private int mIFrameInterval = 1;
+    //视频角度，应与原视频相同，否则会出问题
+    private int mRotate;
     // 视频保存地址
     private String mVideoSavePath;
     //是否硬解
@@ -33,9 +35,18 @@ public class VideoSaveInfo {
                 ", mOutputBitrate=" + mOutputBitrate +
                 ", mFps=" + mFps +
                 ", mIFrameInterval=" + mIFrameInterval +
+                ", mRotate=" + mRotate +
                 ", mVideoSavePath='" + mVideoSavePath + '\'' +
                 ", mMediaCodec=" + mMediaCodec +
                 '}';
+    }
+
+    public int getRotate() {
+        return mRotate;
+    }
+
+    public void setRotate(int rotate) {
+        mRotate = rotate;
     }
 
     public String getSrcPath() {

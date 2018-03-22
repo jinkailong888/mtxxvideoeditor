@@ -992,6 +992,11 @@ static void video_image_display2(FFPlayer *ffp) {
                 }
             }
         }
+        if (ffp->gl_gilter_changed) {
+            vp->bmp->changed = true;
+            ffp->gl_gilter_changed = false;
+        }
+        vp->bmp->filter = ffp->gl_filter;
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY,
                                              "vfps[ffplay]");
@@ -2141,6 +2146,11 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
 
 #endif  /* CONFIG_AVFILTER */
 
+/**
+ * 音频解码线程
+ * @param arg
+ * @return
+ */
 static int audio_thread(void *arg) {
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
@@ -2599,6 +2609,21 @@ static int synchronize_audio(VideoState *is, int nb_samples) {
 }
 
 /**
+ * 无pts控制的音频播放，仅作测试，保存模式时不需要初始化输出设备，将Avframe直接编码即可
+ * @param ffp
+ * @return
+ */
+static int audio_decode_frame_save_mode(FFPlayer *ffp) {
+
+    VideoState *is = ffp->is;
+    Frame *af;
+
+    af = frame_queue_peek_readable(&is->sampq);
+    frame_queue_next(&is->sampq);
+}
+
+
+/**
  * Decode one audio frame and return its uncompressed size.
  *
  * The processed audio frame is decoded, converted if required, and
@@ -2606,6 +2631,12 @@ static int synchronize_audio(VideoState *is, int nb_samples) {
  * value.
  */
 static int audio_decode_frame(FFPlayer *ffp) {
+
+//    if (ffp->save_mode) {
+//        return  audio_decode_frame_save_mode(ffp);
+//    }
+
+
     VideoState *is = ffp->is;
     int data_size, resampled_data_size;
     int64_t dec_channel_layout;
@@ -2796,6 +2827,12 @@ static int audio_decode_frame(FFPlayer *ffp) {
 }
 
 /* prepare a new audio buffer */
+/**
+ * 供 opensles 或 androidTrack调用，用于从解码后的音频帧缓冲队列中取出播放
+ * @param opaque
+ * @param stream
+ * @param len
+ */
 static void sdl_audio_callback(void *opaque, Uint8 *stream, int len) {
     FFPlayer *ffp = opaque;
     VideoState *is = ffp->is;
@@ -2872,7 +2909,7 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len) {
 }
 
 /**
- * 打开audio输出设备，根据配置
+ * 打开audio输出设备
  * @param opaque
  * @param wanted_channel_layout
  * @param wanted_nb_channels
@@ -3083,7 +3120,10 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
             if ((ret = audio_open(ffp, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) <
                 0)
                 goto fail;
+
+            //设置解码器信息
             ffp_set_audio_codec_info(ffp, AVCODEC_MODULE_NAME, avcodec_get_name(avctx->codec_id));
+
             is->audio_hw_buf_size = ret;
             is->audio_src = is->audio_tgt;
             is->audio_buf_size = 0;
@@ -3973,11 +4013,24 @@ static int video_refresh_thread(void *arg) {
     double remaining_time = 0.0;
     while (!is->abort_request) {
         if (remaining_time > 0.0)
-            //休眠
-            av_usleep((int) (int64_t) (remaining_time * 1000000.0));
-        remaining_time = REFRESH_RATE;
-        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
-            video_refresh(ffp, &remaining_time);
+            av_usleep((unsigned int) (int64_t) (remaining_time * 1000000.0));
+        if (ffp->save_mode) {
+            remaining_time = 0;
+        } else {
+            remaining_time = REFRESH_RATE;
+        }
+        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh)) {
+            if (ffp->save_mode) {
+                if (frame_queue_nb_remaining(&is->pictq) == 0) {
+                    av_log(NULL, AV_LOG_DEBUG, "视频帧队列为空 \n");
+                    continue;
+                }
+                video_display2(ffp);
+                frame_queue_next(&is->pictq);
+            } else {
+                video_refresh(ffp, &remaining_time);
+            }
+        }
     }
 
     return 0;
@@ -4177,7 +4230,7 @@ static const char *ijk_version_info() {
     return IJKPLAYER_VERSION;
 }
 
-FFPlayer *ffp_create() {
+FFPlayer *ffp_create(bool saveMode) {
     av_log(NULL, AV_LOG_INFO, "av_version_info: %s\n", av_version_info());
     av_log(NULL, AV_LOG_INFO, "ijk_version_info: %s\n", ijk_version_info());
 
@@ -4186,12 +4239,21 @@ FFPlayer *ffp_create() {
         return NULL;
 
     msg_queue_init(&ffp->msg_queue);
+
+    //设置保存模式
+    ffp->save_mode = saveMode;
+
+    //创建互斥锁
     ffp->af_mutex = SDL_CreateMutex();
     ffp->vf_mutex = SDL_CreateMutex();
 
-
+    //重置参数
     ffp_reset_internal(ffp);
+
+    //存储选项信息
     ffp->av_class = &ffp_context_class;
+
+    //创建metadata
     ffp->meta = ijkmeta_create();
 
     av_opt_set_defaults(ffp);
@@ -5315,6 +5377,15 @@ void ffp_setBgMusic(FFPlayer *ffp,
 
 void ffp_clearBgMusic(FFPlayer *ffp) {
 
+}
+
+void ffp_setGLFilter(FFPlayer *ffp, jboolean filter) {
+    assert(ffp);
+    av_log(NULL, AV_LOG_DEBUG, "ffp_setGLFilter filter:%d", filter);
+    if (ffp->gl_filter != filter) {
+        ffp->gl_gilter_changed = true;
+    }
+    ffp->gl_filter = filter;
 }
 
 

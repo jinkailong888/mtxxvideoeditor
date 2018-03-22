@@ -217,7 +217,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      * </p>
      */
     public IjkMediaPlayer() {
-        this(sLocalLibLoader);
+        this(sLocalLibLoader,false);
+    }
+
+    public IjkMediaPlayer(boolean saveMode) {
+        this(sLocalLibLoader,saveMode);
     }
 
     /**
@@ -225,11 +229,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      *
      * @param libLoader custom library loader, can be null.
      */
-    public IjkMediaPlayer(IjkLibLoader libLoader) {
-        initPlayer(libLoader);
+    public IjkMediaPlayer(IjkLibLoader libLoader,boolean saveMode) {
+        initPlayer(libLoader,saveMode);
     }
 
-    private void initPlayer(IjkLibLoader libLoader) {
+    private void initPlayer(IjkLibLoader libLoader,boolean saveMode) {
         loadLibrariesOnce(libLoader);
         initNativeOnce();
 
@@ -246,7 +250,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
          * Native setup requires a weak reference to our object. It's easier to
          * create it here than in C++.
          */
-        native_setup(new WeakReference<IjkMediaPlayer>(this));
+        native_setup(new WeakReference<IjkMediaPlayer>(this),saveMode);
     }
 
     private native void _setFrameAtTime(String imgCachePath, long startTime, long endTime, int num, int imgDefinition)
@@ -309,6 +313,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
                     "setScreenOnWhilePlaying(true) is ineffective for Surface");
         }
         mSurfaceHolder = null;
+//        Surface surface1 = new MySurface(new SurfaceTexture(0),100,200);
+//        _setVideoSurface(surface1);
         _setVideoSurface(surface);
         updateSurfaceScreenOn();
     }
@@ -943,7 +949,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     private static native void native_init();
 
-    private native void native_setup(Object IjkMediaPlayer_this);
+    private native void native_setup(Object IjkMediaPlayer_this,boolean saveMode);
 
     private native void native_finalize();
 
@@ -1315,7 +1321,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native void clearBgMusic() throws IllegalStateException;
 
 
-    public native void setGLFilter(Object filter);
+    public native void setGLFilter(boolean filter);
 
 
     public native void save(boolean mediaCodec, String outputPath,

@@ -596,13 +596,19 @@ inline static void ffp_reset_demux_cache_control(FFDemuxCacheControl *dcc) {
 struct IjkMediaMeta;
 struct IJKFF_Pipeline;
 typedef struct FFPlayer {
+    /*AVClass中存储了AVOption类型的数组option，用于存储选项信息。AVClass有一个特点就是它必须位于其支持的结构体的第一个位置*/
     const AVClass *av_class;
 
     /* ffplay context */
     VideoState *is;
 
-    /**** MeiTu 视频编辑状态结构体 ****/
-    EditorState *es;
+    /**** MeiTu  ****/
+    bool save_mode;//是否为保存模式
+    EditorState *es;//视频编辑状态结构体
+    bool gl_filter; //是否开启滤镜
+    bool gl_gilter_changed;//是否切换了滤镜
+    /**** MeiTu end****/
+
 
     /* format/codec options */
     AVDictionary *format_opts;

@@ -86,11 +86,7 @@ public class MediaEditor extends Thread {
         }
 
 
-
-
-
-
-        int trackIndex =  getVideoTrack(mMediaExtractor);
+        int trackIndex = getVideoTrack(mMediaExtractor);
         mMediaExtractor.selectTrack(trackIndex);
 
         MediaFormat format = mMediaExtractor.getTrackFormat(trackIndex);
@@ -217,8 +213,6 @@ public class MediaEditor extends Thread {
                 mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
             }
             if (mimeType.startsWith("audio")) {
-                mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                        MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
                 mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, mHeight * mWidth * 15);
                 mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 60);
                 mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 30);
@@ -284,14 +278,6 @@ public class MediaEditor extends Thread {
                         Log.d(TAG, "编码得到压缩数据");
                         ByteBuffer byteBuffer = mEncOutputBuffers[index];
                         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                            // The codec config data was pulled out and fed to the muxer when we got
-                            // the INFO_OUTPUT_FORMAT_CHANGED status.  Ignore it.
-                             Log.d(TAG, "ignoring BUFFER_FLAG_CODEC_CONFIG");
-                            MediaFormat format =
-                                    MediaFormat.createVideoFormat(VIDEO_MIME_TYPE,
-                                            mVideoSaveInfo.getOutputWidth(),
-                                            mVideoSaveInfo.getOutputHeight());
-                            format.setByteBuffer("csd-0", byteBuffer);
                             mBufferInfo.size = 0;
                         }
                         if (mBufferInfo.size != 0) {
@@ -309,6 +295,7 @@ public class MediaEditor extends Thread {
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     Log.d(TAG, "所有帧编码完毕");
 
+
                     mMediaEncodec.stop();
                     mMediaEncodec.release();
                     mMediaEncodec = null;
@@ -316,6 +303,12 @@ public class MediaEditor extends Thread {
                     mMediaMuxer.stop();
                     mMediaMuxer.release();
                     mMediaMuxer = null;
+
+
+                    Log.d(TAG, "MediaEditor save video 耗时 : " + (
+                            System.currentTimeMillis() - MediaEditor.startTime));
+
+
                     break;
                 }
             }
@@ -325,21 +318,17 @@ public class MediaEditor extends Thread {
     public static long startTime;
 
 
-    public static void save(VideoSaveInfo v) {
+    public static void save(VideoSaveInfo v, boolean filter) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             Log.d(TAG, "SupportAvcCodec=" + SupportAvcCodec());
 
+            startTime = System.currentTimeMillis();
 
-            new MediaEditor(v.getSrcPath(), v).start();
+//            new MediaEditor(v.getSrcPath(), v).start();// 11232  11024
 
 
-//            startTime = System.currentTimeMillis();
-//            EncodeDecodeSurface test = new EncodeDecodeSurface(v);
-//            try {
-//                test.testEncodeDecodeSurface();
-//            } catch (Throwable a) {
-//                a.printStackTrace();
-//            }
+            EncodeDecodeSurface test = new EncodeDecodeSurface(v,filter); //10953 10775
+            test.testEncodeDecodeSurface();
 
 
         }
@@ -359,7 +348,6 @@ public class MediaEditor extends Thread {
         }
         return -1;
     }
-
 
 
     private static boolean SupportAvcCodec() {

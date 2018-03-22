@@ -92,6 +92,9 @@ set(source_files
     ${pwd_dir}/gles2/shader.c
     ${pwd_dir}/gles2/fsh/rgb.fsh.c
     ${pwd_dir}/gles2/fsh/yuv420p.fsh.c
+
+    ${pwd_dir}/gles2/fsh/yuv420pmeitu.fsh.c
+
     ${pwd_dir}/gles2/fsh/yuv444p10le.fsh.c
     ${pwd_dir}/gles2/vsh/mvp.vsh.c
     ${pwd_dir}/dummy/ijksdl_vout_dummy.c

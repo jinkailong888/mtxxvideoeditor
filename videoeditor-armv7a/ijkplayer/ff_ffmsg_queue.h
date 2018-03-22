@@ -164,9 +164,13 @@ inline static void msg_queue_put_simple4(MessageQueue *q, int what, int arg1, in
 
 inline static void msg_queue_init(MessageQueue *q)
 {
+    //memset 内存空间初始化
     memset(q, 0, sizeof(MessageQueue));
+    //创建互斥锁
     q->mutex = SDL_CreateMutex();
+    //创建条件变量
     q->cond = SDL_CreateCond();
+
     q->abort_request = 1;
 }
 

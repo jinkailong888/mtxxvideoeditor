@@ -7,11 +7,15 @@ setOption配置相关
 metadata相关
 h264编码器特有的设置域
 线程相关
+消息机制
+音频输出
 ×××××××××××××××××××××××××××××××××××××××××
+
 
 *****************************************
 ijk概述
 *****************************************
+
 《零基础读懂视频播放器控制原理： ffplay 播放器源代码分析》：    https://cloud.tencent.com/developer/article/1004559
 《基于 ffmpeg 的跨平台播放器实现》：    https://cloud.tencent.com/developer/article/1004561
 《ijkplayer框架深入剖析》：   https://www.jianshu.com/p/daf0a61cc1e0
@@ -61,33 +65,64 @@ video_refresh
 *****************************************
 mediacodec相关
 *****************************************
+
 1.为什么ijk硬解不用ffmpeg自带的mediacodec_wrapper，而是自己在底层封装的java api
 https://github.com/Bilibili/ijkplayer/issues/1705
 https://github.com/Bilibili/ijkplayer/issues/1557
 FFmpeg3.1中也集成了MediaCodec硬件解码
 ijkplayer doesn't use ffmpeg's mediacodec implement
 ijkplayer has its own mediacodec implement.
+
 *****************************************
 OpenGL相关
 *****************************************
+
 1.Android MediaCodec and OpenGL Render       
 https://github.com/Bilibili/ijkplayer/issues/2893
 2.ijk android是支持opengl的
 https://github.com/Bilibili/ijkplayer/issues/338
+
+ijksdl/gles2/fsh/  下脚本可修改gl渲染效果
+
+问题：
+播放时软解解码出的为yuv420p格式，可通过gl渲染
+播放时硬解解码出不能通过gl渲染，视频帧格式为 QCOM_FORMATYUV420PackedSemiPlanar32m
+分析：
+不同设备硬解出的视频帧格式不同：
+https://www.polarxiong.com/archives/Android-MediaCodec%E8%A7%86%E9%A2%91%E6%96%87%E4%BB%B6%E7%A1%AC%E4%BB%B6%E8%A7%A3%E7%A0%81-%E9%AB%98%E6%95%88%E7%8E%87%E5%BE%97%E5%88%B0YUV%E6%A0%BC%E5%BC%8F%E5%B8%A7-%E5%BF%AB%E9%80%9F%E4%BF%9D%E5%AD%98JPEG%E5%9B%BE%E7%89%87-%E4%B8%8D%E4%BD%BF%E7%94%A8OpenGL.html
+比如红米设备上硬解出的帧格式为：YUV420PackedSemiPlanar32m
+ijk中的gl渲染只支持yuv420、rgb等，需要把 YUV420PackedSemiPlanar32m 转为 YUV 才可以
+转换算法：http://blog.csdn.net/u011270282/article/details/50698243
+解决：
+播放时的解码速度并不严格要求，先用软解,软解解出的为yuv420p，可以直接gl渲染
+遗留优化项：
+若采用软解播放则进行内存比较，若硬解较优，则硬解后将视频帧转换为gl可以渲染的格式，当然也要考虑转换的时间消耗
+
+
 *****************************************
 filter相关
 *****************************************
+
 1.Does ijkplayer support video filters , ijk支持java层直接设置滤镜！
 https://github.com/Bilibili/ijkplayer/issues/3686
+
 *****************************************
 setOption配置相关
 *****************************************
+
 mIjkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
 "mediacodec"等配置项位于：ff_ffplaye_options.h   以及  option_table.h
 如何利用 AVDictionary 配置参数 : http://blog.csdn.net/encoder1234/article/details/54582676
+
+AVClass 与 AVOption :  http://blog.csdn.net/leixiaohua1020/article/details/44268323
+AVClass就是AVOption和目标结构体之间的“桥梁”。
+AVClass中存储了AVOption类型的数组option，用于存储选项信息。
+AVClass有一个特点就是它必须位于其支持的结构体的第一个位置
+
 *****************************************
 metadata相关
 *****************************************
+
 对于metadata的操作封装于 ijkmeta.c , metadata信息声明在ijkmeta.h中, java层对应IjkMediaMeta.java
 IjkMediaMeta分两层，外层metadata，内层：video、audio、subtitle三个metadata,共4个metadata
 显然 ijkmeta.c 中只针对播放流程，也就是只负责从视频中获取 metadata ，然后在播放时获取 metadata 信息
@@ -100,6 +135,8 @@ avformat.h有对metadata的用法介绍
 *****************************************
 h264编码器特有的设置域
 *****************************************
+
+具体见：libx264.c  options
   /* priv_data 属于每个编码器特有的设置域，用 av_opt_set 设置  */
   /**
    *  preset ： 编码模式
@@ -133,8 +170,23 @@ h264编码器特有的设置域
 *****************************************
 线程相关
 *****************************************
+
 ijk线程相关操作位于ijksdl_thread.c，封装了pthread库
 以解码为例：
 d->decoder_tid = SDL_CreateThreadEx(&d->_decoder_tid, fn, arg, name);
 在 SDL_CreateThreadEx 方法其实是调用 pthread_create 方法
 ijk 封装了线程的初始化和销毁操作，见 ijksdl_thread.c 的 SDL_RunThread方法
+
+
+
+*****************************************
+消息机制
+*****************************************
+native_setup 时设置循环读消息函数， mp->msg_loop = msg_loop ，初始化消息队列在 FFPlayer 中
+在 ijkmp_prepare_async_l 时创建线程运行循环读消息函数
+
+*****************************************
+音频输出
+*****************************************
+新建播放器实例（native_setup）时，根据ffp->opensles 初始化 opensles 或 androidTrack 输出设备
+在 opensles 或 androidTrack 中，通过回调 sdl_audio_callback 方法从音频帧缓冲队列中读取音频数据，播放之

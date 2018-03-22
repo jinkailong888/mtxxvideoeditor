@@ -65,7 +65,7 @@ public interface VideoPlayer {
     /**
      * 视频编辑相关
      */
-    void setGLFilter(Object render);
+    void setGLFilter(boolean open);
 
 
 }

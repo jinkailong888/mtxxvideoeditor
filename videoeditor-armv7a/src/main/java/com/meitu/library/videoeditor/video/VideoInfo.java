@@ -25,7 +25,7 @@ public class VideoInfo {
     private Rect clipRect;
     // 该段视频速度
     private float speed = 1.0f;
-    // 视频选择角度，顺时针方向位正方向。取值范围为90的倍数
+    // 视频旋转角度，顺时针方向位正方向。取值范围为90的倍数
     private int rotateAngle;
     // 视频源播放的起始偏移位置
     private long sourceStartTime;

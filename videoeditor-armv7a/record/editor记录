@@ -8,6 +8,7 @@
 保存
 旋转问题
 保存走播放流程
+硬解硬保速度优化
 **************************************
 
 
@@ -164,6 +165,10 @@ surfaceview不支持旋转，如果srufaceview比TextureRenderView性能好的�
 1.像原视频一样宽高相反且保留rotation信息（无需旋转帧），av_dict_set(&m_pDstVideoStream->metadata,"rotate","90",0);
 2.宽高正常且rotation置0（需要旋转帧，将ffplay的旋转逻辑搬到保存流程）
 
+解决方案：
+软编：av_dict_set(&m_pDstVideoStream->metadata,"rotate","90",0)
+硬编：MediaMuxer.setOrientationHint(90)
+
 **************************************
 保存走播放流程
 **************************************
@@ -173,6 +178,49 @@ surfaceview不支持旋转，如果srufaceview比TextureRenderView性能好的�
 mtmvcore便是这样实现的，播放和保存用同一播放器实例操作
 理想情况是：保存和播放走同一套流程，但保存并不依赖播放器实例
 >首先实现用同一播放器实例实现保存：
+
+
+**************************************
+硬解硬保速度优化
+**************************************
+仿照底层方案，设置多个线程同步进行：
+读包线程、视频解码线程、音频解码线程、渲染线程、视频编码线程、音频编码线程、写包线程
+如果加背景音乐，再添加：背景音乐读包线程、背景音乐解码线程
+
+结合java层api情况，  比较耗时的操作： 渲染、 取出（包含编码）
+
+视频帧在surface中解码、渲染、编码，当解码后我们才可以介入，紧接着必须串行调用渲染操作，取出操作
+
+音频帧可以介入的是解码出pcm后，设置一个编码线程
+
+1. 读包线程： 循环读视频的视频包和音频包：  dequeueInputBuffer readSampleData  queueInputBuffer
+
+2. 视频渲染、编码、取出线程： drawImage、dequeueOutputBuffer  writeSampleData，然后 swapBuffers
+
+3. 音频处理线程(音量调节)： dequeueOutputBuffer 轮询取出 pcm ，进行处理， 加入pcm缓冲队列
+
+4. 音频编码线程： 轮询从pcm缓冲队列取出pcm ， queueInputBuffer 送去 编码，编码后 writeSampleData
+
+
+如果要混音：
+
+1.读包线程中同步读背景音乐
+
+2.背景音乐处理线程：dequeueOutputBuffer 轮询取出 pcm  ，同步控制，和同一时间戳 原音 混音，
+
+
+
+
+音频处理可以设置两个缓冲队列，分别为处理前和处理后
+
+
+
+
+
+
+
+
+
 
 
 

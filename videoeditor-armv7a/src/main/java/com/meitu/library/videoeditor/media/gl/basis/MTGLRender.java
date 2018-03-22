@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.meitu.library.videoeditor.media.gl.util.MTGLUtil;
 import com.meitu.library.videoeditor.media.home.HomeFilter;
+import com.meitu.library.videoeditor.util.Tag;
 
 import java.nio.ByteBuffer;
 
@@ -16,7 +17,9 @@ import static android.opengl.Matrix.setIdentityM;
 
 
 public class MTGLRender {
-    private static final String TAG = "MTGLRender";
+
+    private final static String TAG = Tag.build("MTGLRender");
+
 
 
     private AbsMTGLFilter mFilter;
@@ -28,9 +31,9 @@ public class MTGLRender {
     private int mTextureDes = MTGLUtil.NO_TEXTURE;
 
 
-    public void surfaceCreated() {
+    public void surfaceCreated(boolean filter) {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        mFilter = new HomeFilter();
+        mFilter = new HomeFilter(filter);
         mFilter.init();
         int[] textures = new int[1];
         GLES20.glGenTextures(1, textures, 0);

@@ -6,6 +6,7 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import com.meitu.asm.Cost;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
@@ -16,22 +17,32 @@ import java.nio.ByteBuffer;
 public class EncodeDecodeSurface {
     private final static String TAG = Tag.build("EncodeDecodeSurface");
 
+    private static final int DECODE_TIME_OUT = 9000;
+
     SurfaceDecoder SDecoder = new SurfaceDecoder();
     SurfaceEncoder SEncoder = new SurfaceEncoder();
 
 
+    private boolean mFilter;
+
+
     private static VideoSaveInfo mVideoSaveInfo;
 
-    public EncodeDecodeSurface(VideoSaveInfo v) {
+    public EncodeDecodeSurface(VideoSaveInfo v, boolean filter) {
         mVideoSaveInfo = v;
+        mFilter = filter;
     }
 
 
     /**
      * test entry point
      */
-    public void testEncodeDecodeSurface() throws Throwable {
-        EncodeDecodeSurfaceWrapper.runTest(this);
+    public void testEncodeDecodeSurface() {
+        try {
+            EncodeDecodeSurfaceWrapper.runTest(this);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
     }
 
     private static class EncodeDecodeSurfaceWrapper implements Runnable {
@@ -58,7 +69,6 @@ public class EncodeDecodeSurface {
             EncodeDecodeSurfaceWrapper wrapper = new EncodeDecodeSurfaceWrapper(obj);
             Thread th = new Thread(wrapper, "codec test");
             th.start();
-            //th.join();
             if (wrapper.mThrowable != null) {
                 throw wrapper.mThrowable;
             }
@@ -69,7 +79,7 @@ public class EncodeDecodeSurface {
         try {
 
             SEncoder.VideoEncodePrepare(videoSaveInfo);
-            SDecoder.SurfaceDecoderPrePare(videoSaveInfo, SEncoder.getEncoderSurface());
+            SDecoder.SurfaceDecoderPrePare(videoSaveInfo, SEncoder.getEncoderSurface(), mFilter);
             SEncoder.setExtractor(SDecoder.getExtractor());
             doExtract();
         } finally {
@@ -79,23 +89,19 @@ public class EncodeDecodeSurface {
     }
 
     void doExtract() throws IOException {
-        final int TIMEOUT_USEC = 10000;
         ByteBuffer[] decoderInputBuffers = SDecoder.decoder.getInputBuffers();
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
         int inputChunk = 0;
         int decodeCount = 0;
-        long frameSaveTime = 0;
         long startTime = System.nanoTime();
 
         boolean outputDone = false;
         boolean inputDone = false;
         while (!outputDone) {
-            Log.d(TAG, "loop");
-
             // Feed more data to the decoder.
-            //long s = System.nanoTime();
+            long s = System.nanoTime();
             if (!inputDone) {
-                int inputBufIndex = SDecoder.decoder.dequeueInputBuffer(TIMEOUT_USEC);
+                int inputBufIndex = SDecoder.decoder.dequeueInputBuffer(DECODE_TIME_OUT);
                 if (inputBufIndex >= 0) {
                     ByteBuffer inputBuf = decoderInputBuffers[inputBufIndex];
                     int chunkSize = SDecoder.extractor.readSampleData(inputBuf, 0);
@@ -112,12 +118,15 @@ public class EncodeDecodeSurface {
                         long presentationTimeUs = SDecoder.extractor.getSampleTime();
                         SDecoder.decoder.queueInputBuffer(inputBufIndex, 0, chunkSize,
                                 presentationTimeUs, 0 /*flags*/);
-
                         Log.d(TAG, "submitted frame " + inputChunk + " to dec, size=" +
                                 chunkSize);
-
                         inputChunk++;
                         SDecoder.extractor.advance();
+
+                        long s1 = System.nanoTime();
+                        Log.d(TAG, "readSampleData and queueInputBuffer cost" + (s1 - s) / 1000 + " us");
+
+
                     }
                 } else {
                     Log.d(TAG, "input buffer not available");
@@ -125,7 +134,7 @@ public class EncodeDecodeSurface {
             }
 
             if (!outputDone) {
-                int decoderStatus = SDecoder.decoder.dequeueOutputBuffer(info, TIMEOUT_USEC);
+                int decoderStatus = SDecoder.decoder.dequeueOutputBuffer(info, DECODE_TIME_OUT);
                 if (decoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                     // no output available yet
                     Log.d(TAG, "no output from decoder available");
@@ -137,9 +146,7 @@ public class EncodeDecodeSurface {
                     Log.d(TAG, "decoder output format changed: " + newFormat);
                 } else if (decoderStatus < 0) {
 
-                } else { // decoderStatus >= 0
-                    Log.d(TAG, "surface decoder given buffer " + decoderStatus +
-                            " (size=" + info.size + ")");
+                } else {
                     if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                         Log.d(TAG, "output EOS");
                         outputDone = true;
@@ -149,7 +156,6 @@ public class EncodeDecodeSurface {
 
                     SDecoder.decoder.releaseOutputBuffer(decoderStatus, doRender);
                     if (doRender) {
-                        Log.d(TAG, "awaiting decode of frame " + decodeCount);
                         long t = System.nanoTime();
                         SDecoder.outputSurface.awaitNewImage();
                         SDecoder.outputSurface.drawImage(true);
@@ -157,9 +163,17 @@ public class EncodeDecodeSurface {
                         Log.d(TAG, "render cost " + (t2 - t) / 1000 + " us");
                         //读数据采用的是direct texture方式，即直接从GPU的buffer里面读，默认读的是
                         //后台surface里面的数据，所以读操作必须放在swapBuffers之前
+
+                        //todo 耗时
                         SEncoder.drainEncoder(false);
+
+                        long t3 = System.nanoTime();
+                        Log.d(TAG, "drainEncoder cost " + (t3 - t2) / 1000 + " us");
                         SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
+
+                        //todo 耗时
                         SDecoder.outputSurface.swapBuffers();
+
                         decodeCount++;
                     }
 
@@ -169,7 +183,7 @@ public class EncodeDecodeSurface {
 
         SEncoder.drainEncoder(true);
 
-        frameSaveTime = System.nanoTime() - startTime;
+        long frameSaveTime = System.nanoTime() - startTime;
         int numSaved = decodeCount;
         Log.d(TAG, "Saving " + numSaved + " frames took " +
                 (frameSaveTime / numSaved / 1000) + " us per frame");

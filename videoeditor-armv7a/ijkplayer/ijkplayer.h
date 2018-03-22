@@ -168,7 +168,7 @@ void ijkmp_io_stat_complete_register(void (*cb)(const char *url,
                                                 int64_t elpased_time, int64_t total_duration));
 
 // ref_count is 1 after open
-IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *));
+IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *), bool b);
 
 void *ijkmp_set_inject_opaque(IjkMediaPlayer *mp, void *opaque);
 
@@ -270,6 +270,8 @@ void ijkmp_setBgMusic(IjkMediaPlayer *mp,
                       jboolean loop);
 
 void ijkmp_clearBgMusic(IjkMediaPlayer *mp);
+
+void ijkmp_setGLFilter(IjkMediaPlayer *mp, jboolean filter);
 
 int ijkmp_save(IjkMediaPlayer *mp, jboolean mediaCodec, const char *path, jint width, jint height,
                jint bitrate, jint fps);

@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.meitu.library.cost'
 
 android {
 
@@ -68,6 +69,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'com.android.support:appcompat-v7:26.1.0'
+
+    api 'com.meitu.library:costlib:1.1.2'
 
 
     testImplementation 'junit:junit:4.12'
