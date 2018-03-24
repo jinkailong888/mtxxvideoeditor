@@ -169,6 +169,8 @@ public class EncodeDecodeSurface {
 
                         long t3 = System.nanoTime();
                         Log.d(TAG, "drainEncoder cost " + (t3 - t2) / 1000 + " us");
+                        Log.d(TAG, "computePresentationTimeNsec(decodeCount): " + computePresentationTimeNsec(decodeCount));
+                        Log.d(TAG, "info.PresentationTime: " + info.presentationTimeUs);
                         SDecoder.outputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
 
                         //todo 耗时

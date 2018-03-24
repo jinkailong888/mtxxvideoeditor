@@ -241,17 +241,13 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //            Log.d(TAG, "is saving, do nothing");
 //            return;
 //        }
-//        if (v.isMediaCodec()) {
-//            MediaEditor.save(v,filter);
-//        } else {
-//            mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
-//        }
-
-        SaveFilters saveFilters = new SaveFilters();
-        saveFilters.setFilter(filter);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            SaveTask.save(v,saveFilters);
+        if (v.isMediaCodec()) {
+            MediaEditor.save(v,filter);
+        } else {
+            mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         }
+
+
 
 
     }

@@ -179,6 +179,8 @@ mtmvcore便是这样实现的，播放和保存用同一播放器实例操作
 理想情况是：保存和播放走同一套流程，但保存并不依赖播放器实例
 >首先实现用同一播放器实例实现保存：
 
+渲染后的rgb数据转为yuv然后通过 av_image_fill_arrays 函数塞入原 AVFrame 接着进行软编
+
 
 **************************************
 硬解硬保速度优化
@@ -195,7 +197,7 @@ mtmvcore便是这样实现的，播放和保存用同一播放器实例操作
 
 1. 读包线程： 循环读视频的视频包和音频包：  dequeueInputBuffer readSampleData  queueInputBuffer
 
-2. 视频渲染、编码、取出线程： drawImage、dequeueOutputBuffer  writeSampleData，然后 swapBuffers
+2. 视频渲染、编码、取出、写入线程： drawImage、dequeueOutputBuffer  writeSampleData，然后 swapBuffers
 
 3. 音频处理线程(音量调节)： dequeueOutputBuffer 轮询取出 pcm ，进行处理， 加入pcm缓冲队列
 
