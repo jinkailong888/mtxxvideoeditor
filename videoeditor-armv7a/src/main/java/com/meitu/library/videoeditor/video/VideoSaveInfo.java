@@ -24,7 +24,8 @@ public class VideoSaveInfo {
     private String mVideoSavePath;
     //是否硬解
     private boolean mMediaCodec;
-
+    //原音音量
+    private float mVideoVolume = 1f;
 
     @Override
     public String toString() {
@@ -38,7 +39,16 @@ public class VideoSaveInfo {
                 ", mRotate=" + mRotate +
                 ", mVideoSavePath='" + mVideoSavePath + '\'' +
                 ", mMediaCodec=" + mMediaCodec +
+                ", mVideoVolume=" + mVideoVolume +
                 '}';
+    }
+
+    public float getVideoVolume() {
+        return mVideoVolume;
+    }
+
+    public void setVideoVolume(float videoVolume) {
+        mVideoVolume = videoVolume;
     }
 
     public int getRotate() {

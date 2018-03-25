@@ -9,6 +9,7 @@
 旋转问题
 保存走播放流程
 硬解硬保速度优化
+硬解硬编保存文件时长缩短，播放速度变快问题
 **************************************
 
 
@@ -217,6 +218,18 @@ mtmvcore便是这样实现的，播放和保存用同一播放器实例操作
 
 
 
+
+**************************************
+硬解硬编保存文件时长缩短，播放速度变快问题
+**************************************
+之前是：
+mCodecOutputSurface.setPresentationTime(computePresentationTimeNsec(decodeCount));
+  private static long computePresentationTimeNsec(int frameIndex) {
+        return frameIndex * 1000000000L / 30;
+    }
+
+解决：
+mCodecOutputSurface.setPresentationTime(bufferInfo.presentationTimeUs*1000);
 
 
 

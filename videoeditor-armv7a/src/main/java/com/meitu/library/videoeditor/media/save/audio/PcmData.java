@@ -1,4 +1,4 @@
-package com.meitu.library.videoeditor.media.save;
+package com.meitu.library.videoeditor.media.save.audio;
 
 /**
  * Created by wyh3 on 2018/3/23.
