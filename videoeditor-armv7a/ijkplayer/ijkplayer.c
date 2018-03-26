@@ -104,12 +104,12 @@ void ijkmp_change_state_l(IjkMediaPlayer *mp, int new_state) {
     ffp_notify_msg1(mp->ffplayer, FFP_MSG_PLAYBACK_STATE_CHANGED);
 }
 
-IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *), bool saveMode) {
+IjkMediaPlayer *ijkmp_create(int (*msg_loop)(void *), jboolean saveMode, jboolean hard_mux) {
     IjkMediaPlayer *mp = (IjkMediaPlayer *) mallocz(sizeof(IjkMediaPlayer));
     if (!mp)
         goto fail;
 
-    mp->ffplayer = ffp_create(saveMode);
+    mp->ffplayer = ffp_create(saveMode, hard_mux);
     if (!mp->ffplayer)
         goto fail;
 
@@ -747,14 +747,6 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block) {
                 ffp_watermark_off_l(mp->ffplayer);
                 pthread_mutex_unlock(&mp->mutex);
                 break;
-            case FFP_REQ_SAVE:
-                        MPTRACE("ijkmp_get_msg: FFP_REQ_SAVE\n");
-                continue_wait_next_msg = 1;
-                pthread_mutex_lock(&mp->mutex);
-                ffp_save_l(mp->ffplayer);
-                pthread_mutex_unlock(&mp->mutex);
-                break;
-
         }
 
 
@@ -834,16 +826,13 @@ void ijkmp_setGLFilter(IjkMediaPlayer *mp, jboolean filter) {
 }
 
 
-int ijkmp_save(IjkMediaPlayer *mp, jboolean mediaCodec,
+int ijkmp_set_save_info(IjkMediaPlayer *mp, jboolean mediaCodec,
                const char *path,
                jint width, jint height,
                jint bitrate, jint fps) {
     assert(mp);
             MPTRACE("ijkmp_save()\n");
     ffp_set_save_info(mp->ffplayer, mediaCodec, path, width, height, bitrate, fps);
-    pthread_mutex_lock(&mp->mutex);
-    ffp_notify_msg1(mp->ffplayer, FFP_REQ_SAVE);
-    pthread_mutex_unlock(&mp->mutex);
     return 0;
 }
 

@@ -207,9 +207,9 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void setBgMusic(@NonNull BgMusicInfo bgMusicInfo) {
-        mVideoPlayer.getIjkMediaPlayer().setBgMusic(bgMusicInfo.getMusicPath(), bgMusicInfo.getStartTime(),
-                bgMusicInfo.getDuration(), bgMusicInfo.getSpeed(), bgMusicInfo.isRepeat());
+        mVideoPlayer.setBgMusic(bgMusicInfo);
         mAudioPlayer = new IjkMediaPlayer();
+        mAudioPlayer.setLooping(bgMusicInfo.isRepeat());
         try {
             mAudioPlayer.setDataSource(bgMusicInfo.getMusicPath());
         } catch (IOException e) {

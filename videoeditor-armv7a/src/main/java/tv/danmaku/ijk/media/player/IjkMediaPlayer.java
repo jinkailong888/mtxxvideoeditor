@@ -217,11 +217,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      * </p>
      */
     public IjkMediaPlayer() {
-        this(sLocalLibLoader,false);
+        this(sLocalLibLoader,false,false);
     }
 
-    public IjkMediaPlayer(boolean saveMode) {
-        this(sLocalLibLoader,saveMode);
+    public IjkMediaPlayer(boolean saveMode,boolean hardMux) {
+        this(sLocalLibLoader,saveMode,hardMux);
     }
 
     /**
@@ -229,11 +229,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      *
      * @param libLoader custom library loader, can be null.
      */
-    public IjkMediaPlayer(IjkLibLoader libLoader,boolean saveMode) {
-        initPlayer(libLoader,saveMode);
+    public IjkMediaPlayer(IjkLibLoader libLoader,boolean saveMode,boolean hardMux) {
+        initPlayer(libLoader,saveMode,hardMux);
     }
 
-    private void initPlayer(IjkLibLoader libLoader,boolean saveMode) {
+    private void initPlayer(IjkLibLoader libLoader, boolean saveMode, boolean hardMux) {
         loadLibrariesOnce(libLoader);
         initNativeOnce();
 
@@ -250,7 +250,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
          * Native setup requires a weak reference to our object. It's easier to
          * create it here than in C++.
          */
-        native_setup(new WeakReference<IjkMediaPlayer>(this),saveMode);
+        native_setup(new WeakReference<IjkMediaPlayer>(this),saveMode,hardMux);
     }
 
     private native void _setFrameAtTime(String imgCachePath, long startTime, long endTime, int num, int imgDefinition)
@@ -949,7 +949,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     private static native void native_init();
 
-    private native void native_setup(Object IjkMediaPlayer_this,boolean saveMode);
+    private native void native_setup(Object IjkMediaPlayer_this, boolean saveMode, boolean hardMux);
 
     private native void native_finalize();
 
@@ -1324,7 +1324,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native void setGLFilter(boolean filter);
 
 
-    public native void save(boolean mediaCodec, String outputPath,
+    public native void setSaveInfo(boolean mediaCodec, String outputPath,
                             int outputWidth, int outputHeight,
                             int outputBitrate, int outputFps) throws IllegalStateException;
 

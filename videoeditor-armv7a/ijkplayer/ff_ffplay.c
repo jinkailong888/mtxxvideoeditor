@@ -115,6 +115,7 @@
 // static const AVOption ffp_context_options[] = ...
 #include "ff_ffplay_options.h"
 #include "ff_ffeditor.h"
+#include "ff_ffmux.h"
 
 static AVPacket flush_pkt;
 
@@ -4025,7 +4026,9 @@ static int video_refresh_thread(void *arg) {
                     av_log(NULL, AV_LOG_DEBUG, "视频帧队列为空 \n");
                     continue;
                 }
-                video_display2(ffp);
+//                video_display2(ffp);
+                Frame *vp = frame_queue_peek_last(&is->pictq);
+                video_encode(vp->frame);
                 frame_queue_next(&is->pictq);
             } else {
                 video_refresh(ffp, &remaining_time);
@@ -4230,7 +4233,7 @@ static const char *ijk_version_info() {
     return IJKPLAYER_VERSION;
 }
 
-FFPlayer *ffp_create(bool saveMode) {
+FFPlayer *ffp_create(jboolean saveMode, jboolean hard_mux) {
     av_log(NULL, AV_LOG_INFO, "av_version_info: %s\n", av_version_info());
     av_log(NULL, AV_LOG_INFO, "ijk_version_info: %s\n", ijk_version_info());
 
@@ -4242,6 +4245,7 @@ FFPlayer *ffp_create(bool saveMode) {
 
     //设置保存模式
     ffp->save_mode = saveMode;
+    ffp->hard_mux = hard_mux;
 
     //创建互斥锁
     ffp->af_mutex = SDL_CreateMutex();

@@ -462,7 +462,8 @@ typedef struct EditorState {
     SDL_Thread *save_tid;
     SDL_Thread _save_tid;
 
-
+    //是否硬保
+    bool HARD;
 
 } EditorState;
 
@@ -604,6 +605,7 @@ typedef struct FFPlayer {
 
     /**** MeiTu  ****/
     bool save_mode;//是否为保存模式
+    bool hard_mux;//是否为硬件编码
     EditorState *es;//视频编辑状态结构体
     bool gl_filter; //是否开启滤镜
     bool gl_gilter_changed;//是否切换了滤镜
@@ -769,6 +771,7 @@ typedef struct FFPlayer {
     int skip_calc_frame_rate;
     int get_frame_mode;
     GetImgInfo *get_img_info;
+
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))

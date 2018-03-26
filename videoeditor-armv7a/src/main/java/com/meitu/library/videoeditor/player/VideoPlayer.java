@@ -1,5 +1,6 @@
 package com.meitu.library.videoeditor.player;
 
+import com.meitu.library.videoeditor.bgm.BgMusicInfo;
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
@@ -67,5 +68,12 @@ public interface VideoPlayer {
      */
     void setGLFilter(boolean open);
 
+    void setBgMusic(String musicPath,
+                    int startTime,
+                    int duration,
+                    float speed,
+                    boolean loop);
 
+
+    void setBgMusic(BgMusicInfo bgMusicInfo);
 }

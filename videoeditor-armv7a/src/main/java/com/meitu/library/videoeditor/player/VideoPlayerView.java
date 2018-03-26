@@ -1,7 +1,6 @@
 package com.meitu.library.videoeditor.player;
 
 import android.content.Context;
-import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -9,12 +8,13 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.FrameLayout;
 
+import com.meitu.library.videoeditor.bgm.BgMusicInfo;
 import com.meitu.library.videoeditor.core.VideoEditor;
 import com.meitu.library.videoeditor.media.MediaEditor;
-import com.meitu.library.videoeditor.media.save.SaveFilters;
-import com.meitu.library.videoeditor.media.save.SaveTask;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
+import com.meitu.library.videoeditor.save.SaveTask;
+import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
@@ -64,6 +64,8 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     //是否开启滤镜
     private boolean filter;
+    // 背景音乐
+    private BgMusicInfo mBgMusicInfo;
 
 
     public VideoPlayerView(@NonNull Context context) {
@@ -81,7 +83,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
     @Override
     public void init(VideoEditor.Builder builder) {
-        mIjkMediaPlayer = new IjkMediaPlayer(builder.saveMode);
+        mIjkMediaPlayer = new IjkMediaPlayer();
         if (builder.nativeDebuggable) {
             IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_VERBOSE);
         }
@@ -196,6 +198,16 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     }
 
     @Override
+    public void setBgMusic(String musicPath, int startTime, int duration, float speed, boolean loop) {
+
+    }
+
+    @Override
+    public void setBgMusic(BgMusicInfo bgMusicInfo) {
+        mBgMusicInfo = bgMusicInfo;
+    }
+
+    @Override
     public void prepare(boolean autoPlay) {
         Log.d(TAG, "prepare autoPlay = " + autoPlay);
         mPlayerStrategyInfo.setPrepareAutoPlay(autoPlay);
@@ -241,11 +253,11 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 //            Log.d(TAG, "is saving, do nothing");
 //            return;
 //        }
-        if (v.isMediaCodec()) {
-            MediaEditor.save(v,filter);
-        } else {
-            mIjkMediaPlayer.save(v.isMediaCodec(), v.getVideoSavePath(), v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
-        }
+
+        SaveFilters saveFilters = new SaveFilters();
+        saveFilters.setFilter(filter);
+        saveFilters.setBgMusicInfo(mBgMusicInfo);
+        SaveTask.save(v, saveFilters);
 
 
 

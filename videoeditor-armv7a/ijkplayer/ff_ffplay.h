@@ -46,7 +46,7 @@ void ffp_io_stat_complete_register(void (*cb)(const char *url,
                                               int64_t read_bytes, int64_t total_size,
                                               int64_t elpased_time, int64_t total_duration));
 
-FFPlayer *ffp_create(bool b);
+FFPlayer *ffp_create(jboolean b, jboolean i);
 
 void ffp_destroy(FFPlayer *ffp);
 

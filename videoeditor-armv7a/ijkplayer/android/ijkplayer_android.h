@@ -35,7 +35,7 @@ typedef struct ijkmp_android_media_format_context {
 } ijkmp_android_media_format_context;
 
 // ref_count is 1 after open
-IjkMediaPlayer *ijkmp_android_create(int (*msg_loop)(void *), bool b);
+IjkMediaPlayer *ijkmp_android_create(int (*msg_loop)(void *), jboolean b, jboolean i);
 
 void ijkmp_android_set_surface(JNIEnv *env, IjkMediaPlayer *mp, jobject android_surface);
 void ijkmp_android_set_volume(JNIEnv *env, IjkMediaPlayer *mp, float left, float right);

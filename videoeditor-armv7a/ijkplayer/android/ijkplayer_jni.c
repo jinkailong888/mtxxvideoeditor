@@ -395,7 +395,7 @@ IjkMediaPlayer_release(JNIEnv *env, jobject thiz) {
 
 
 static void
-IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this,jboolean save_mode) ;
+IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this, jboolean save_mode,jboolean hard_mux);
 
 static void
 IjkMediaPlayer_reset(JNIEnv *env, jobject thiz) {
@@ -407,7 +407,7 @@ IjkMediaPlayer_reset(JNIEnv *env, jobject thiz) {
     jobject weak_thiz = (jobject) ijkmp_set_weak_thiz(mp, NULL);
 
     IjkMediaPlayer_release(env, thiz);
-    IjkMediaPlayer_native_setup(env, thiz, weak_thiz,false);
+    IjkMediaPlayer_native_setup(env, thiz, weak_thiz, false, false);
 
     ijkmp_dec_ref_p(&mp);
 }
@@ -756,10 +756,11 @@ IjkMediaPlayer_native_init(JNIEnv *env) {
 }
 
 static void
-IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this,jboolean save_mode) {
+IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this, jboolean save_mode,
+                            jboolean hard_mux) {
             MPTRACE("%s\n", __func__);
 
-    IjkMediaPlayer *mp = ijkmp_android_create(message_loop, save_mode);
+    IjkMediaPlayer *mp = ijkmp_android_create(message_loop, save_mode, hard_mux);
     JNI_CHECK_GOTO(mp, env, "java/lang/OutOfMemoryError",
                    "mpjni: native_setup: ijkmp_create() failed", LABEL_RETURN);
 
@@ -1229,22 +1230,23 @@ IjkMediaPlayer_setGLFilter(JNIEnv *env, jobject thiz, jboolean filter) {
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
     JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: clearBgMusic: null mp",
                    LABEL_RETURN);
-    ijkmp_setGLFilter(mp,filter);
+    ijkmp_setGLFilter(mp, filter);
     LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
 }
 
 
 static void
-IjkMediaPlayer_save(JNIEnv *env, jobject thiz, jboolean mediaCodec, jstring outputPath,
-                    jint outputWidth, jint outputHeight, jint outputBitrate, jint outputFps) {
+IjkMediaPlayer_set_save_info(JNIEnv *env, jobject thiz, jboolean mediaCodec, jstring outputPath,
+                             jint outputWidth, jint outputHeight, jint outputBitrate,
+                             jint outputFps) {
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
     JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: save: null mp",
                    LABEL_RETURN);
     JNI_CHECK_GOTO(outputPath, env, "java/lang/IllegalArgumentException",
                    "mpjni: save: null outputPath", LABEL_RETURN);
     const char *path = (*env)->GetStringUTFChars(env, outputPath, NULL);
-    ijkmp_save(mp, mediaCodec, path, outputWidth, outputHeight, outputBitrate, outputFps);
+    ijkmp_set_save_info(mp, mediaCodec, path, outputWidth, outputHeight, outputBitrate, outputFps);
     LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
 }
@@ -1279,7 +1281,7 @@ static JNINativeMethod g_methods[] = {
         {       "setVolume",             "(FF)V",                                                  (void *) IjkMediaPlayer_setVolume},
         {       "getAudioSessionId",     "()I",                                                    (void *) IjkMediaPlayer_getAudioSessionId},
         {       "native_init",           "()V",                                                    (void *) IjkMediaPlayer_native_init},
-        {       "native_setup",          "(Ljava/lang/Object;Z)V",                                 (void *) IjkMediaPlayer_native_setup},
+        {       "native_setup",          "(Ljava/lang/Object;ZZ)V",                                (void *) IjkMediaPlayer_native_setup},
         {       "native_finalize",       "()V",                                                    (void *) IjkMediaPlayer_native_finalize},
 
         {       "_setOption",            "(ILjava/lang/String;Ljava/lang/String;)V",               (void *) IjkMediaPlayer_setOption},
@@ -1317,7 +1319,7 @@ static JNINativeMethod g_methods[] = {
         {       "setGLFilter",           "(Z)V",                                                   (void *) IjkMediaPlayer_setGLFilter},
 
 
-        {       "save",                  "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_save},
+        {       "setSaveInfo",           "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_set_save_info},
 
 
 

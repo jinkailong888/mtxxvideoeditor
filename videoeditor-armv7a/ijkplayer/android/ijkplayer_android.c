@@ -31,9 +31,9 @@
 #include "../pipeline/ffpipeline_ffplay.h"
 #include "pipeline/ffpipeline_android.h"
 
-IjkMediaPlayer *ijkmp_android_create(int (*msg_loop)(void *), bool saveMode)
+IjkMediaPlayer *ijkmp_android_create(int (*msg_loop)(void *), jboolean saveMode, jboolean hard_mux)
 {
-    IjkMediaPlayer *mp = ijkmp_create(msg_loop, saveMode);
+    IjkMediaPlayer *mp = ijkmp_create(msg_loop, saveMode, hard_mux);
     if (!mp)
         goto fail;
 

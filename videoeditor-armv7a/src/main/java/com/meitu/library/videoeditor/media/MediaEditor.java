@@ -11,15 +11,13 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import com.meitu.library.videoeditor.media.codec.EncodeDecodeSurface;
-import com.meitu.library.videoeditor.media.save.SaveFilters;
-import com.meitu.library.videoeditor.media.save.SaveTask;
+import com.meitu.library.videoeditor.save.task.HardSaveTask;
+import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -327,19 +325,9 @@ public class MediaEditor extends Thread {
             startTime = System.currentTimeMillis();
 
 //            new MediaEditor(v.getSrcPath(), v).start();// 11232  11024
-            if (!filter) {
-                SaveFilters saveFilters = new SaveFilters();
-                saveFilters.setFilter(filter);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    SaveTask.save(v, saveFilters);
-                }
-            } else {
-                EncodeDecodeSurface test = new EncodeDecodeSurface(v,filter); //10953 10775
-                test.testEncodeDecodeSurface();
-            }
 
-
-
+            EncodeDecodeSurface test = new EncodeDecodeSurface(v, filter); //10953 10775
+            test.testEncodeDecodeSurface();
 
 
         }

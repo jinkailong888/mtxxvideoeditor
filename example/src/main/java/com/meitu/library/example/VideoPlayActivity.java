@@ -232,7 +232,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mMediaCodecSwitch.setOnCheckedChangeListener(this);
 
         mWaterMarkSwitch.setEnabled(false);
-        mMusicSwitch.setEnabled(false);
         mTransFilterSwitch.setEnabled(false);
         mFFmpegMediaCodecSwitch.setEnabled(false);
     }
