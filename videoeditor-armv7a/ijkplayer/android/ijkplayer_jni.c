@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <ijkplayer_internal.h>
 #include <ffmpeg/output/armv7a/include/libavcodec/jni.h>
-#include <ff_ffeditor.h>
 #include "j4a/class/java/util/ArrayList.h"
 #include "j4a/class/android/os/Bundle.h"
 #include "j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.h"
@@ -41,8 +40,6 @@
 #include "ijkplayer_android.h"
 #include "ijksdl/android/ijksdl_android_jni.h"
 #include "ijksdl/android/ijksdl_codec_android_mediadef.h"
-#include "ijkavformat/ijkavformat.h"
-#include "gl_jni.h"
 
 #define JNI_MODULE_PACKAGE      "tv/danmaku/ijk/media/player"
 #define JNI_CLASS_IJKPLAYER     "tv/danmaku/ijk/media/player/IjkMediaPlayer"

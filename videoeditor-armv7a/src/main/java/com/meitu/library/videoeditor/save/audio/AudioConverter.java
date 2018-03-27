@@ -35,6 +35,7 @@ public class AudioConverter {
     private static final int AUDIO_DECODE_MAX_INPUT_SIZE = 1024;
     private static final int BG_MUSIC_DECODE_MAX_INPUT_SIZE = 1024;
     private final Object VideoWroteLock;
+    private PcmFormat mAudioPcmFormat;
     private ArrayBlockingQueue<PcmData> mAudioPcmQueue;
     private ArrayBlockingQueue<PcmData> mBgMusicPcmQueue;
     private ArrayBlockingQueue<PcmData> mMixPcmQueue;
@@ -67,7 +68,7 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mDecoder, mExtractor, mTrackIndex,
-                    mAudioPcmQueue, mDecodeDone);
+                    mAudioPcmQueue, mDecodeDone,"audio");
         }
     };
 
@@ -75,7 +76,7 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mBgMusicDecoder, mBgMusicExtractor, mBgMusicTrackIndex,
-                    mBgMusicPcmQueue, mBgMusicDecodeDone);
+                    mBgMusicPcmQueue, mBgMusicDecodeDone,"bgMusic");
         }
     };
 
@@ -210,7 +211,7 @@ public class AudioConverter {
 
     private void decode(MediaCodec decoder, MediaExtractor extractor,
                         int trackIndex, ArrayBlockingQueue<PcmData> queue,
-                        boolean[] decodeDone) {
+                        boolean[] decodeDone, String type) {
         int bufIndex;
         boolean readDone = false;
         ByteBuffer[] decodeInputBuffer = decoder.getInputBuffers();
@@ -228,12 +229,12 @@ public class AudioConverter {
                         decoder.queueInputBuffer(bufIndex, 0,
                                 sampleSize, extractor.getSampleTime(), 0);
                         extractor.advance();
-                        Log.d(TAG, "音频流 queueInputBuffer");
+                        Log.d(TAG, type+"音频流 queueInputBuffer");
                     } else {
                         decoder.queueInputBuffer(bufIndex, 0, 0, 0L,
                                 MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                         readDone = true;
-                        Log.d(TAG, "音频流已读完");
+                        Log.d(TAG, type+"音频流已读完");
                     }
                 }
             }
@@ -243,21 +244,21 @@ public class AudioConverter {
                 decodeOutputBuffer = decoder.getOutputBuffers();
             } else if (bufIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 MediaFormat newFormat = decoder.getOutputFormat();
-                Log.d(TAG, "INFO_OUTPUT_FORMAT_CHANGED : " + newFormat);
+                Log.d(TAG, type+"INFO_OUTPUT_FORMAT_CHANGED : " + newFormat);
             } else if (bufIndex < 0) {
-                Log.d(TAG, "mVideoDecoder bufIndex < 0");
+                Log.d(TAG, type+" bufIndex < 0");
             } else {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                    Log.d(TAG, "mVideoDecoder BUFFER_FLAG_END_OF_STREAM");
+                    Log.d(TAG, type+" BUFFER_FLAG_END_OF_STREAM");
                     decodeDone[0] = true;
                     break;
                 }
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    Log.d(TAG, "mVideoDecoder BUFFER_FLAG_CODEC_CONFIG");
+                    Log.d(TAG, type+" BUFFER_FLAG_CODEC_CONFIG");
                     bufferInfo.size = 0;
                 }
                 if (bufferInfo.size != 0) {
-                    Log.d(TAG, "音频帧解码完一帧");
+                    Log.d(TAG, type+"音频帧解码完一帧");
                     ByteBuffer byteBuffer = decodeOutputBuffer[bufIndex];
                     byte[] data = new byte[bufferInfo.size];
                     byteBuffer.get(data);
@@ -314,17 +315,17 @@ public class AudioConverter {
                     inputBuffer.clear();
                     if (pcmData == null) {
                         if (isEncodeReadDone()) {
-                            Log.d(TAG, "读取完pcm了");
+                            Log.d(TAG, "encode 读取完pcm了");
                             mEncoder.queueInputBuffer(bufIndex, 0, 0,
                                     0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                             readPcmDone = true;
                         } else {
-                            Log.d(TAG, "编码线程未从缓冲队列中读到帧数据");
+                            Log.d(TAG, "encode 编码线程未从缓冲队列中读到帧数据");
                         }
                     } else {
                         inputBuffer.limit(pcmData.data.length);
                         inputBuffer.put(pcmData.data);
-                        Log.d(TAG, "把pcm数据加入编码队列");
+                        Log.d(TAG, "encode 把pcm数据加入编码队列");
                         mEncoder.queueInputBuffer(bufIndex, 0, pcmData.data.length,
                                 pcmData.pts, 0);
                     }
@@ -344,14 +345,14 @@ public class AudioConverter {
             } else {
                 ByteBuffer byteBuffer = encodeOutputBuffers[encodeStatus];
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                    Log.d(TAG, "写完音频数据");
+                    Log.d(TAG, "encode 写完音频数据");
                     break;
                 }
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                     bufferInfo.size = 0;
                 }
                 if (bufferInfo.size > 0) {
-                    Log.d(TAG, "写入音频数据");
+                    Log.d(TAG, "encode 写入音频数据");
                     byteBuffer.position(bufferInfo.offset);
                     byteBuffer.limit(bufferInfo.offset + bufferInfo.size);
                     Log.d(TAG, VELog.toString(bufferInfo));

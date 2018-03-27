@@ -21,21 +21,10 @@ set(include_dir
     ${CMAKE_SOURCE_DIR}/ijkj4a
 )
 
-if (${ANDROID_PLATFORM_LEVEL} LESS 12)
-  message(FATAL_ERROR "OpenGL 2 is not supported before API level 11 \
-                      (currently using ${ANDROID_PLATFORM_LEVEL}).")
-  return()
-elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
-  add_definitions("-DDYNAMIC_ES3")
-  set(GL3STUB_SRC  ${pwd_dir}/android/gl3stub.c)
-  set(OPENGL_LIB GLESv2)
-else ()
-  set(OPENGL_LIB GLESv3)
-endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
+
 
 #将若干库链接到目标库文件
 set(link_lib
-    ${OPENGL_LIB}
     log
     android
     OpenSLES
