@@ -3497,6 +3497,10 @@ static int read_thread(void *arg) {
         stream_component_open(ffp, st_index[AVMEDIA_TYPE_SUBTITLE]);
     }
     ffp_notify_msg1(ffp, FFP_MSG_COMPONENT_OPEN);
+    //解码器上下文都已经初始化完毕，如果要保存，在此初始化
+    if (ffp->save_mode) {
+        ffmux_init(ffp);
+    }
 
     //设置metadata信息
     ijkmeta_set_avformat_context_l(ffp->meta, ic);
@@ -4278,8 +4282,7 @@ void ffp_destroy(FFPlayer *ffp) {
     ffpipenode_free_p(&ffp->node_vdec);
     ffpipeline_free_p(&ffp->pipeline);
     ijkmeta_destroy_p(&ffp->meta);
-    //TODO 加水印暂停后崩溃问题
-//    ffp_reset_internal(ffp);
+    ffp_reset_internal(ffp);
     SDL_DestroyMutexP(&ffp->af_mutex);
     SDL_DestroyMutexP(&ffp->vf_mutex);
     msg_queue_destroy(&ffp->msg_queue);

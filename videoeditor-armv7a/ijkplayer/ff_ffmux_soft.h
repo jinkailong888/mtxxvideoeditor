@@ -7,9 +7,9 @@
 #include <ffmpeg/output/armv7a/include/libavutil/frame.h>
 #include "ff_ffplay_def.h"
 
-void init_soft(FFPlayer *ffp);
 
 void release_soft();
+void init_soft(FFPlayer *ffp);
 
 void video_encode_soft(AVFrame *frame);
 

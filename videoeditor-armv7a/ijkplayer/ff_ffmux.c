@@ -2,7 +2,6 @@
 // Created by wyh3 on 2018/3/26.
 //
 
-#include <stdbool.h>
 #include "ff_ffmux.h"
 #include "ff_ffmux_hard.h"
 #include "ff_ffmux_soft.h"

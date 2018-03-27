@@ -5,36 +5,17 @@
 #include "ff_ffmux_soft.h"
 #include "ff_ffmux.h"
 
-static AVFormatContext *ifmt_ctx;
-static AVFormatContext *ofmt_ctx;
-typedef struct StreamContext {
-    AVCodecContext *dec_ctx;
-    AVCodecContext *enc_ctx;
-} StreamContext;
-static StreamContext *stream_ctx;
+static AVFormatContext *in_fmt_ctx;
+static AVCodecContext *video_dec_ctx;
+static AVCodecContext *audio_dec_ctx;
+
+static AVFormatContext *out_fmt_ctx;
+static AVCodecContext *video_enc_ctx;
+static AVCodecContext *audio_enc_ctx;
+
 const int ffmux_default_output_bitrate = 2000001;
 
-
-void video_encode_soft(AVFrame *frame){
-
-
-
-}
-
-void audio_encode_soft(AVFrame *frame){
-
-}
-
-void init_soft(FFPlayer *ffp){
-
-}
-
-void release_soft(){
-
-}
-
-
-static int open_output_file(EditorState *es) {
+static int ffmux_open_output_file(EditorState *es) {
     AVStream *out_stream;
     AVStream *in_stream;
     AVCodecContext *dec_ctx, *enc_ctx;
@@ -44,24 +25,24 @@ static int open_output_file(EditorState *es) {
     unsigned int i;
     const char *filename;
     filename = es->outputPath;
-    ofmt_ctx = NULL;
+    out_fmt_ctx = NULL;
 
-    avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, filename);
-    if (!ofmt_ctx) {
+    avformat_alloc_output_context2(&out_fmt_ctx, NULL, NULL, filename);
+    if (!out_fmt_ctx) {
         loge("Could not create output context\n");
         return AVERROR_UNKNOWN;
     }
     logd("video src : start_time=%lld  ; output : duration=%lld ",
-         ifmt_ctx->start_time, ifmt_ctx->duration);
+         in_fmt_ctx->start_time, in_fmt_ctx->duration);
 
     //分别初始化各个流
-    for (i = 0; i < ifmt_ctx->nb_streams; i++) {
-        out_stream = avformat_new_stream(ofmt_ctx, NULL);
+    for (i = 0; i < in_fmt_ctx->nb_streams; i++) {
+        out_stream = avformat_new_stream(out_fmt_ctx, NULL);
         if (!out_stream) {
             loge("Failed allocating output stream\n");
             return AVERROR_UNKNOWN;
         }
-        in_stream = ifmt_ctx->streams[i];
+        in_stream = in_fmt_ctx->streams[i];
         dec_ctx = stream_ctx[i].dec_ctx;
 
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
@@ -170,7 +151,7 @@ static int open_output_file(EditorState *es) {
                 loge("Failed to copy encoder parameters to output stream #%u\n", i);
                 return ret;
             }
-            if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
+            if (out_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
                 enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
             out_stream->time_base = enc_ctx->time_base;
@@ -189,10 +170,10 @@ static int open_output_file(EditorState *es) {
         }
 
     }
-    av_dump_format(ofmt_ctx, 0, filename, 1);
+    av_dump_format(out_fmt_ctx, 0, filename, 1);
 
-    if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&ofmt_ctx->pb, filename, AVIO_FLAG_WRITE);
+    if (!(out_fmt_ctx->oformat->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&out_fmt_ctx->pb, filename, AVIO_FLAG_WRITE);
         if (ret < 0) {
             loge("Could not open output file '%s'", filename);
             return ret;
@@ -200,7 +181,7 @@ static int open_output_file(EditorState *es) {
     }
 
     /* init muxer, write output file header */
-    ret = avformat_write_header(ofmt_ctx, NULL);
+    ret = avformat_write_header(out_fmt_ctx, NULL);
     if (ret < 0) {
         loge("Error occurred when avformat_write_header\n");
         return ret;
@@ -208,3 +189,47 @@ static int open_output_file(EditorState *es) {
 
     return 0;
 }
+
+void init_soft(FFPlayer *ffp) {
+    if (!ffp) {
+        loge("init_soft !ffp");
+        return;
+    }
+    VideoState *is = ffp->is;
+    if (!is) {
+        loge("init_soft !is");
+        return;
+    }
+    if (is->ic) {
+        in_fmt_ctx = is->ic;
+    } else {
+        loge("init_soft !is->ic");
+        return;
+    }
+    if (is->viddec.avctx) {
+        logd("init_soft 记录 video_dec_ctx");
+        video_dec_ctx = is->viddec.avctx;
+    }
+
+    if (is->auddec.avctx) {
+        logd("init_soft 记录 audio_dec_ctx");
+        audio_dec_ctx = is->auddec.avctx;
+    }
+    EditorState *es = ffp->es;
+    ffmux_open_output_file(es);
+}
+
+void release_soft() {
+
+}
+
+void video_encode_soft(AVFrame *frame) {
+
+
+}
+
+void audio_encode_soft(AVFrame *frame) {
+
+}
+
+

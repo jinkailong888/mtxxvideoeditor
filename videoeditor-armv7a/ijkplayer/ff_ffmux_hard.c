@@ -3,15 +3,6 @@
 //
 
 #include "ff_ffmux_hard.h"
-void video_encode_hard(AVFrame *frame){
-
-}
-
-void audio_encode_hard(AVFrame *frame){
-
-}
-
-
 
 void init_hard(FFPlayer *ffp){
 
@@ -20,3 +11,12 @@ void init_hard(FFPlayer *ffp){
 void release_hard(){
 
 }
+
+void video_encode_hard(AVFrame *frame){
+
+}
+
+void audio_encode_hard(AVFrame *frame){
+
+}
+
