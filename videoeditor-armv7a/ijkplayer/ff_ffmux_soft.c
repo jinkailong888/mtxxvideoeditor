@@ -25,7 +25,7 @@ void audio_encode_soft(AVFrame *frame){
 
 }
 
-void init_soft(EditorState *es){
+void init_soft(FFPlayer *ffp){
 
 }
 

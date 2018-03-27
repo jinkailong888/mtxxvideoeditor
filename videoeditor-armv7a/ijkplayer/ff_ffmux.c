@@ -8,19 +8,20 @@
 #include "ff_ffmux_soft.h"
 
 
-const bool HARD = false;
+static bool hard_mux;
 
 
-void ffmux_init(EditorState *es) {
-    if (HARD) {
-        init_hard(es);
+void ffmux_init(FFPlayer *ffp) {
+    if (ffp->hard_mux) {
+        init_hard(ffp);
     } else {
-        init_soft(es);
+        init_soft(ffp);
     }
+    hard_mux = ffp->hard_mux;
 }
 
 void ffmux_release() {
-    if (HARD) {
+    if (hard_mux) {
         release_hard();
     } else {
         release_soft();
@@ -29,7 +30,7 @@ void ffmux_release() {
 
 
 void video_encode(AVFrame *frame) {
-    if (HARD) {
+    if (hard_mux) {
         video_encode_hard(frame);
     } else {
         video_encode_soft(frame);
@@ -37,7 +38,7 @@ void video_encode(AVFrame *frame) {
 }
 
 void audio_encode(AVFrame *frame) {
-    if (HARD) {
+    if (hard_mux) {
         audio_encode_hard(frame);
     } else {
         audio_encode_soft(frame);

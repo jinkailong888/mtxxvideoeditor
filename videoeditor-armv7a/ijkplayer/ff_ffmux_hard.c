@@ -13,7 +13,7 @@ void audio_encode_hard(AVFrame *frame){
 
 
 
-void init_hard(EditorState *es){
+void init_hard(FFPlayer *ffp){
 
 }
 

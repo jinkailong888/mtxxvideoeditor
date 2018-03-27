@@ -8,6 +8,7 @@
 
 #include <ffmpeg/output/armv7a/include/libavutil/frame.h>
 #include "ff_ffplay_def.h"
+
 #define MY_TAG  "VideoEditor"
 
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
@@ -23,7 +24,7 @@ void video_encode(AVFrame *frame);
 
 void audio_encode(AVFrame *frame);
 
-void  ffmux_init(EditorState *es);
+void ffmux_init(FFPlayer *ffp);
 
 void ffmux_release();
 

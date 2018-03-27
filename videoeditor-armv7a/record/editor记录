@@ -12,7 +12,8 @@
 硬解硬编保存文件时长缩短，播放速度变快问题
 stop muxer failed
 不同采样率、通道数的音频怎么混音
-工程编译失败
+其他电脑 gl3stubInit() 找不到
+assertion "thread" failed
 **************************************
 
 
@@ -259,9 +260,24 @@ http://www.open-open.com/lib/view/open1467185744307.html
 
 
 **************************************
-工程编译失败
+其他电脑 gl3stubInit() 找不到
 **************************************
-其他电脑无法编译，报错找不到
+其他电脑编译，提示 gl3stubInit() 方法找不到
+本来未配置 "-DANDROID_PLATFORM=android-15" 的话，cmake中获取到的应该是minsdkversion
+但是其他电脑获取的不是min，而是大于18的版本，导致找不到
+解决：设置"-DANDROID_PLATFORM=android-15"
+又出现问题：无法编译通过
+解决方案：ndk版本更新到 16.1.4479499
+
+**************************************
+assertion "thread" failed
+**************************************
+更新as版本后运行，程序运行到 assert() 方法时 崩溃：
+void SDL_WaitThread(SDL_Thread *, int *): assertion "thread" failed
+尝试解决：Go to: File > Invalidate Caches/Restart and select Invalidate and Restart
+参考：https://stackoverflow.com/questions/20063532/assertion-error-in-android-studio-when-trying-to-compile-the-working-project
+问题：仍然存在 assertion "thread" failed ！
+解决：cFlags 添加 DNDEBUG ， assert函数 需要此标记才能使用
 
 
 
