@@ -1,6 +1,7 @@
 #include "gl_util.h"
 #include "jni.h"
 
+
 #define MY_TAG  "gl_util"
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
 #define logd(format, ...)  __android_log_print(ANDROID_LOG_DEBUG,  MY_TAG, format, ##__VA_ARGS__)
@@ -53,10 +54,13 @@ bool checkEglError(char *msg) {
 }
 
 void initPBO() {
-    gl3stubInit();
-    //glVersion = (const char *) glGetString(GL_VERSION);
+    glVersion = (const char *) glGetString(GL_VERSION);
     logd("opengl version:%s", glVersion);
-
+    //android版本需要低于18，使用gl3stub.c
+    gl3stubInit();
+//    if (strcmp(glVersion, "OpenGL ES 3.0") < 0) {
+//        gl3stubInit();
+//    }
     mPboIndex = 0;
     mPboNewIndex = 1;
     mPboSize = mWidth * mHeight * 3 / 2;
@@ -179,12 +183,12 @@ uint8_t *readDataFromGPU(int width, int height) {
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboNewIndex]);
 
-        logd("%s%o", "enter map",glMapBufferRange);
+        logd("%s%o", "enter map", glMapBufferRange);
 
         //glMapBufferRange会等待DMA传输完成，所以需要交替使用pbo,这边获取的是上一帧的内容
         uint8_t *byteBuffer = (uint8_t *) glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
-                                                                       mPboSize,
-                                                                       GL_MAP_READ_BIT);
+                                                           mPboSize,
+                                                           GL_MAP_READ_BIT);
         if (byteBuffer == NULL) {
             logd("%s", "map buffer fail");
         }

@@ -21,15 +21,10 @@ android {
                         " -Wno-psabi -Wa,--noexecstack " +
                         " -DANDROID -DNDEBUG"
 
-                cFlags " -O3 -Wall -pipe " +
-                        " -ffast-math " +
-                        " -fstrict-aliasing -Werror=strict-aliasing" +
-                        " -Wno-psabi -Wa,--noexecstack " +
-                        " -DANDROID -DNDEBUG"
-
                 arguments "-DANDROID_STL=stlport_static",
                         "-DANDROID_PIE=OFF",
-                        "-DANDROID_ARM_NEON=TRUE"
+                        "-DANDROID_ARM_NEON=TRUE",
+                        "-DANDROID_PLATFORM=android-15"
 
                 targets "cpufeatures",
                         "ijkj4a",

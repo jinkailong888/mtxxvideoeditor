@@ -38,7 +38,7 @@ ext {
 
     targetSdkVersion = 27
 
-    minSdkVersion = 14
+    minSdkVersion = 15
 
     versionCode = 800400
     versionName = "0.8.4"

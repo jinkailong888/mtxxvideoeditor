@@ -48,7 +48,7 @@ elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
   set(GL3STUB_SRC  ${pwd_dir}/gles2/gl3stub.c)
   set(OPENGL_LIB GLESv2)
 else ()
-  message(FATAL_DEBUG "GLESv3")
+  message(FATAL_DEBUG "GLESv3 无法提前获取gl版本，无法动态引入头文件，故平台版本需固定，低于18 ")
   set(OPENGL_LIB GLESv3)
 endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
 

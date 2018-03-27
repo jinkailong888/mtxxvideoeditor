@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <GLES2/gl2.h>
 #include "gl3stub.h"
+//android版本需要低于18，gl版本低于3.0
+//#include <GLES3/gl3.h>
 #include <stdbool.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
