@@ -21,18 +21,6 @@ set(include_dir
     ${CMAKE_SOURCE_DIR}/ijkj4a
 )
 
-if (${ANDROID_PLATFORM_LEVEL} LESS 12)
-  message(FATAL_ERROR "OpenGL 2 is not supported before API level 11 \
-                      (currently using ${ANDROID_PLATFORM_LEVEL}).")
-  return()
-elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
-  add_definitions("-DDYNAMIC_ES3")
-  set(GL3STUB_SRC  ${pwd_dir}/android/gl3stub.c)
-  set(OPENGL_LIB GLESv2)
-else ()
-  set(OPENGL_LIB GLESv3)
-endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
-
 #添加预编译库
 add_library(cpufeatures-lib STATIC IMPORTED)
 set_target_properties(cpufeatures-lib PROPERTIES IMPORTED_LOCATION
@@ -48,18 +36,22 @@ add_library(ffmpeg-lib SHARED IMPORTED)
 set_target_properties(ffmpeg-lib PROPERTIES IMPORTED_LOCATION
                       ${ffmpeg_output_shared_lib})
 
-
+#兼容gl版本
+message(FATAL_DEBUG "兼容gl版本 \
+                         (currently using ${ANDROID_PLATFORM_LEVEL}).")
 if (${ANDROID_PLATFORM_LEVEL} LESS 12)
-  message(FATAL_ERROR "OpenGL 2 is not supported before API level 11 \
-                      (currently using ${ANDROID_PLATFORM_LEVEL}).")
+  message(FATAL_ERROR "OpenGL 2 is not supported before API level 11")
   return()
 elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
+  message(FATAL_DEBUG "add_definitions DDYNAMIC_ES3 ")
   add_definitions("-DDYNAMIC_ES3")
   set(GL3STUB_SRC  ${pwd_dir}/gles2/gl3stub.c)
   set(OPENGL_LIB GLESv2)
 else ()
+  message(FATAL_DEBUG "GLESv3")
   set(OPENGL_LIB GLESv3)
 endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
+
 
 #将若干库链接到目标库文件
 set(link_lib

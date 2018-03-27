@@ -10,6 +10,9 @@ elseif(${ANDROID_ABI} STREQUAL "x86")
 elseif(${ANDROID_ABI} STREQUAL "x86_64")
    set(abi_library_name x86_64 CACHE INTERNAL "abi_library_name")
 endif()
+
+SET(CMAKE_BUILE_TYPE DEBUG)
+
 #库输出目录
 set(global_lib_output_dir
     ${CMAKE_SOURCE_DIR}/obj/${abi_library_name}
