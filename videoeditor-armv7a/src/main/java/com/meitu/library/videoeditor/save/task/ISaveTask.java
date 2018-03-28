@@ -3,6 +3,8 @@ package com.meitu.library.videoeditor.save.task;
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
 
+import java.io.IOException;
+
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.MySurface;
 
@@ -12,12 +14,11 @@ import tv.danmaku.ijk.media.player.MySurface;
 
 public abstract class ISaveTask extends Thread {
 
-    public void save() {
-        this.start();
-    }
+
+    public abstract void prepare() throws IOException;
 
     IjkMediaPlayer createSaveModePlayer(boolean hardMux) {
-        IjkMediaPlayer ijkMediaPlayer = new IjkMediaPlayer();
+        IjkMediaPlayer ijkMediaPlayer = new IjkMediaPlayer(true, hardMux);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");

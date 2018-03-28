@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <ijkplayer_internal.h>
 #include <ffmpeg/output/armv7a/include/libavcodec/jni.h>
+#include <ijksdl/gles2/ff_ffmux_hard.h>
 #include "j4a/class/java/util/ArrayList.h"
 #include "j4a/class/android/os/Bundle.h"
 #include "j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.h"
@@ -392,7 +393,8 @@ IjkMediaPlayer_release(JNIEnv *env, jobject thiz) {
 
 
 static void
-IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this, jboolean save_mode,jboolean hard_mux);
+IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this, jboolean save_mode,
+                            jboolean hard_mux);
 
 static void
 IjkMediaPlayer_reset(JNIEnv *env, jobject thiz) {
@@ -1249,6 +1251,17 @@ IjkMediaPlayer_set_save_info(JNIEnv *env, jobject thiz, jboolean mediaCodec, jst
 }
 
 
+static void
+IjkMediaPlayer_setHardMux(JNIEnv *env, jobject thiz, jobject hardMux) {
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: save: null mp",
+                   LABEL_RETURN);
+    ff_ffmux_set_HardMuxJni(env, thiz, hardMux);
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+
+
 /**** MeiTu 视频编辑相关方法 end****/
 
 
@@ -1316,6 +1329,7 @@ static JNINativeMethod g_methods[] = {
         {       "setGLFilter",           "(Z)V",                                                   (void *) IjkMediaPlayer_setGLFilter},
 
 
+        {       "setHardMuxListener",    "(Ljava/lang/Object;)V",                                  (void *) IjkMediaPlayer_setHardMux},
         {       "setSaveInfo",           "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_set_save_info},
 
 
@@ -1352,7 +1366,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     //来设置java虚拟机（反调mediacodec时会用到）,或者使用解码器之前调用
     av_jni_set_java_vm(vm, NULL);
 
-//    gl_jni_init(env,vm);
+
+    //软解硬保时回调使用
+    ff_ffmux_hard_init(vm);
 
 
     return JNI_VERSION_1_4;

@@ -50,9 +50,6 @@ set(source_files
      ${pwd_dir}/ijkplayer.c
 
      ${pwd_dir}/ff_ffeditor.c
-     ${pwd_dir}/ff_ffmux_soft.c
-     ${pwd_dir}/ff_ffmux_hard.c
-     ${pwd_dir}/ff_ffmux.c
      ${pwd_dir}/ff_ffaudio_resample.c
 
      ${pwd_dir}/pipeline/ffpipeline_ffplay.c

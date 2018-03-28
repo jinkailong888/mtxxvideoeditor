@@ -226,7 +226,6 @@ void ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jin
 int ffp_save_l(FFPlayer *ffp);
 
 
-
 /**** MeiTu 视频编辑相关方法 end****/
 
 

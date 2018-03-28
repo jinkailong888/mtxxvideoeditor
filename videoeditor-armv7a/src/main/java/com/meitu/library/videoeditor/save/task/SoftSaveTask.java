@@ -24,23 +24,24 @@ public class SoftSaveTask extends ISaveTask {
 
     public SoftSaveTask(VideoSaveInfo v, SaveFilters s) {
         super();
-        initPlayer();
         this.v = v;
         this.s = s;
     }
 
-    private void initPlayer() {
+    @Override
+    public void prepare() throws IOException {
+        initPlayer();
+
+    }
+
+    private void initPlayer() throws IOException {
         mIjkMediaPlayer = createSaveModePlayer(false);
         mIjkMediaPlayer.setSaveInfo(v.isMediaCodec(), v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         mIjkMediaPlayer.setGLFilter(s.isFilter());
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
-        try {
-            mIjkMediaPlayer.setDataSource(v.getSrcPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mIjkMediaPlayer.setDataSource(v.getSrcPath());
         mIjkMediaPlayer.prepareAsync();
     }
 

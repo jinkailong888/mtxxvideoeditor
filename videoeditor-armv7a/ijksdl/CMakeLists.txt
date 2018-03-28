@@ -77,6 +77,9 @@ set(cmake_cxx_flag_debug
 set(source_files
     ${GL3STUB_SRC}
     ${pwd_dir}/gles2/gl_util.c
+    ${pwd_dir}/gles2/ff_ffmux_soft.c
+    ${pwd_dir}/gles2/ff_ffmux_hard.c
+    ${pwd_dir}/gles2/ff_ffmux.c
     ${pwd_dir}/ijksdl_aout.c
     ${pwd_dir}/ijksdl_audio.c
     ${pwd_dir}/ijksdl_egl.c

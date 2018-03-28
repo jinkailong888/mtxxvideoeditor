@@ -1323,6 +1323,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     public native void setGLFilter(boolean filter);
 
+    public native void setHardMuxListener(Object HardMux);
+
 
     public native void setSaveInfo(boolean mediaCodec, String outputPath,
                             int outputWidth, int outputHeight,

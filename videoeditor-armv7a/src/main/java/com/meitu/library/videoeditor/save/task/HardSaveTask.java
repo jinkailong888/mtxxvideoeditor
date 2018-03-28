@@ -35,23 +35,20 @@ public class HardSaveTask extends ISaveTask {
 
     private static final boolean ignoreAudio = false;
 
-    private void prepare() throws IOException {
+    @Override
+    public void prepare() {
         mExecutors = Executors.newCachedThreadPool();
         mMuxStore = new Mp4MuxStore(mVideoSaveInfo.getVideoSavePath(), mVideoSaveInfo.getRotate());
         mMuxStore.setIgnoreAudio(ignoreAudio);
-        mVideoConverter = new VideoConverter(mVideoSaveInfo, mSaveFilters, mMuxStore,VideoWroteLock);
+        mVideoConverter = new VideoConverter(mVideoSaveInfo, mSaveFilters, mMuxStore, VideoWroteLock);
         if (!ignoreAudio) {
-            mAudioConverter = new AudioConverter(mVideoSaveInfo, mSaveFilters, mMuxStore,VideoWroteLock);
+            mAudioConverter = new AudioConverter(mVideoSaveInfo, mSaveFilters, mMuxStore, VideoWroteLock);
         }
     }
 
     @Override
     public void run() {
-        try {
-            prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        prepare();
         mVideoConverter.run(mExecutors);
         if (!ignoreAudio) {
             mAudioConverter.run(mExecutors);

@@ -80,6 +80,8 @@
 #include "ijkversion.h"
 #include <stdatomic.h>
 #include <ijksdl/android/ijksdl_codec_android_mediadef.h>
+#include <ijksdl/ijksdl_gles2.h>
+#include <ijksdl/gles2/ff_ffmux.h>
 
 #if defined(__ANDROID__)
 
@@ -115,7 +117,6 @@
 // static const AVOption ffp_context_options[] = ...
 #include "ff_ffplay_options.h"
 #include "ff_ffeditor.h"
-#include "ff_ffmux.h"
 
 static AVPacket flush_pkt;
 
@@ -998,6 +999,7 @@ static void video_image_display2(FFPlayer *ffp) {
             ffp->gl_gilter_changed = false;
         }
         vp->bmp->filter = ffp->gl_filter;
+        vp->bmp->pts = vp->pts;
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY,
                                              "vfps[ffplay]");
@@ -3515,7 +3517,8 @@ static int read_thread(void *arg) {
     ffp_notify_msg1(ffp, FFP_MSG_COMPONENT_OPEN);
     //解码器上下文都已经初始化完毕，如果要保存，在此初始化
     if (ffp->save_mode) {
-        ffmux_init(ffp);
+        ffmux_init(ffp->hard_mux);
+        renderer_init(ffp->save_mode);
     }
 
     //设置metadata信息
@@ -4046,9 +4049,7 @@ static int video_refresh_thread(void *arg) {
                     av_log(NULL, AV_LOG_DEBUG, "视频帧队列为空 \n");
                     continue;
                 }
-//                video_display2(ffp);
-                Frame *vp = frame_queue_peek_last(&is->pictq);
-                video_encode(vp->frame);
+                video_display2(ffp);
                 frame_queue_next(&is->pictq);
             } else {
                 video_refresh(ffp, &remaining_time);
