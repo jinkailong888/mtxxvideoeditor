@@ -7,6 +7,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -27,7 +28,7 @@ import java.util.List;
  */
 
 public class VideoPlayActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener,
-        View.OnClickListener {
+        View.OnClickListener, SeekBar.OnSeekBarChangeListener {
 
     private static final String TAG = "VideoPlayActivity";
 
@@ -47,6 +48,9 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     private Switch mMediaCodecSwitch;
     private Switch mFFmpegSwitch;
     private Switch mFFmpegMediaCodecSwitch;
+
+    private SeekBar mVideoSeekBar;
+    private SeekBar mBgMusicSeekBar;
 
     private View mPauseView;
 
@@ -221,6 +225,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mFFmpegMediaCodecSwitch = findViewById(R.id.ffmpegMediaCodec);
         mProgressBar = findViewById(R.id.progressBar);
         mPauseView = findViewById(R.id.pauseIv);
+        mVideoSeekBar = findViewById(R.id.videoVolum);
+        mBgMusicSeekBar = findViewById(R.id.bgMusicVolum);
 
         mVideoPlayerView.setOnClickListener(this);
         mWaterMarkSwitch.setOnCheckedChangeListener(this);
@@ -231,10 +237,38 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mFFmpegMediaCodecSwitch.setOnCheckedChangeListener(this);
         mMediaCodecSwitch.setOnCheckedChangeListener(this);
 
+        mVideoSeekBar.setOnSeekBarChangeListener(this);
+        mBgMusicSeekBar.setOnSeekBarChangeListener(this);
+        mVideoSeekBar.setProgress(50);
+        mBgMusicSeekBar.setProgress(50);
+
         mWaterMarkSwitch.setEnabled(false);
         mTransFilterSwitch.setEnabled(false);
         mFFmpegMediaCodecSwitch.setEnabled(false);
     }
 
 
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        if (seekBar == mVideoSeekBar) {
+            if (mVideoEditor != null) {
+                mVideoEditor.setVolume(progress * 1.0f / 100);
+            }
+        }
+        if (seekBar == mBgMusicSeekBar) {
+            if (mVideoEditor != null) {
+                mVideoEditor.setMusicVolume(progress * 1.0f / 100);
+            }
+        }
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
 }

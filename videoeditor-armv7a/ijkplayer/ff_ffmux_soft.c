@@ -43,7 +43,7 @@ static int ffmux_open_output_file(EditorState *es) {
             return AVERROR_UNKNOWN;
         }
         in_stream = in_fmt_ctx->streams[i];
-        dec_ctx = stream_ctx[i].dec_ctx;
+//        dec_ctx = stream_ctx[i].dec_ctx;
 
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
@@ -155,7 +155,7 @@ static int ffmux_open_output_file(EditorState *es) {
                 enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
             out_stream->time_base = enc_ctx->time_base;
-            stream_ctx[i].enc_ctx = enc_ctx;
+//            stream_ctx[i].enc_ctx = enc_ctx;
         } else if (dec_ctx->codec_type == AVMEDIA_TYPE_UNKNOWN) {
             loge("Elementary stream #%d is of unknown type, cannot proceed\n", i);
             return AVERROR_INVALIDDATA;

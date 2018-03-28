@@ -208,6 +208,11 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     }
 
     @Override
+    public void setVolume(float volume, float volume1) {
+        mIjkMediaPlayer.setVolume(volume, volume);
+    }
+
+    @Override
     public void prepare(boolean autoPlay) {
         Log.d(TAG, "prepare autoPlay = " + autoPlay);
         mPlayerStrategyInfo.setPrepareAutoPlay(autoPlay);

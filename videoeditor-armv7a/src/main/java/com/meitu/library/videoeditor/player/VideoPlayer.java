@@ -76,4 +76,6 @@ public interface VideoPlayer {
 
 
     void setBgMusic(BgMusicInfo bgMusicInfo);
+
+    void setVolume(float volume, float volume1);
 }

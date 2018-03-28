@@ -2149,6 +2149,7 @@ static int configure_audio_filters(FFPlayer *ffp, const char *afilters, int forc
 
 /**
  * 音频解码线程
+ * 解码后放入sampq
  * @param arg
  * @return
  */
@@ -2630,6 +2631,11 @@ static int audio_decode_frame_save_mode(FFPlayer *ffp) {
  * The processed audio frame is decoded, converted if required, and
  * stored in is->audio_buf, with size in bytes given by the return
  * value.
+ *
+ * 这个方法并没有进行解码，原注释不准确
+ * 主要工作是音频播放设备从解码后的音频帧队列中取出来音频帧，重采样，放入audio_buf
+ *
+ *
  */
 static int audio_decode_frame(FFPlayer *ffp) {
 
@@ -2656,6 +2662,7 @@ static int audio_decode_frame(FFPlayer *ffp) {
         !is->viddec.first_frame_decoded &&          /* not hot */
         is->viddec.finished != is->videoq.serial) { /* not finished */
         /* waiting for first video frame */
+        //播放也要先播放一帧视频帧！
         Uint64 now = SDL_GetTickHR();
         if (now < is->viddec.first_frame_decoded_time ||
             now > is->viddec.first_frame_decoded_time + 2000) {
@@ -2695,8 +2702,10 @@ static int audio_decode_frame(FFPlayer *ffp) {
         dec_channel_layout != is->audio_src.channel_layout ||
         af->frame->sample_rate != is->audio_src.freq ||
         (wanted_nb_samples != af->frame->nb_samples && !is->swr_ctx)) {
+        //如果需要重采样音频
         AVDictionary *swr_opts = NULL;
         swr_free(&is->swr_ctx);
+        //创建重采样上下文
         is->swr_ctx = swr_alloc_set_opts(NULL,
                                          is->audio_tgt.channel_layout, is->audio_tgt.fmt,
                                          is->audio_tgt.freq,
@@ -2712,12 +2721,14 @@ static int audio_decode_frame(FFPlayer *ffp) {
                    is->audio_tgt.channels);
             return -1;
         }
+        //应用用户设置的重采样参数
         av_dict_copy(&swr_opts, ffp->swr_opts, 0);
         if (af->frame->channel_layout == AV_CH_LAYOUT_5POINT1_BACK)
             av_opt_set_double(is->swr_ctx, "center_mix_level", ffp->preset_5_1_center_mix_level, 0);
         av_opt_set_dict(is->swr_ctx, &swr_opts);
         av_dict_free(&swr_opts);
 
+        //设置完参数后初始化
         if (swr_init(is->swr_ctx) < 0) {
             av_log(NULL, AV_LOG_ERROR,
                    "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
@@ -2734,7 +2745,9 @@ static int audio_decode_frame(FFPlayer *ffp) {
         is->audio_src.fmt = af->frame->format;
     }
 
+    //如果要重采样
     if (is->swr_ctx) {
+        //通过extended_data字段获取所有通道的音频数据
         const uint8_t **in = (const uint8_t **) af->frame->extended_data;
         uint8_t **out = &is->audio_buf1;
         int out_count = (int) (
@@ -2759,6 +2772,7 @@ static int audio_decode_frame(FFPlayer *ffp) {
 
         if (!is->audio_buf1)
             return AVERROR(ENOMEM);
+        //重采样
         len2 = swr_convert(is->swr_ctx, out, out_count, in, af->frame->nb_samples);
         if (len2 < 0) {
             av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
@@ -2862,6 +2876,8 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len) {
 
     while (len > 0) {
         if (is->audio_buf_index >= is->audio_buf_size) {
+            //audio_decode_frame方法把音频帧数据重采样存储到is->audio_buf
+            //混音和硬件保存时可直接使用is->audio_buf
             audio_size = audio_decode_frame(ffp);
             if (audio_size < 0) {
                 /* if error, just output silence */

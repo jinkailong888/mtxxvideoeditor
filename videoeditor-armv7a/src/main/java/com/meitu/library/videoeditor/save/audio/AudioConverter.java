@@ -32,8 +32,13 @@ public class AudioConverter {
     private final static String ENCODE_MIME = "audio/mp4a-latm";
     private static final int DECODE_TIMEOUT = 1000;
     private static final int ENCODE_TIMEOUT = 1000;
-    private static final int AUDIO_DECODE_MAX_INPUT_SIZE = 1024;
-    private static final int BG_MUSIC_DECODE_MAX_INPUT_SIZE = 1024;
+    private static final int AUDIO_DECODE_MAX_INPUT_SIZE = 1024 * 12;
+    private static final int BG_MUSIC_DECODE_MAX_INPUT_SIZE = 1024 * 12;
+    private static final int COPY_TRACK_READ_SIZE = 1024 * 12;
+    private static final int ENCODE_MAX_INPUT_SIZE = 1024 * 12;
+    private static final int DECODE_SAMPLE_RATE = 44100;
+    private static final int ENCODE_SAMPLE_RATE = 44100;
+    private static final int ENCODE_BIT_RATE = 96000;
     private final Object VideoWroteLock;
     private PcmFormat mAudioPcmFormat;
     private ArrayBlockingQueue<PcmData> mAudioPcmQueue;
@@ -68,7 +73,7 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mDecoder, mExtractor, mTrackIndex,
-                    mAudioPcmQueue, mDecodeDone,"audio");
+                    mAudioPcmQueue, mDecodeDone, "audio");
         }
     };
 
@@ -76,7 +81,7 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mBgMusicDecoder, mBgMusicExtractor, mBgMusicTrackIndex,
-                    mBgMusicPcmQueue, mBgMusicDecodeDone,"bgMusic");
+                    mBgMusicPcmQueue, mBgMusicDecodeDone, "bgMusic");
         }
     };
 
@@ -107,7 +112,7 @@ public class AudioConverter {
 
     private void copyTrack() {
         boolean copyDone = false;
-        ByteBuffer buffer = ByteBuffer.allocate(1024 * 64);
+        ByteBuffer buffer = ByteBuffer.allocate(COPY_TRACK_READ_SIZE);
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         mExtractor.selectTrack(mTrackIndex);
         mMuxTrackIndex = mMuxStore.addTrack(mExtractor.getTrackFormat(mTrackIndex));
@@ -154,7 +159,7 @@ public class AudioConverter {
         MediaFormat format = mBgMusicExtractor.getTrackFormat(mBgMusicTrackIndex);
         String mime = format.getString(MediaFormat.KEY_MIME);
         format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BG_MUSIC_DECODE_MAX_INPUT_SIZE);
-        format.setInteger(MediaFormat.KEY_SAMPLE_RATE, 48000);
+        format.setInteger(MediaFormat.KEY_SAMPLE_RATE, DECODE_SAMPLE_RATE);
         mBgMusicDecoder = MediaCodec.createDecoderByType(mime);
         Log.d(TAG, "initBgMusicDecoder: format:" + format);
         mBgMusicDecoder.configure(format, null, null, 0);
@@ -165,7 +170,7 @@ public class AudioConverter {
         MediaFormat format = mExtractor.getTrackFormat(mTrackIndex);
         String mime = format.getString(MediaFormat.KEY_MIME);
         format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, AUDIO_DECODE_MAX_INPUT_SIZE);
-        format.setInteger(MediaFormat.KEY_SAMPLE_RATE, 48000);
+        format.setInteger(MediaFormat.KEY_SAMPLE_RATE, DECODE_SAMPLE_RATE);
         mDecoder = MediaCodec.createDecoderByType(mime);
         Log.d(TAG, "initDecoder: format:" + format);
         mDecoder.configure(format, null, null, 0);
@@ -174,10 +179,10 @@ public class AudioConverter {
 
     private void initEncoder() throws IOException {
         MediaFormat format = MediaFormat.createAudioFormat(ENCODE_MIME,
-                48000, 2);
-        format.setInteger(MediaFormat.KEY_BIT_RATE, 96000);
+                ENCODE_SAMPLE_RATE, 2);
+        format.setInteger(MediaFormat.KEY_BIT_RATE, ENCODE_BIT_RATE);
         format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
-        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 10 * 1024);//作用于inputBuffer的大小
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, ENCODE_MAX_INPUT_SIZE);//作用于inputBuffer的大小
         mEncoder = MediaCodec.createEncoderByType(ENCODE_MIME);
         mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         mEncoder.start();
@@ -229,12 +234,12 @@ public class AudioConverter {
                         decoder.queueInputBuffer(bufIndex, 0,
                                 sampleSize, extractor.getSampleTime(), 0);
                         extractor.advance();
-                        Log.d(TAG, type+"音频流 queueInputBuffer");
+                        Log.d(TAG, type + "音频流 queueInputBuffer sampleSize=" + sampleSize);
                     } else {
                         decoder.queueInputBuffer(bufIndex, 0, 0, 0L,
                                 MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                         readDone = true;
-                        Log.d(TAG, type+"音频流已读完");
+                        Log.d(TAG, type + "音频流已读完");
                     }
                 }
             }
@@ -244,21 +249,21 @@ public class AudioConverter {
                 decodeOutputBuffer = decoder.getOutputBuffers();
             } else if (bufIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 MediaFormat newFormat = decoder.getOutputFormat();
-                Log.d(TAG, type+"INFO_OUTPUT_FORMAT_CHANGED : " + newFormat);
+                Log.d(TAG, type + "INFO_OUTPUT_FORMAT_CHANGED : " + newFormat);
             } else if (bufIndex < 0) {
-                Log.d(TAG, type+" bufIndex < 0");
+                Log.d(TAG, type + " bufIndex < 0");
             } else {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                    Log.d(TAG, type+" BUFFER_FLAG_END_OF_STREAM");
+                    Log.d(TAG, type + " BUFFER_FLAG_END_OF_STREAM");
                     decodeDone[0] = true;
                     break;
                 }
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    Log.d(TAG, type+" BUFFER_FLAG_CODEC_CONFIG");
+                    Log.d(TAG, type + " BUFFER_FLAG_CODEC_CONFIG");
                     bufferInfo.size = 0;
                 }
                 if (bufferInfo.size != 0) {
-                    Log.d(TAG, type+"音频帧解码完一帧");
+                    Log.d(TAG, type + "音频帧解码完一帧");
                     ByteBuffer byteBuffer = decodeOutputBuffer[bufIndex];
                     byte[] data = new byte[bufferInfo.size];
                     byteBuffer.get(data);
@@ -288,15 +293,12 @@ public class AudioConverter {
                     " bgMusicPcmData length=" + bgMusicPcmData.data.length +
                     " pts=" + bgMusicPcmData.pts
             );
-            byte[][] allAudioBytes = new byte[2][];
-            allAudioBytes[0] = bgMusicPcmData.data;
-            allAudioBytes[1] = audioPcmData.data;
             //todo 采样率、数据量不同 如何混音 ？
-//            byte[] mixVideo = AudioMix.normalizationMix(allAudioBytes);
-//            putPcmData(mMixPcmQueue, new PcmData(mixVideo, audioPcmData.pts));
+            byte[] mixVideo = AudioMix.mixRawAudioBytes(audioPcmData.data, bgMusicPcmData.data);
+            putPcmData(mMixPcmQueue, new PcmData(mixVideo, audioPcmData.pts));
 
             //暂时把背景音乐写进去
-            putPcmData(mMixPcmQueue, new PcmData(bgMusicPcmData.data, bgMusicPcmData.pts));
+//            putPcmData(mMixPcmQueue, new PcmData(bgMusicPcmData.data, bgMusicPcmData.pts));
         }
         mHandleDone[0] = true;
     }
@@ -447,6 +449,7 @@ public class AudioConverter {
         this.VideoWroteLock = videoWroteLock;
         mMixFlag = mSaveFilters.getBgMusicInfo() != null;
         mDecEncFlag = mMixFlag || mVideoSaveInfo.getVideoVolume() != 1;
+        mDecEncFlag = true;
         try {
             prepare();
         } catch (IOException e) {

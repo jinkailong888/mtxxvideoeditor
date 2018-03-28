@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putStringArrayListExtra(FILE_KEY, videoPaths);
                 startActivity(intent);
             } else {
-                Toast.makeText(this, "请添加视频！", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "请添加视频!!!！", Toast.LENGTH_SHORT).show();
             }
         }
 

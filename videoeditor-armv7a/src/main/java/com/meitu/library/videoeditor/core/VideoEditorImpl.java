@@ -111,7 +111,7 @@ public class VideoEditorImpl extends VideoEditor {
         mFilterInfo = filterInfo;
     }
 
-    public void setGLFilter(boolean open){
+    public void setGLFilter(boolean open) {
         mVideoPlayer.setGLFilter(open);
     }
 
@@ -155,10 +155,8 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void setVolume(float volume) {
-//        mVideoPlayer.set(volume, MTMVTimeLine.MTMV_VOLUME_OF_VIDEO_ORIGINAL_SOUND);
+        mVideoPlayer.setVolume(volume, volume);
     }
-
-
 
 
     @Override
@@ -254,7 +252,9 @@ public class VideoEditorImpl extends VideoEditor {
 
     @Override
     public void setMusicVolume(float volume) {
-//        mMTMVTimeLine.setVolume(volume, MTMVTimeLine.MTMV_VOLUME_OF_BACKGROUND_MUSIC);
+        if (mAudioPlayer != null) {
+            mAudioPlayer.setVolume(volume, volume);
+        }
     }
 
 

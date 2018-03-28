@@ -22,6 +22,8 @@ import java.util.Calendar;
 class FileUtil {
 
     private static final String TAG = "FileUtil";
+    private static final String musicFileName = "music2";
+//    private static final String musicFileName = "triton";
 
     private static String dir = Environment.getExternalStorageDirectory().getAbsolutePath() +
             "/VideoEditorDir";
@@ -44,8 +46,8 @@ class FileUtil {
                     file.mkdirs();
                 }
 
-                String assetsMusicPath = "music/triton.mp3";
-                musicPath = dir + "/" + "triton.mp3";
+                String assetsMusicPath = "music/"+musicFileName+".mp3";
+                musicPath = dir + "/" + ""+musicFileName+".mp3";
                 Assets2Sd(context, assetsMusicPath, musicPath);
 
                 String assetsWatermarkPath = "watermark/watermark.png";

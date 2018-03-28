@@ -1,5 +1,9 @@
 package com.meitu.library.videoeditor.save.audio;
 
+import android.util.Log;
+
+import com.meitu.library.videoeditor.util.Tag;
+
 /**
  * Created by wyh3 on 2018/3/26.
  * 混音算法
@@ -7,65 +11,74 @@ package com.meitu.library.videoeditor.save.audio;
 
 public class AudioMix {
 
+    private final static String TAG = Tag.build("AudioMix");
+
     /**
-     * 归一化混音
+     * 线性叠加平均混音
      */
-    public static byte[] normalizationMix(byte[][] allAudioBytes) {
-        if (allAudioBytes == null || allAudioBytes.length == 0)
+    private static byte[] mixRawAudioBytes(byte[][] bMulRoadAudios) {
+        if (bMulRoadAudios == null || bMulRoadAudios.length == 0)
             return null;
-
-        byte[] realMixAudio = allAudioBytes[0];
-
-        //如果只有一个音频的话，就返回这个音频数据
-        if (allAudioBytes.length == 1)
+        byte[] realMixAudio = bMulRoadAudios[0];
+        if (realMixAudio == null) {
+            return null;
+        }
+        final int row = bMulRoadAudios.length;
+        //单路音轨
+        if (bMulRoadAudios.length == 1)
             return realMixAudio;
 
-        //row 有几个音频要混音
-        int row = realMixAudio.length / 2;
-        //
-        short[][] sourecs = new short[allAudioBytes.length][row];
-        for (int r = 0; r < 2; ++r) {
-            for (int c = 0; c < row; ++c) {
-                sourecs[r][c] = (short) ((allAudioBytes[r][c * 2] & 0xff) | (allAudioBytes[r][c * 2 + 1] & 0xff) << 8);
+        //不同轨道长度要一致，不够要补齐
+        for (int rw = 0; rw < bMulRoadAudios.length; ++rw) {
+            if (bMulRoadAudios[rw] == null) {
+                return null;
+            }
+            if (bMulRoadAudios[rw].length > realMixAudio.length) {
+                //不够填充，如果原因原音填充会导致原音不清晰
+//                byte[] bytes = new byte[bMulRoadAudios[rw].length];
+//                System.arraycopy(realMixAudio, 0, bytes, 0, realMixAudio.length);
+//                realMixAudio = bytes;
+//                bMulRoadAudios[0] = bytes;
+
+                //丢弃背景音乐多余字节
+                byte[] bytes = new byte[realMixAudio.length];
+                System.arraycopy(bMulRoadAudios[rw], 0, bytes, 0, realMixAudio.length);
+                bMulRoadAudios[rw] = bytes;
+
+            }
+            if (bMulRoadAudios[rw].length < realMixAudio.length) {
+                byte[] bytes = new byte[realMixAudio.length];
+                System.arraycopy(bMulRoadAudios[rw], 0, bytes, 0, bMulRoadAudios[rw].length);
+                bMulRoadAudios[rw] = bytes;
             }
         }
 
-        //coloum第一个音频长度 / 2
-        short[] result = new short[row];
-        //转成short再计算的原因是，提供精确度，高端的混音软件据说都是这样做的，可以测试一下不转short直接计算的混音结果
-        for (int i = 0; i < row; i++) {
-            int a = sourecs[0][i];
-            int b = sourecs[1][i];
-            if (a < 0 && b < 0) {
-                int i1 = a + b - a * b / (-32768);
-                if (i1 > 32767) {
-                    result[i] = 32767;
-                } else if (i1 < -32768) {
-                    result[i] = -32768;
-                } else {
-                    result[i] = (short) i1;
-                }
-            } else if (a > 0 && b > 0) {
-                int i1 = a + b - a * b / 32767;
-                if (i1 > 32767) {
-                    result[i] = 32767;
-                } else if (i1 < -32768) {
-                    result[i] = -32768;
-                } else {
-                    result[i] = (short) i1;
-                }
-            } else {
-                int i1 = a + b;
-                if (i1 > 32767) {
-                    result[i] = 32767;
-                } else if (i1 < -32768) {
-                    result[i] = -32768;
-                } else {
-                    result[i] = (short) i1;
-                }
+        /**
+         * 精度为 16位
+         */
+        int col = realMixAudio.length / 2;
+        short[][] sMulRoadAudios = new short[row][col];
+        for (int r = 0; r < row; ++r) {
+            for (int c = 0; c < col; ++c) {
+                sMulRoadAudios[r][c] = (short) ((bMulRoadAudios[r][c * 2] & 0xff) | (bMulRoadAudios[r][c * 2 + 1] & 0xff) << 8);
             }
         }
-        return toByteArray(result);
+        short[] sMixAudio = new short[col];
+        int mixVal;
+        int sr = 0;
+        for (int sc = 0; sc < col; ++sc) {
+            mixVal = 0;
+            sr = 0;
+            for (; sr < row; ++sr) {
+                mixVal += sMulRoadAudios[sr][sc];
+            }
+            sMixAudio[sc] = (short) (mixVal / row);
+        }
+        for (sr = 0; sr < col; ++sr) {
+            realMixAudio[sr * 2] = (byte) (sMixAudio[sr] & 0x00FF);
+            realMixAudio[sr * 2 + 1] = (byte) ((sMixAudio[sr] & 0xFF00) >> 8);
+        }
+        return realMixAudio;
     }
 
     public static byte[] toByteArray(short[] src) {
@@ -76,5 +89,12 @@ public class AudioMix {
             dest[i * 2] = (byte) ((src[i] & 0x00FF));
         }
         return dest;
+    }
+
+    public static byte[] mixRawAudioBytes(byte[] audio, byte[] bgMusic) {
+        byte[][] bytes = new byte[2][];
+        bytes[0] = audio;
+        bytes[1] = bgMusic;
+        return mixRawAudioBytes(bytes);
     }
 }
