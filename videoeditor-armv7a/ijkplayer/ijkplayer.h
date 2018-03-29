@@ -273,8 +273,8 @@ void ijkmp_clearBgMusic(IjkMediaPlayer *mp);
 
 void ijkmp_setGLFilter(IjkMediaPlayer *mp, jboolean filter);
 
-int ijkmp_set_save_info(IjkMediaPlayer *mp, jboolean mediaCodec, const char *path, jint width, jint height,
-               jint bitrate, jint fps);
+int ijkmp_set_save_info(IjkMediaPlayer *mp, const char *mediaCodec, jint path, jint width, jint height,
+                        jint bitrate);
 
 
 

@@ -29,14 +29,14 @@
         android:orientation="vertical"
         >
 
-        <Switch
-            android:id="@+id/switchWaterMark"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:text="水印"
-            android:textColor="#fff"
-            />
+        <!--<Switch-->
+            <!--android:id="@+id/switchWaterMark"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_margin="10dp"-->
+            <!--android:text="水印"-->
+            <!--android:textColor="#fff"-->
+            <!--/>-->
 
         <Switch
             android:id="@+id/switchMusic"
@@ -47,14 +47,14 @@
             android:textColor="#fff"
             />
 
-        <Switch
-            android:id="@+id/transFilter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:text="转场"
-            android:textColor="#fff"
-            />
+        <!--<Switch-->
+            <!--android:id="@+id/transFilter"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_margin="10dp"-->
+            <!--android:text="转场"-->
+            <!--android:textColor="#fff"-->
+            <!--/>-->
 
         <Switch
             android:id="@+id/switchFilter"

@@ -453,8 +453,8 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     IJK_GLES2_checkError_TRACE("glDrawArrays");
 
-    if (overlay && renderer_save_mode) {
-        logd("readDataFromGPU ffmux_video_encode");
+    if (overlay && overlay->save_mode) {
+        logd("readDataFromGPU");
         uint8_t *data = readDataFromGPU(overlay->w, overlay->h);
         ffmux_video_encode(data, overlay->pts);
     }
@@ -463,8 +463,4 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
 }
 
 
-void renderer_init(bool save_mode) {
-    logd("renderer_init save_mode %d", save_mode);
-    renderer_save_mode = save_mode;
-}
 

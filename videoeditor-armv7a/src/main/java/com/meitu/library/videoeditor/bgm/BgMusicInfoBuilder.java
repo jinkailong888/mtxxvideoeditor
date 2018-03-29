@@ -42,8 +42,8 @@ public class BgMusicInfoBuilder {
         return this;
     }
 
-    public BgMusicInfoBuilder setRepeat(boolean repeat) {
-        mBgMusicInfo.setRepeat(repeat);
+    public BgMusicInfoBuilder setLoop(boolean loop) {
+        mBgMusicInfo.setLoop(loop);
         return this;
     }
 

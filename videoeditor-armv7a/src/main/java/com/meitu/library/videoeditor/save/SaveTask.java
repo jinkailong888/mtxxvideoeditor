@@ -7,6 +7,7 @@ import com.meitu.library.videoeditor.save.task.HardMuxTask;
 import com.meitu.library.videoeditor.save.task.HardSaveTask;
 import com.meitu.library.videoeditor.save.task.ISaveTask;
 import com.meitu.library.videoeditor.save.task.SoftSaveTask;
+import com.meitu.library.videoeditor.save.util.SaveMode;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
 /**
@@ -15,28 +16,23 @@ import com.meitu.library.videoeditor.video.VideoSaveInfo;
  */
 
 public class SaveTask {
-    private static final int SAVE_MODE_SOFT = 1;
-    private static final int SAVE_MODE_HARD_MUX = 2;
-    private static final int SAVE_MODE_HARD_SAVE = 3;
     private static int SAVE_MODE;
 
     public static void save(VideoSaveInfo v, SaveFilters s) {
-        SAVE_MODE = getSaveMode();
 
-        //测试
-        SAVE_MODE = SAVE_MODE_HARD_SAVE;
+        SAVE_MODE = v.getSaveMode();
 
         ISaveTask saveTask = null;
         switch (SAVE_MODE) {
-            case SAVE_MODE_SOFT:
+            case SaveMode.SOFT_SAVE_MODE:
                 saveTask = new SoftSaveTask(v, s);
                 break;
-            case SAVE_MODE_HARD_MUX:
+            case SaveMode.HARD_ENCODE_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     saveTask = new HardMuxTask(v, s);
                 }
                 break;
-            case SAVE_MODE_HARD_SAVE:
+            case SaveMode.HARD_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     saveTask = new HardSaveTask(v, s);
                 }
@@ -54,15 +50,15 @@ public class SaveTask {
      *
      * @return 保存模式
      */
-    private static int getSaveMode() {
-        int mode;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            mode = SAVE_MODE_SOFT;
-        } else {
-            //todo 如果视频格式可硬解
-            boolean canDecode = true;
-            mode = canDecode ? SAVE_MODE_HARD_SAVE : SAVE_MODE_HARD_MUX;
-        }
-        return mode;
-    }
+//    private static int getSaveMode() {
+//        int mode;
+//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
+//            mode = SAVE_MODE_SOFT;
+//        } else {
+//            //todo 如果视频格式可硬解
+//            boolean canDecode = true;
+//            mode = canDecode ? SAVE_MODE_HARD_SAVE : SAVE_MODE_HARD_MUX;
+//        }
+//        return mode;
+//    }
 }

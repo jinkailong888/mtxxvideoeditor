@@ -33,7 +33,7 @@ public interface VideoPlayer {
 
     void setLooping(boolean looping);
 
-    void save(VideoSaveInfo videoSaveInfo);
+    void save(VideoSaveInfo videoSaveInfo, float bgMusicVolume);
 
     void release();
 

@@ -1236,7 +1236,7 @@ IjkMediaPlayer_setGLFilter(JNIEnv *env, jobject thiz, jboolean filter) {
 
 
 static void
-IjkMediaPlayer_set_save_info(JNIEnv *env, jobject thiz, jboolean mediaCodec, jstring outputPath,
+IjkMediaPlayer_set_save_info(JNIEnv *env, jobject thiz,  jstring outputPath,
                              jint outputWidth, jint outputHeight, jint outputBitrate,
                              jint outputFps) {
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
@@ -1245,7 +1245,7 @@ IjkMediaPlayer_set_save_info(JNIEnv *env, jobject thiz, jboolean mediaCodec, jst
     JNI_CHECK_GOTO(outputPath, env, "java/lang/IllegalArgumentException",
                    "mpjni: save: null outputPath", LABEL_RETURN);
     const char *path = (*env)->GetStringUTFChars(env, outputPath, NULL);
-    ijkmp_set_save_info(mp, mediaCodec, path, outputWidth, outputHeight, outputBitrate, outputFps);
+    ijkmp_set_save_info(mp, path, outputWidth, outputHeight, outputBitrate, outputFps);
     LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
 }
@@ -1330,7 +1330,7 @@ static JNINativeMethod g_methods[] = {
 
 
         {       "setHardMuxListener",    "(Ljava/lang/Object;)V",                                  (void *) IjkMediaPlayer_setHardMux},
-        {       "setSaveInfo",           "(ZLjava/lang/String;IIII)V",                             (void *) IjkMediaPlayer_set_save_info},
+        {       "setSaveInfo",           "(Ljava/lang/String;IIII)V",                              (void *) IjkMediaPlayer_set_save_info},
 
 
 
@@ -1368,7 +1368,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 
     //软解硬保时回调使用
-    ff_ffmux_hard_init(vm);
+    ff_ffmux_hard_init(vm,env);
 
 
     return JNI_VERSION_1_4;

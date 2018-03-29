@@ -822,17 +822,16 @@ void ijkmp_clearBgMusic(IjkMediaPlayer *mp) {
 void ijkmp_setGLFilter(IjkMediaPlayer *mp, jboolean filter) {
     assert(mp);
             MPTRACE("ijkmp_clearBgMusic()\n");
-    ffp_setGLFilter(mp->ffplayer,filter);
+    ffp_setGLFilter(mp->ffplayer, filter);
 }
 
 
-int ijkmp_set_save_info(IjkMediaPlayer *mp, jboolean mediaCodec,
-               const char *path,
-               jint width, jint height,
-               jint bitrate, jint fps) {
+int
+ijkmp_set_save_info(IjkMediaPlayer *mp, const char *path, jint width, jint height, jint bitrate,
+                    jint fps) {
     assert(mp);
             MPTRACE("ijkmp_save()\n");
-    ffp_set_save_info(mp->ffplayer, mediaCodec, path, width, height, bitrate, fps);
+    ffp_set_save_info(mp->ffplayer, path, width, height, bitrate, fps);
     return 0;
 }
 

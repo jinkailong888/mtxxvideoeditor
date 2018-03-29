@@ -65,6 +65,7 @@ struct SDL_VoutOverlay {
     bool changed;//是否切换了滤镜
 
     double pts;//方便gl渲染过的视频帧直接使用pts
+    bool save_mode;//是否为保存模式
 };
 
 typedef struct SDL_Vout_Opaque SDL_Vout_Opaque;

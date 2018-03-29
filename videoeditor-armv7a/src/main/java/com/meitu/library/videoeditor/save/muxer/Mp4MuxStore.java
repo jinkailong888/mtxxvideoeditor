@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class Mp4MuxStore implements MuxStore {
 
-    private final String TAG = Tag.build("Mp4MuxStore");
+    private static final String TAG = Tag.build("Mp4MuxStore");
     private MediaMuxer mMuxer;
     private String outputPath;
     private int rotate;
@@ -62,6 +62,7 @@ public class Mp4MuxStore implements MuxStore {
         }
     }
 
+
     private void muxRun() {
         Log.d(TAG, "muxRun");
         while (muxStarted) {
@@ -70,7 +71,9 @@ public class Mp4MuxStore implements MuxStore {
                 synchronized (Lock) {
                     Log.d(TAG, "data is null?" + (data == null));
                     if (data == null) {
-                        break;
+                        audioTrack = -1;
+                        videoTrack = -1;
+                        muxStarted = false;
                     }
                     if (muxStarted) {
                         Log.d(TAG, "muxRun: writeSampleData  data.index = " + data.index);
@@ -87,8 +90,6 @@ public class Mp4MuxStore implements MuxStore {
             Log.d(TAG, "muxer stoped success");
             mMuxer.release();
         } catch (IllegalStateException e) {
-            e.printStackTrace();
-            Log.e(TAG, "stop muxer failed!!!");
             Log.e(TAG, e.toString());
         }
         mMuxer = null;

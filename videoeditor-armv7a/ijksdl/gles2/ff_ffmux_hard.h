@@ -9,7 +9,7 @@
 #include <jni.h>
 #include <android/log.h>
 
-void ff_ffmux_hard_init(JavaVM *vm);
+void ff_ffmux_hard_init(JavaVM *vm,JNIEnv * env);
 
 void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject filter);
 

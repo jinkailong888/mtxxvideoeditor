@@ -1,6 +1,7 @@
 package com.meitu.library.videoeditor.video;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
+import com.meitu.library.videoeditor.save.util.SaveMode;
 
 /**
  * Created by wyh3 on 2018/1/25.
@@ -83,8 +84,8 @@ public class VideoSaveInfoBuilder {
         return this;
     }
 
-    public VideoSaveInfoBuilder setMediaCodec(boolean open) {
-        mVideoSaveInfo.setMediaCodec(open);
+    public VideoSaveInfoBuilder setSaveMode(@SaveMode.ISaveMode int saveMode) {
+        mVideoSaveInfo.setSaveMode(saveMode);
         return this;
     }
 

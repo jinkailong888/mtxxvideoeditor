@@ -17,6 +17,7 @@ import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.player.listener.adapter.OnPlayListenerAdapter;
 import com.meitu.library.videoeditor.player.listener.adapter.OnSaveListenerAdapter;
+import com.meitu.library.videoeditor.save.util.SaveMode;
 import com.meitu.library.videoeditor.transition.TransitionEffect;
 
 import java.util.ArrayList;
@@ -32,19 +33,18 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
     private static final String TAG = "VideoPlayActivity";
 
-    private static final int SAVE_MODE_FFMPEG = 1;
-    private static final int SAVE_MODE_FFMPEG_MEDIACODEC = 2;
-    private static final int SAVE_MODE_MEDIACODEC = 3; //默认
-    private int SAVE_MODE = SAVE_MODE_MEDIACODEC;
+
+    @SaveMode.ISaveMode
+    private int SAVE_MODE = SaveMode.HARD_SAVE_MODE;
 
     private VideoEditor mVideoEditor;
 
     private View mVideoPlayerView;
 
-    private Switch mWaterMarkSwitch;
+//    private Switch mWaterMarkSwitch;
     private Switch mMusicSwitch;
     private Switch mFilterSwitch;
-    private Switch mTransFilterSwitch;
+//    private Switch mTransFilterSwitch;
     private Switch mMediaCodecSwitch;
     private Switch mFFmpegSwitch;
     private Switch mFFmpegMediaCodecSwitch;
@@ -92,33 +92,38 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
 
     public void save(View view) {
-        String outputPath = SAVE_MODE == SAVE_MODE_MEDIACODEC ?
-                FileUtil.getSaveVideoOutputPath("MediaCodecOutput") :
-                FileUtil.getSaveVideoOutputPath("FFmpegOutput");
+        String outputPath = null;
+        switch (SAVE_MODE) {
+            case SaveMode.SOFT_SAVE_MODE:
+                outputPath = "softOutput";
+            case SaveMode.HARD_SAVE_MODE:
+                outputPath = "hardOutput";
+            case SaveMode.HARD_ENCODE_SAVE_MODE:
+                outputPath = "hardEncodeOutput";
+        }
 
         mVideoEditor.getSaveBuilder()
-                .setVideoSavePath(outputPath)
-                .setMediaCodec(SAVE_MODE == SAVE_MODE_MEDIACODEC)
+                .setVideoSavePath( FileUtil.getSaveVideoOutputPath(outputPath))
+                .setSaveMode(SAVE_MODE)
                 .save();
     }
 
 
     @Override
     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-        if (mWaterMarkSwitch == compoundButton) {
-            if (b) {
-                mVideoEditor.showWatermark();
-            } else {
-//                mVideoEditor.clearWaterMark();
-                mVideoEditor.hideWatermark();
-            }
-        }
+//        if (mWaterMarkSwitch == compoundButton) {
+//            if (b) {
+//                mVideoEditor.showWatermark();
+//            } else {
+//               mVideoEditor.clearWaterMark();
+//                mVideoEditor.hideWatermark();
+//            }
+//        }
         if (mMusicSwitch == compoundButton) {
             if (b) {
-                mVideoEditor.getBgMusicBuilder().setMusicPath(FileUtil.getMusicPath()).setRepeat(true).setBgMusic();
+                mVideoEditor.getBgMusicBuilder().setMusicPath(FileUtil.getMusicPath()).setLoop(true).setBgMusic();
                 mVideoEditor.playBgMusic();
             } else {
-
                 mVideoEditor.stopBgMusic();
                 mVideoEditor.clearBgMusic();
             }
@@ -126,47 +131,43 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         if (mFilterSwitch == compoundButton) {
             mVideoEditor.setGLFilter(b);
         }
-        if (mTransFilterSwitch == compoundButton) {
-            if (b) {
-                if (filePaths.size() <= 1) {
-                    Toast.makeText(this, "添加2段及以上视频才能设置转场", Toast.LENGTH_SHORT).show();
-                    mTransFilterSwitch.setChecked(false);
-                    return;
-                }
-                mVideoEditor.setTransitionEffect(TransitionEffect.GaussianBlur);
-            } else {
-                if (filePaths.size() <= 1) {
-                    return;
-                }
-                mVideoEditor.setTransitionEffect(TransitionEffect.None);
-            }
-        }
+//        if (mTransFilterSwitch == compoundButton) {
+//            if (b) {
+//                if (filePaths.size() <= 1) {
+//                    Toast.makeText(this, "添加2段及以上视频才能设置转场", Toast.LENGTH_SHORT).show();
+//                    mTransFilterSwitch.setChecked(false);
+//                    return;
+//                }
+//                mVideoEditor.setTransitionEffect(TransitionEffect.GaussianBlur);
+//            } else {
+//                if (filePaths.size() <= 1) {
+//                    return;
+//                }
+//                mVideoEditor.setTransitionEffect(TransitionEffect.None);
+//            }
+//        }
         if (mMediaCodecSwitch == compoundButton) {
             if (b) {
                 mFFmpegSwitch.setChecked(false);
                 mFFmpegMediaCodecSwitch.setChecked(false);
-                SAVE_MODE = SAVE_MODE_MEDIACODEC;
-            } else {
-                SAVE_MODE = SAVE_MODE_MEDIACODEC;
-            }
-        }
-        if (mFFmpegSwitch == compoundButton) {
-            if (b) {
-                mMediaCodecSwitch.setChecked(false);
-                mFFmpegMediaCodecSwitch.setChecked(false);
-                SAVE_MODE = SAVE_MODE_FFMPEG;
-            } else {
-                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+                SAVE_MODE = SaveMode.HARD_SAVE_MODE;
             }
         }
         if (mFFmpegMediaCodecSwitch == compoundButton) {
             if (b) {
-                mFFmpegMediaCodecSwitch.setChecked(false);
-            } else {
-                SAVE_MODE = SAVE_MODE_MEDIACODEC;
+                mFFmpegSwitch.setChecked(false);
+                mMediaCodecSwitch.setChecked(false);
+                SAVE_MODE = SaveMode.HARD_ENCODE_SAVE_MODE;
             }
         }
 
+        if (mFFmpegSwitch == compoundButton) {
+            if (b) {
+                mFFmpegMediaCodecSwitch.setChecked(false);
+                mMediaCodecSwitch.setChecked(false);
+                SAVE_MODE = SaveMode.SOFT_SAVE_MODE;
+            }
+        }
     }
 
 
@@ -216,8 +217,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
     private void initView() {
         mVideoPlayerView = findViewById(R.id.videoPlayerView);
-        mWaterMarkSwitch = findViewById(R.id.switchWaterMark);
-        mTransFilterSwitch = findViewById(R.id.transFilter);
+//        mWaterMarkSwitch = findViewById(R.id.switchWaterMark);
+//        mTransFilterSwitch = findViewById(R.id.transFilter);
         mMusicSwitch = findViewById(R.id.switchMusic);
         mFilterSwitch = findViewById(R.id.switchFilter);
         mMediaCodecSwitch = findViewById(R.id.mediaCodec);
@@ -229,10 +230,10 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mBgMusicSeekBar = findViewById(R.id.bgMusicVolum);
 
         mVideoPlayerView.setOnClickListener(this);
-        mWaterMarkSwitch.setOnCheckedChangeListener(this);
+//        mWaterMarkSwitch.setOnCheckedChangeListener(this);
         mMusicSwitch.setOnCheckedChangeListener(this);
         mFilterSwitch.setOnCheckedChangeListener(this);
-        mTransFilterSwitch.setOnCheckedChangeListener(this);
+//        mTransFilterSwitch.setOnCheckedChangeListener(this);
         mFFmpegSwitch.setOnCheckedChangeListener(this);
         mFFmpegMediaCodecSwitch.setOnCheckedChangeListener(this);
         mMediaCodecSwitch.setOnCheckedChangeListener(this);
@@ -242,9 +243,12 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mVideoSeekBar.setProgress(50);
         mBgMusicSeekBar.setProgress(50);
 
-        mWaterMarkSwitch.setEnabled(false);
-        mTransFilterSwitch.setEnabled(false);
-        mFFmpegMediaCodecSwitch.setEnabled(false);
+//        mWaterMarkSwitch.setEnabled(false);
+//        mTransFilterSwitch.setEnabled(false);
+//        mFFmpegMediaCodecSwitch.setEnabled(false);
+        mFFmpegSwitch.setEnabled(false);
+
+        mMediaCodecSwitch.setChecked(true);
     }
 
 

@@ -36,7 +36,7 @@ public class SoftSaveTask extends ISaveTask {
 
     private void initPlayer() throws IOException {
         mIjkMediaPlayer = createSaveModePlayer(false);
-        mIjkMediaPlayer.setSaveInfo(v.isMediaCodec(), v.getVideoSavePath(),
+        mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         mIjkMediaPlayer.setGLFilter(s.isFilter());
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);

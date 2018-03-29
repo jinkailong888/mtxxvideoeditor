@@ -48,6 +48,7 @@ public class HardSaveTask extends ISaveTask {
 
     @Override
     public void run() {
+        long t = System.currentTimeMillis();
         prepare();
         mVideoConverter.run(mExecutors);
         if (!ignoreAudio) {
@@ -60,12 +61,14 @@ public class HardSaveTask extends ISaveTask {
                 break;
             }
             try {
-                Thread.sleep(200);
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         mMuxStore.close();
+        long time = System.currentTimeMillis() - t;
+        Log.d(TAG, "save  cost " + time + " ms");
     }
 
     public HardSaveTask(VideoSaveInfo videoSaveInfo, SaveFilters saveFilters) {

@@ -1,8 +1,5 @@
 package com.meitu.library.videoeditor.bgm;
 
-import android.media.MediaCodec;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 
 
@@ -13,11 +10,24 @@ public class BgMusicInfo {
     private String mMusicPath;
     private int mStartTime;
     private long mSourceStartTime;
-    private int mDuration = 30000;  //todo 设置什么值可以全首播？
+    private int mDuration;
     private boolean mLoop = true;
+    private float mBgMusicVolume;
 
+    public boolean isLoop() {
+        return mLoop;
+    }
 
-    public BgMusicInfo() {
+    public void setLoop(boolean loop) {
+        mLoop = loop;
+    }
+
+    public float getBgMusicVolume() {
+        return mBgMusicVolume;
+    }
+
+    public void setBgMusicVolume(float bgMusicVolume) {
+        mBgMusicVolume = bgMusicVolume;
     }
 
     /**
@@ -67,24 +77,6 @@ public class BgMusicInfo {
      */
     public void setSourceStartTime(long startTime) {
         this.mSourceStartTime = startTime;
-    }
-
-    /**
-     * 视频未结束时，是否循环播放背景音乐
-     *
-     * @return true 循环播放; false 不循环播放
-     */
-    public boolean isRepeat() {
-        return mLoop;
-    }
-
-    /**
-     * 视频未结束时，是否循环播放背景音乐
-     *
-     * @param repeat true 循环播放; false 不循环播放
-     */
-    public void setRepeat(boolean repeat) {
-        this.mLoop = repeat;
     }
 
     /**

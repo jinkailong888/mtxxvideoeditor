@@ -3,6 +3,7 @@
 //
 
 
+#include <string.h>
 #include "ff_ffmux_hard.h"
 #include "ff_ffmux.h"
 
@@ -15,20 +16,27 @@ static JavaVM *g_jvm;
 static JNIEnv *mEnv;
 
 
-void ff_ffmux_hard_init(JavaVM *vm) {
+void ff_ffmux_hard_init(JavaVM *vm, JNIEnv *env) {
     g_jvm = vm;
+    mEnv = env;
 }
 
-void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject filter) {
+void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject hardMuxJni) {
 
     logd("ff_ffmux_set_HardMuxJni");
 
     if (mHardMuxJni) {
         (*env)->DeleteGlobalRef(env, mHardMuxJni);
     }
-    if (filter != NULL) {
-        mHardMuxJni = (*env)->NewGlobalRef(env, filter);
+    if (hardMuxJni != NULL) {
+        mHardMuxJni = (*env)->NewGlobalRef(env, hardMuxJni);
+        logd("ff_ffmux_set_HardMuxJni NewGlobalRef hardMuxJni");
     }
+
+    jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
+    jmethodID m = (*env)->GetMethodID(env, hardMuxJniClass, "onVideoFrame", "([BD)V");
+    onVideoEncodeMethod =(*env)->NewGlobalRef(env, m);
+
 }
 
 
@@ -42,19 +50,17 @@ void release_hard() {
 
 
 void onVideoEncode(uint8_t *data, double pts) {
-
-    int status = (*g_jvm)->AttachCurrentThread(g_jvm, &mEnv, NULL);
+    JNIEnv *env;
     logd("onVideoEncode");
-    if (status == JNI_OK) {
-        logd("onVideoEncode JNI_OK");
-        if (onVideoEncodeMethod) {
-            (*mEnv)->CallVoidMethod(mEnv, mHardMuxJni, onVideoEncodeMethod, data, pts);
-        } else {
-            jclass filterClass = (*mEnv)->GetObjectClass(mEnv, mHardMuxJni);
-            onVideoEncodeMethod = (*mEnv)->GetMethodID(mEnv, filterClass, "onVideoFrame", "([BD)V");
-            (*mEnv)->CallVoidMethod(mEnv, mHardMuxJni, onVideoEncodeMethod, data, pts);
+    if (onVideoEncodeMethod) {
+        logd("onVideoEncodeMethod");
+        //获得当前线程可以使用的 JNIEnv *指针
+        int status= (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+        if (status == JNI_OK) {
+            logd("JNI_OK");
+            (*env)->CallVoidMethod(env, mHardMuxJni, onVideoEncodeMethod, data, pts);
+            (*g_jvm)->DetachCurrentThread(g_jvm);
         }
-        (*g_jvm)->DetachCurrentThread(g_jvm);
     }
 }
 

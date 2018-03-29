@@ -10,7 +10,6 @@ import android.widget.FrameLayout;
 
 import com.meitu.library.videoeditor.bgm.BgMusicInfo;
 import com.meitu.library.videoeditor.core.VideoEditor;
-import com.meitu.library.videoeditor.media.MediaEditor;
 import com.meitu.library.videoeditor.player.listener.OnPlayListener;
 import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.SaveTask;
@@ -66,6 +65,8 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     private boolean filter;
     // 背景音乐
     private BgMusicInfo mBgMusicInfo;
+    //音乐音量
+    private float mAudioVolume = 0.5f;
 
 
     public VideoPlayerView(@NonNull Context context) {
@@ -210,6 +211,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     @Override
     public void setVolume(float volume, float volume1) {
         mIjkMediaPlayer.setVolume(volume, volume);
+        mAudioVolume = volume;
     }
 
     @Override
@@ -251,7 +253,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     }
 
     @Override
-    public void save(final VideoSaveInfo v) {
+    public void save(final VideoSaveInfo v, float bgMusicVolume) {
         v.setSrcPath(mIjkMediaPlayer.getDataSource());
         Log.d(TAG, "save VideoSaveInfo:" + v.toString());
 //        if (isSaving()) {
@@ -261,10 +263,12 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
 
         SaveFilters saveFilters = new SaveFilters();
         saveFilters.setFilter(filter);
+        if (mBgMusicInfo != null) {
+            mBgMusicInfo.setBgMusicVolume(bgMusicVolume);
+        }
+        v.setVideoVolume(mAudioVolume);
         saveFilters.setBgMusicInfo(mBgMusicInfo);
         SaveTask.save(v, saveFilters);
-
-
 
 
     }

@@ -8,6 +8,7 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import com.meitu.asm.Cost;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.muxer.MuxStore;
 import com.meitu.library.videoeditor.save.util.VELog;
@@ -32,6 +33,8 @@ public class AudioConverter {
     private final static String ENCODE_MIME = "audio/mp4a-latm";
     private static final int DECODE_TIMEOUT = 1000;
     private static final int ENCODE_TIMEOUT = 1000;
+    private static final int AUDIO_ENCODE_TYPE = 1;
+    private static final int BGMUSIC_ENCODE_TYPE = 2;
     private static final int AUDIO_DECODE_MAX_INPUT_SIZE = 1024 * 12;
     private static final int BG_MUSIC_DECODE_MAX_INPUT_SIZE = 1024 * 12;
     private static final int COPY_TRACK_READ_SIZE = 1024 * 12;
@@ -41,6 +44,7 @@ public class AudioConverter {
     private static final int ENCODE_BIT_RATE = 96000;
     private final Object VideoWroteLock;
     private PcmFormat mAudioPcmFormat;
+    private PcmDataAlign mPcmDataAlign;
     private ArrayBlockingQueue<PcmData> mAudioPcmQueue;
     private ArrayBlockingQueue<PcmData> mBgMusicPcmQueue;
     private ArrayBlockingQueue<PcmData> mMixPcmQueue;
@@ -60,6 +64,7 @@ public class AudioConverter {
     private SaveFilters mSaveFilters;
     private boolean mMixFlag;
     private boolean mDecEncFlag;
+    private volatile boolean mEncodeDone;
 
     private Runnable mCopyTrackRunnable = new Runnable() {
         @Override
@@ -73,7 +78,9 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mDecoder, mExtractor, mTrackIndex,
-                    mAudioPcmQueue, mDecodeDone, "audio");
+                    mAudioPcmQueue, mDecodeDone, AUDIO_ENCODE_TYPE);
+            Log.d(TAG, "mDecodeRunnable: done");
+
         }
     };
 
@@ -81,7 +88,9 @@ public class AudioConverter {
         @Override
         public void run() {
             decode(mBgMusicDecoder, mBgMusicExtractor, mBgMusicTrackIndex,
-                    mBgMusicPcmQueue, mBgMusicDecodeDone, "bgMusic");
+                    mBgMusicPcmQueue, mBgMusicDecodeDone, BGMUSIC_ENCODE_TYPE);
+            Log.d(TAG, "mBgMusicDecodeRunnable: done");
+            releaseMix();
         }
     };
 
@@ -90,6 +99,7 @@ public class AudioConverter {
         @Override
         public void run() {
             mix();
+            Log.d(TAG, "mMixRunnable: done");
         }
     };
 
@@ -216,7 +226,7 @@ public class AudioConverter {
 
     private void decode(MediaCodec decoder, MediaExtractor extractor,
                         int trackIndex, ArrayBlockingQueue<PcmData> queue,
-                        boolean[] decodeDone, String type) {
+                        boolean[] decodeDone, int type) {
         int bufIndex;
         boolean readDone = false;
         ByteBuffer[] decodeInputBuffer = decoder.getInputBuffers();
@@ -234,12 +244,15 @@ public class AudioConverter {
                         decoder.queueInputBuffer(bufIndex, 0,
                                 sampleSize, extractor.getSampleTime(), 0);
                         extractor.advance();
-                        Log.d(TAG, type + "音频流 queueInputBuffer sampleSize=" + sampleSize);
                     } else {
-                        decoder.queueInputBuffer(bufIndex, 0, 0, 0L,
-                                MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                        readDone = true;
-                        Log.d(TAG, type + "音频流已读完");
+                        if ((type == BGMUSIC_ENCODE_TYPE) && mSaveFilters.getBgMusicInfo().isLoop()) {
+                            extractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+                        } else {
+                            decoder.queueInputBuffer(bufIndex, 0, 0, 0L,
+                                    MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                            readDone = true;
+                            Log.d(TAG, type + "音频流已读完");
+                        }
                     }
                 }
             }
@@ -263,44 +276,49 @@ public class AudioConverter {
                     bufferInfo.size = 0;
                 }
                 if (bufferInfo.size != 0) {
-                    Log.d(TAG, type + "音频帧解码完一帧");
                     ByteBuffer byteBuffer = decodeOutputBuffer[bufIndex];
                     byte[] data = new byte[bufferInfo.size];
                     byteBuffer.get(data);
                     byteBuffer.clear();
-                    putPcmData(queue, new PcmData(data, bufferInfo.presentationTimeUs));
+                    PcmUtil.putPcmData(queue, new PcmData(data, bufferInfo.presentationTimeUs));
                 }
                 decoder.releaseOutputBuffer(bufIndex, false);
+            }
+            if (mEncodeDone) {
+                mEncodeDone = false;
+                break;
             }
         }
     }
 
-
     private void mix() {
         while (true) {
-            PcmData audioPcmData = pollPcmData(mAudioPcmQueue);
-            PcmData bgMusicPcmData = pollPcmData(mBgMusicPcmQueue);
-            if (audioPcmData == null && mDecodeDone[0]) {
-                Log.d(TAG, "mix: 原音读取完毕");
-                break;
+            long[] pts = new long[1];
+            byte[][] alignData = new byte[2][];
+            int result = mPcmDataAlign.getAlignPcmData(
+                    mAudioPcmQueue,
+                    mBgMusicPcmQueue,
+                    alignData,
+                    pts,
+                    mDecodeDone,
+                    mBgMusicDecodeDone);
+            switch (result) {
+                case PcmDataAlign.FLAG_AUDIO_POLL_DONE:
+                    mHandleDone[0] = true;
+                    return;
+                case PcmDataAlign.FLAG_BGMUSIC_POLL_DONE:
+                    PcmUtil.putPcmData(mMixPcmQueue, new PcmData(alignData[0], pts[0]));
+                    break;
+                case PcmDataAlign.FLAG_ALIGN_DATA:
+                    byte[] mixVideo = AudioMix.mixRawAudioBytes(alignData,
+                            mVideoSaveInfo.getVideoVolume(),
+                            mSaveFilters.getBgMusicInfo().getBgMusicVolume());
+                    PcmUtil.putPcmData(mMixPcmQueue, new PcmData(mixVideo, pts[0]));
+                    break;
+                case PcmDataAlign.FLAG_AUDIO_POLL_NULL:
+                    break;
             }
-            if (bgMusicPcmData == null && mBgMusicDecodeDone[0]) {
-                Log.d(TAG, "mix: 背景音乐读取完毕");
-                break;
-            }
-            Log.d(TAG, "mix: audioPcmData length=" + audioPcmData.data.length +
-                    " pts=" + audioPcmData.pts +
-                    " bgMusicPcmData length=" + bgMusicPcmData.data.length +
-                    " pts=" + bgMusicPcmData.pts
-            );
-            //todo 采样率、数据量不同 如何混音 ？
-            byte[] mixVideo = AudioMix.mixRawAudioBytes(audioPcmData.data, bgMusicPcmData.data);
-            putPcmData(mMixPcmQueue, new PcmData(mixVideo, audioPcmData.pts));
-
-            //暂时把背景音乐写进去
-//            putPcmData(mMixPcmQueue, new PcmData(bgMusicPcmData.data, bgMusicPcmData.pts));
         }
-        mHandleDone[0] = true;
     }
 
 
@@ -312,7 +330,7 @@ public class AudioConverter {
             if (!readPcmDone) {
                 int bufIndex = mEncoder.dequeueInputBuffer(ENCODE_TIMEOUT);
                 if (bufIndex > 0) {
-                    PcmData pcmData = pollPcmData(queue);
+                    PcmData pcmData = PcmUtil.pollPcmData(queue);
                     ByteBuffer inputBuffer = encodeInputBuffers[bufIndex];
                     inputBuffer.clear();
                     if (pcmData == null) {
@@ -327,7 +345,7 @@ public class AudioConverter {
                     } else {
                         inputBuffer.limit(pcmData.data.length);
                         inputBuffer.put(pcmData.data);
-                        Log.d(TAG, "encode 把pcm数据加入编码队列");
+//                        Log.d(TAG, "encode 把pcm数据加入编码队列");
                         mEncoder.queueInputBuffer(bufIndex, 0, pcmData.data.length,
                                 pcmData.pts, 0);
                     }
@@ -348,6 +366,7 @@ public class AudioConverter {
                 ByteBuffer byteBuffer = encodeOutputBuffers[encodeStatus];
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     Log.d(TAG, "encode 写完音频数据");
+                    mEncodeDone = true;
                     break;
                 }
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
@@ -366,22 +385,17 @@ public class AudioConverter {
     }
 
 
-    private void putPcmData(ArrayBlockingQueue<PcmData> queue, PcmData pcmData) {
-        try {
-            queue.put(pcmData);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    private void releaseMix() {
+        if (mMixFlag) {
+            mBgMusicDecoder.stop();
+            mBgMusicDecoder.release();
+            mBgMusicDecoder = null;
+            mBgMusicExtractor.release();
+            mBgMusicExtractor = null;
+            mPcmDataAlign = null;
+            mBgMusicPcmQueue.clear();
+            mMixPcmQueue.clear();
         }
-    }
-
-    private PcmData pollPcmData(ArrayBlockingQueue<PcmData> queue) {
-        PcmData data = null;
-        try {
-            data = queue.poll(100, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return data;
     }
 
 
@@ -397,19 +411,22 @@ public class AudioConverter {
             mEncoder.stop();
             mEncoder.release();
             mEncoder = null;
+
+            mAudioPcmQueue.clear();
         }
 
         if (mMixFlag) {
-            mBgMusicDecoder.stop();
-            mBgMusicDecoder.release();
-            mBgMusicDecoder = null;
-            mBgMusicExtractor.release();
-            mBgMusicExtractor = null;
+            mBgMusicPcmQueue.clear();
         }
 
+        long time = System.currentTimeMillis() - t;
+        Log.d(TAG, "save audio cost " + time + " ms");
     }
 
+    long t;
+
     public void run(ExecutorService executors) {
+        t = System.currentTimeMillis();
         if (mDecEncFlag) {
             Log.d(TAG, "run: DecEnc");
             executors.execute(mDecodeRunnable);
@@ -425,7 +442,6 @@ public class AudioConverter {
         }
     }
 
-
     private void prepare() throws IOException {
         initExtractor();
         if (mDecEncFlag) {
@@ -435,6 +451,7 @@ public class AudioConverter {
             if (mMixFlag) {
                 mBgMusicPcmQueue = new ArrayBlockingQueue<>(10);
                 mMixPcmQueue = new ArrayBlockingQueue<>(10);
+                mPcmDataAlign = new PcmDataAlign();
                 initBgMusicExtractor();
                 initBgMusicDecoder();
             }

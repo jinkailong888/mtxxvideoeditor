@@ -219,7 +219,7 @@ void ffp_clearBgMusic(FFPlayer *ffp);
 
 void ffp_setGLFilter(FFPlayer *ffp,jboolean filter);
 
-void ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jint width,
+void ffp_set_save_info(FFPlayer *ffp,  const char *path, jint width,
                        jint height,
                        jint bitrate, jint fps);
 

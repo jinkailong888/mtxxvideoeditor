@@ -63,8 +63,8 @@ import tv.danmaku.ijk.media.player.pragma.DebugLog;
 
 /**
  * @author bbcallen
- *         <p>
- *         Java wrapper of ffplay.
+ * <p>
+ * Java wrapper of ffplay.
  */
 public final class IjkMediaPlayer extends AbstractMediaPlayer {
     private final static String TAG = IjkMediaPlayer.class.getName();
@@ -217,11 +217,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      * </p>
      */
     public IjkMediaPlayer() {
-        this(sLocalLibLoader,false,false);
+        this(sLocalLibLoader, false, false);
     }
 
-    public IjkMediaPlayer(boolean saveMode,boolean hardMux) {
-        this(sLocalLibLoader,saveMode,hardMux);
+    public IjkMediaPlayer(boolean saveMode, boolean hardMux) {
+        this(sLocalLibLoader, saveMode, hardMux);
     }
 
     /**
@@ -229,8 +229,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      *
      * @param libLoader custom library loader, can be null.
      */
-    public IjkMediaPlayer(IjkLibLoader libLoader,boolean saveMode,boolean hardMux) {
-        initPlayer(libLoader,saveMode,hardMux);
+    public IjkMediaPlayer(IjkLibLoader libLoader, boolean saveMode, boolean hardMux) {
+        initPlayer(libLoader, saveMode, hardMux);
     }
 
     private void initPlayer(IjkLibLoader libLoader, boolean saveMode, boolean hardMux) {
@@ -250,7 +250,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
          * Native setup requires a weak reference to our object. It's easier to
          * create it here than in C++.
          */
-        native_setup(new WeakReference<IjkMediaPlayer>(this),saveMode,hardMux);
+        native_setup(new WeakReference<IjkMediaPlayer>(this), saveMode, hardMux);
     }
 
     private native void _setFrameAtTime(String imgCachePath, long startTime, long endTime, int num, int imgDefinition)
@@ -1326,9 +1326,9 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native void setHardMuxListener(Object HardMux);
 
 
-    public native void setSaveInfo(boolean mediaCodec, String outputPath,
-                            int outputWidth, int outputHeight,
-                            int outputBitrate, int outputFps) throws IllegalStateException;
+    public native void setSaveInfo(String outputPath,
+                                   int outputWidth, int outputHeight,
+                                   int outputBitrate, int outputFps) throws IllegalStateException;
 
 
 

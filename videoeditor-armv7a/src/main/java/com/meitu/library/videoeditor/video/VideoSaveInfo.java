@@ -22,8 +22,8 @@ public class VideoSaveInfo {
     private int mRotate;
     // 视频保存地址
     private String mVideoSavePath;
-    //是否硬解
-    private boolean mMediaCodec;
+    //保存模式
+    private int mSaveMode;
     //原音音量
     private float mVideoVolume = 1f;
 
@@ -38,7 +38,7 @@ public class VideoSaveInfo {
                 ", mIFrameInterval=" + mIFrameInterval +
                 ", mRotate=" + mRotate +
                 ", mVideoSavePath='" + mVideoSavePath + '\'' +
-                ", mMediaCodec=" + mMediaCodec +
+                ", mSaveMode=" + mSaveMode +
                 ", mVideoVolume=" + mVideoVolume +
                 '}';
     }
@@ -75,13 +75,6 @@ public class VideoSaveInfo {
         mIFrameInterval = IFrameInterval;
     }
 
-    public boolean isMediaCodec() {
-        return mMediaCodec;
-    }
-
-    public void setMediaCodec(boolean mediaCodec) {
-        mMediaCodec = mediaCodec;
-    }
 
     public String getVideoSavePath() {
         return mVideoSavePath;
@@ -124,4 +117,11 @@ public class VideoSaveInfo {
         this.mOutputHeight = outputHeight;
     }
 
+    public void setSaveMode(int saveMode) {
+        mSaveMode = saveMode;
+    }
+
+    public int getSaveMode() {
+        return mSaveMode;
+    }
 }

@@ -1000,6 +1000,7 @@ static void video_image_display2(FFPlayer *ffp) {
         }
         vp->bmp->filter = ffp->gl_filter;
         vp->bmp->pts = vp->pts;
+        vp->bmp->save_mode = ffp->save_mode;
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY,
                                              "vfps[ffplay]");
@@ -3518,7 +3519,6 @@ static int read_thread(void *arg) {
     //解码器上下文都已经初始化完毕，如果要保存，在此初始化
     if (ffp->save_mode) {
         ffmux_init(ffp->hard_mux);
-        renderer_init(ffp->save_mode);
     }
 
     //设置metadata信息
@@ -5414,7 +5414,7 @@ void ffp_setGLFilter(FFPlayer *ffp, jboolean filter) {
 
 
 void
-ffp_set_save_info(FFPlayer *ffp, jboolean mediaCodec, const char *path, jint width, jint height,
+ffp_set_save_info(FFPlayer *ffp, const char *path, jint width, jint height,
                   jint bitrate, jint fps) {
 
     assert(ffp);

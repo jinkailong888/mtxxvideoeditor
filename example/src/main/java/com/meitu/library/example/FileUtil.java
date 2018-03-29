@@ -22,8 +22,8 @@ import java.util.Calendar;
 class FileUtil {
 
     private static final String TAG = "FileUtil";
-    private static final String musicFileName = "music2";
-//    private static final String musicFileName = "triton";
+//    private static final String musicFileName = "music2";
+    private static final String musicFileName = "triton";
 
     private static String dir = Environment.getExternalStorageDirectory().getAbsolutePath() +
             "/VideoEditorDir";

@@ -63,7 +63,7 @@ public class VideoConverter implements Runnable {
         extract();
         release();
         long time = System.currentTimeMillis() - t;
-        Log.d(TAG, "save cost " + time + " ms");
+        Log.d(TAG, "save video cost " + time + " ms");
     }
 
     public void prepare() throws IOException {

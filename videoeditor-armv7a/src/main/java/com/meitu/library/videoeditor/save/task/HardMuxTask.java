@@ -19,7 +19,7 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
  * 软解硬保
  */
 
-public class HardMuxTask extends ISaveTask{
+public class HardMuxTask extends ISaveTask {
 
     private final static String TAG = Tag.build("HardSaveTask");
 
@@ -37,12 +37,13 @@ public class HardMuxTask extends ISaveTask{
         mHardMuxJni = new HardMuxJni();
         mIjkMediaPlayer = createSaveModePlayer(true);
         mIjkMediaPlayer.setHardMuxListener(mHardMuxJni);
-        mIjkMediaPlayer.setSaveInfo(v.isMediaCodec(), v.getVideoSavePath(),
+        mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         mIjkMediaPlayer.setGLFilter(s.isFilter());
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
         mIjkMediaPlayer.setDataSource(v.getSrcPath());
+        mIjkMediaPlayer.setLooping(false);
         mIjkMediaPlayer.prepareAsync();
     }
 

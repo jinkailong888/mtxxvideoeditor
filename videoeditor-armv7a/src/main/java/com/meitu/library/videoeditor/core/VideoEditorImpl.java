@@ -64,6 +64,8 @@ public class VideoEditorImpl extends VideoEditor {
     private VideoInfo mVideoInfo;
     //ffconcatFilePath文件
     private String mFFconcatFilePath;
+    //背景音乐音量
+    private float mBgMusicVolume = 0.5f;
 
 
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -156,6 +158,7 @@ public class VideoEditorImpl extends VideoEditor {
     @Override
     public void setVolume(float volume) {
         mVideoPlayer.setVolume(volume, volume);
+        mBgMusicVolume = volume;
     }
 
 
@@ -170,7 +173,7 @@ public class VideoEditorImpl extends VideoEditor {
             videoSaveInfo.setOutputHeight(mVideoInfoList.get(0).getHeight());
         }
         videoSaveInfo.setRotate(mVideoInfoList.get(0).getRotateAngle());
-        mVideoPlayer.save(videoSaveInfo);
+        mVideoPlayer.save(videoSaveInfo,mBgMusicVolume);
     }
 
     @Override
@@ -207,13 +210,13 @@ public class VideoEditorImpl extends VideoEditor {
     public void setBgMusic(@NonNull BgMusicInfo bgMusicInfo) {
         mVideoPlayer.setBgMusic(bgMusicInfo);
         mAudioPlayer = new IjkMediaPlayer();
-        mAudioPlayer.setLooping(bgMusicInfo.isRepeat());
+        mAudioPlayer.setLooping(bgMusicInfo.isLoop());
         try {
             mAudioPlayer.setDataSource(bgMusicInfo.getMusicPath());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        mAudioPlayer.setLooping(bgMusicInfo.isRepeat());
+        mAudioPlayer.setLooping(bgMusicInfo.isLoop());
         mAudioPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(IMediaPlayer mp) {
@@ -243,6 +246,7 @@ public class VideoEditorImpl extends VideoEditor {
     @Override
     public void clearBgMusic() {
         mVideoPlayer.getIjkMediaPlayer().clearBgMusic();
+        mVideoPlayer.setBgMusic(null);
         if (mAudioPlayer != null) {
             mAudioPlayer.reset();
             mAudioPlayer.release();
