@@ -18,7 +18,9 @@ void ffmux_init(bool b);
 
 void ffmux_release();
 
-void ffmux_video_encode(uint8_t * data, double pts);
+void ffmux_video_encode(unsigned char *data, double pts, int i);
+
+void ffmux_video_encode_done();
 
 
 

@@ -8,7 +8,8 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
-import com.meitu.asm.Cost;
+import com.meitu.library.videoeditor.save.bean.AVData;
+import com.meitu.library.videoeditor.save.bean.AVDataUtil;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.muxer.MuxStore;
 import com.meitu.library.videoeditor.save.util.VELog;
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by wyh3 on 2018/3/25.
@@ -45,9 +45,9 @@ public class AudioConverter {
     private final Object VideoWroteLock;
     private PcmFormat mAudioPcmFormat;
     private PcmDataAlign mPcmDataAlign;
-    private ArrayBlockingQueue<PcmData> mAudioPcmQueue;
-    private ArrayBlockingQueue<PcmData> mBgMusicPcmQueue;
-    private ArrayBlockingQueue<PcmData> mMixPcmQueue;
+    private ArrayBlockingQueue<AVData> mAudioPcmQueue;
+    private ArrayBlockingQueue<AVData> mBgMusicPcmQueue;
+    private ArrayBlockingQueue<AVData> mMixPcmQueue;
     private MediaCodec mDecoder;
     private MediaCodec mEncoder;
     private MediaCodec mBgMusicDecoder;
@@ -225,7 +225,7 @@ public class AudioConverter {
     }
 
     private void decode(MediaCodec decoder, MediaExtractor extractor,
-                        int trackIndex, ArrayBlockingQueue<PcmData> queue,
+                        int trackIndex, ArrayBlockingQueue<AVData> queue,
                         boolean[] decodeDone, int type) {
         int bufIndex;
         boolean readDone = false;
@@ -280,7 +280,7 @@ public class AudioConverter {
                     byte[] data = new byte[bufferInfo.size];
                     byteBuffer.get(data);
                     byteBuffer.clear();
-                    PcmUtil.putPcmData(queue, new PcmData(data, bufferInfo.presentationTimeUs));
+                    AVDataUtil.putAVData(queue, new AVData(data, bufferInfo.presentationTimeUs));
                 }
                 decoder.releaseOutputBuffer(bufIndex, false);
             }
@@ -307,13 +307,13 @@ public class AudioConverter {
                     mHandleDone[0] = true;
                     return;
                 case PcmDataAlign.FLAG_BGMUSIC_POLL_DONE:
-                    PcmUtil.putPcmData(mMixPcmQueue, new PcmData(alignData[0], pts[0]));
+                    AVDataUtil.putAVData(mMixPcmQueue, new AVData(alignData[0], pts[0]));
                     break;
                 case PcmDataAlign.FLAG_ALIGN_DATA:
                     byte[] mixVideo = AudioMix.mixRawAudioBytes(alignData,
                             mVideoSaveInfo.getVideoVolume(),
                             mSaveFilters.getBgMusicInfo().getBgMusicVolume());
-                    PcmUtil.putPcmData(mMixPcmQueue, new PcmData(mixVideo, pts[0]));
+                    AVDataUtil.putAVData(mMixPcmQueue, new AVData(mixVideo, pts[0]));
                     break;
                 case PcmDataAlign.FLAG_AUDIO_POLL_NULL:
                     break;
@@ -322,7 +322,7 @@ public class AudioConverter {
     }
 
 
-    private void encode(ArrayBlockingQueue<PcmData> queue) {
+    private void encode(ArrayBlockingQueue<AVData> queue) {
         boolean readPcmDone = false;
         ByteBuffer[] encodeInputBuffers = mEncoder.getInputBuffers();
         ByteBuffer[] encodeOutputBuffers = mEncoder.getOutputBuffers();
@@ -330,7 +330,7 @@ public class AudioConverter {
             if (!readPcmDone) {
                 int bufIndex = mEncoder.dequeueInputBuffer(ENCODE_TIMEOUT);
                 if (bufIndex > 0) {
-                    PcmData pcmData = PcmUtil.pollPcmData(queue);
+                    AVData pcmData = AVDataUtil.pollAVData(queue);
                     ByteBuffer inputBuffer = encodeInputBuffers[bufIndex];
                     inputBuffer.clear();
                     if (pcmData == null) {

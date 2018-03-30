@@ -453,10 +453,16 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     IJK_GLES2_checkError_TRACE("glDrawArrays");
 
+    logd("before readDataFromGPU saveMode:%d,pts=%f", overlay->save_mode, overlay->pts);
     if (overlay && overlay->save_mode) {
-        logd("readDataFromGPU");
-        uint8_t *data = readDataFromGPU(overlay->w, overlay->h);
-        ffmux_video_encode(data, overlay->pts);
+        logd("readDataFromGPU w=%d,h=%d", overlay->w, overlay->h);
+        unsigned char *data = readDataFromGPU(overlay->w, overlay->h);
+        if (data == NULL) {
+            loge("readDataFromGPU   !data");
+            return GL_TRUE;
+        }
+        int size = overlay->w * overlay->h * 3 / 2;
+        ffmux_video_encode(data, overlay->pts, size);
     }
 
     return GL_TRUE;

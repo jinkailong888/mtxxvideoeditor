@@ -3739,11 +3739,13 @@ static int read_thread(void *arg) {
                 stream_seek(is, ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0, 0, 0);
             } else if (ffp->autoexit) {//自动退出
                 ret = AVERROR_EOF;
+                av_log(ffp, AV_LOG_DEBUG, "ffp->autoexit: 自动退出\n");
                 goto fail;
             } else {
                 //统计共解码多少帧等播放信息
                 ffp_statistic_l(ffp);
                 if (completed) { //播放完了
+                    av_log(ffp, AV_LOG_DEBUG, "completed: 播放完了\n");
                     av_log(ffp, AV_LOG_INFO, "ffp_toggle_buffering: eof\n");
                     SDL_LockMutex(wait_mutex);
                     // infinite wait may block shutdown
@@ -4046,9 +4048,10 @@ static int video_refresh_thread(void *arg) {
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh)) {
             if (ffp->save_mode) {
                 if (frame_queue_nb_remaining(&is->pictq) == 0) {
-                    av_log(NULL, AV_LOG_DEBUG, "视频帧队列为空 \n");
                     continue;
                 }
+                av_log(NULL, AV_LOG_DEBUG, "保存模式下 取视频帧 拿去渲染\n");
+                //
                 video_display2(ffp);
                 frame_queue_next(&is->pictq);
             } else {

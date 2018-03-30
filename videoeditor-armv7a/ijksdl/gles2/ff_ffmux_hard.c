@@ -8,7 +8,7 @@
 #include "ff_ffmux.h"
 
 static jobject mHardMuxJni;
-static jmethodID onVideoEncodeMethod;
+static jmethodID onVideoEncodeMethod = NULL;
 static jmethodID onAudioEncodeMethod;
 static jmethodID onVideoDoneMethod;
 static jmethodID onAudioDoneMethod;
@@ -33,9 +33,6 @@ void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject hardMuxJni) 
         logd("ff_ffmux_set_HardMuxJni NewGlobalRef hardMuxJni");
     }
 
-    jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
-    jmethodID m = (*env)->GetMethodID(env, hardMuxJniClass, "onVideoFrame", "([BD)V");
-    onVideoEncodeMethod =(*env)->NewGlobalRef(env, m);
 
 }
 
@@ -49,23 +46,56 @@ void release_hard() {
 }
 
 
-void onVideoEncode(uint8_t *data, double pts) {
+void onVideoEncode(unsigned char *data, double pts, int size) {
     JNIEnv *env;
-    logd("onVideoEncode");
-    if (onVideoEncodeMethod) {
-        logd("onVideoEncodeMethod");
-        //获得当前线程可以使用的 JNIEnv *指针
-        int status= (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
-        if (status == JNI_OK) {
-            logd("JNI_OK");
-            (*env)->CallVoidMethod(env, mHardMuxJni, onVideoEncodeMethod, data, pts);
-            (*g_jvm)->DetachCurrentThread(g_jvm);
-        }
+    logd("onVideoEncode size=%d",size);
+
+    int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+
+    if (status != JNI_OK) {
+        loge("onVideoEncode JNI NOT OK!");
+        return;
     }
+
+    if (onVideoEncodeMethod == NULL) {
+        jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
+        onVideoEncodeMethod = (*env)->GetMethodID(env, hardMuxJniClass, "onVideoFrame", "([BD)V");
+    }
+
+    if (onVideoEncodeMethod != NULL) {
+        logd("onVideoEncodeMethod != null");
+        jbyteArray array = (*env)->NewByteArray(env, size);
+        (*env)->SetByteArrayRegion(env, array, 0, size, (const jbyte *) data);
+        if (array == NULL) {
+            loge("array = null");
+            return;
+        }
+        (*env)->CallVoidMethod(env, mHardMuxJni, onVideoEncodeMethod, array, pts);
+    }
+
+    (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
 void onVideoEncodeDone() {
+    JNIEnv *env;
+    logd("onVideoEncodeDone ");
 
+    int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+    if (status != JNI_OK) {
+        loge("onVideoEncodeDone JNI NOT OK!");
+        return;
+    }
+    if (onVideoDoneMethod == NULL) {
+        jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
+        onVideoDoneMethod = (*env)->GetMethodID(env, hardMuxJniClass, "onVideoDone", "()V");
+    }
+
+    if (onVideoDoneMethod != NULL) {
+        logd("CallVoidMethod onVideoDoneMethod");
+        (*env)->CallVoidMethod(env, mHardMuxJni, onVideoDoneMethod);
+    }
+
+    (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
 

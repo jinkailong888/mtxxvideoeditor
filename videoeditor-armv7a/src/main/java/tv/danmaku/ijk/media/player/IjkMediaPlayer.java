@@ -957,6 +957,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     protected void finalize() throws Throwable {
         super.finalize();
+        Log.d(TAG, "finalize: ");
         native_finalize();
     }
 

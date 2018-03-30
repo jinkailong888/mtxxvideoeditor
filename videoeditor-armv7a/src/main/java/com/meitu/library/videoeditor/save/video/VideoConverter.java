@@ -29,7 +29,7 @@ public class VideoConverter implements Runnable {
     private final static String ENCODE_MIME = "video/avc";
     private static final int DECODE_TIMEOUT = 1000;
     private static final int ENCODE_TIMEOUT = 1000;
-    private static final int notifyAudioCount = 1; //写入一定数量视频帧后再开始写音频帧，否则音频断断续续
+    private static final int notifyAudioCount = 1; //写入一定数量视频帧后再开始写音频帧
     private int mWriteCount = 0;
     private final Object VideoWroteLock;
     public static boolean videoWrote = false;

@@ -15,6 +15,7 @@ stop muxer failed
 混音方案
 其他电脑 gl3stubInit() 找不到
 assertion "thread" failed
+软解硬保ijk实例提前释放
 **************************************
 
 
@@ -301,7 +302,13 @@ void SDL_WaitThread(SDL_Thread *, int *): assertion "thread" failed
 解决：cFlags 添加 DNDEBUG ， assert函数 需要此标记才能使用
 
 
-
+**************************************
+软解硬保ijk实例提前释放
+**************************************
+正在读取gpu渲染的帧时， java层调用了 IjkMediaPlayer_native_finalize 导致ijk释放，从而中断
+分析：找到什么动作触发了native_finalize方法
+原因: HardMuxTask 运行完后释放了ijkplayer引用，由gc回收
+解决：HardMuxTask调用底层保存后线程进入等待，待底层保存完后再解锁
 
 
 

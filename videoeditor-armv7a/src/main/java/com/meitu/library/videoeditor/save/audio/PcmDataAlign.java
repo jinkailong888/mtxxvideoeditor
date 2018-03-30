@@ -2,6 +2,8 @@ package com.meitu.library.videoeditor.save.audio;
 
 import android.util.Log;
 
+import com.meitu.library.videoeditor.save.bean.AVData;
+import com.meitu.library.videoeditor.save.bean.AVDataUtil;
 import com.meitu.library.videoeditor.util.Tag;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -29,14 +31,14 @@ public class PcmDataAlign {
         mBgMusicCache = new byte[BGMUSIC_CACHE_SIZE];
     }
 
-    public int getAlignPcmData(ArrayBlockingQueue<PcmData> audioQueue,
-                               ArrayBlockingQueue<PcmData> bgMusicQueue,
+    public int getAlignPcmData(ArrayBlockingQueue<AVData> audioQueue,
+                               ArrayBlockingQueue<AVData> bgMusicQueue,
                                byte[][] dst,
                                long[] pts,
                                boolean[] decodeDone,
                                boolean[] bgMusicDecodeDone) {
 
-        PcmData audioPcm = PcmUtil.pollPcmData(audioQueue);
+        AVData audioPcm = AVDataUtil.pollAVData(audioQueue);
         if (audioPcm == null) {
             if (decodeDone[0]) {
                 Log.d(TAG, "getAlignPcmData: 原音读取完毕");
@@ -65,9 +67,9 @@ public class PcmDataAlign {
     }
 
 
-    private boolean pollBgMusic(ArrayBlockingQueue<PcmData> bgMusicQueue,
+    private boolean pollBgMusic(ArrayBlockingQueue<AVData> bgMusicQueue,
                                 boolean[] bgMusicDecodeDone) {
-        PcmData bgMusicPcm = PcmUtil.pollPcmData(bgMusicQueue);
+        AVData bgMusicPcm = AVDataUtil.pollAVData(bgMusicQueue);
         if (bgMusicPcm == null) {
             if (bgMusicDecodeDone[0]) {
                 Log.d(TAG, "getAlignPcmData: 背景音乐读取完毕");

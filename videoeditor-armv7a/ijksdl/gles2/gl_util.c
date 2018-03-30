@@ -2,7 +2,7 @@
 #include "jni.h"
 
 
-#define MY_TAG  "gl_util"
+#define MY_TAG  "VideoEditor"
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
 #define logd(format, ...)  __android_log_print(ANDROID_LOG_DEBUG,  MY_TAG, format, ##__VA_ARGS__)
 
@@ -10,7 +10,7 @@
 int mPboIndex;
 int mPboNewIndex;
 int mPboSize;
-bool mInitRecord = true;
+static bool mInitRecord = false;
 GLuint mPboIds[2];
 const char *glVersion;
 
@@ -55,7 +55,7 @@ bool checkEglError(char *msg) {
 
 void initPBO() {
     glVersion = (const char *) glGetString(GL_VERSION);
-    logd("opengl version:%s", glVersion);
+    logd("initPBO opengl version:%s", glVersion);
     //android版本需要低于18，使用gl3stub.c
     gl3stubInit();
 //    if (strcmp(glVersion, "OpenGL ES 3.0") < 0) {
@@ -164,20 +164,20 @@ uint8_t *readDataFromGPU(int width, int height) {
     glVersion = (const char *) glGetString(GL_VERSION);
 
     if (strcmp(glVersion, "OpenGL ES 3.0") >= 0) {
-        if (mInitRecord) {
+        //TODO 保存完后初始化mInitRecord
+        if (!mInitRecord) {
             mWidth = width;
             mHeight = height;
             initPBO();
         }
-//        logd("%s", "enter glbind");
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
 
         glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
 
-        if (mInitRecord) {//第一帧没有数据跳出
+        if (!mInitRecord) {//第一帧没有数据跳出
             unbindPixelBuffer();
-            mInitRecord = false;
+            mInitRecord = true;
             return NULL;
         }
 
@@ -189,10 +189,8 @@ uint8_t *readDataFromGPU(int width, int height) {
                                                            mPboSize,
                                                            GL_MAP_READ_BIT);
         if (byteBuffer == NULL) {
-            logd("%s", "map buffer fail");
+            loge("%s", "map buffer fail");
         }
-//        logd("pixel:%s", byteBuffer);
-        //memcpy(data, byteBuffer, mPboSize);
         glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         unbindPixelBuffer();
         return byteBuffer;
