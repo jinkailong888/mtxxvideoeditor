@@ -17,7 +17,7 @@ void init_hard();
 
 void release_hard();
 
-void onVideoEncode(unsigned char *data, double pts, int i);
+void onVideoEncode(unsigned char *data, double pts, int size,int w,int h);
 
 
 void onVideoEncodeDone();

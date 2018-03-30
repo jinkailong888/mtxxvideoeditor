@@ -28,9 +28,9 @@ void ffmux_release() {
 }
 
 
-void ffmux_video_encode(unsigned char *data, double pts, int size) {
+void ffmux_video_encode(unsigned char *data, double pts, int size,int width,int height) {
     if (ffmux_hard_mux) {
-        onVideoEncode(data, pts, size);
+        onVideoEncode(data, pts, size,width,height);
     } else {
 
     }

@@ -16,6 +16,7 @@ stop muxer failed
 其他电脑 gl3stubInit() 找不到
 assertion "thread" failed
 软解硬保ijk实例提前释放
+软解硬保视频帧格式问题
 **************************************
 
 
@@ -310,6 +311,14 @@ void SDL_WaitThread(SDL_Thread *, int *): assertion "thread" failed
 原因: HardMuxTask 运行完后释放了ijkplayer引用，由gc回收
 解决：HardMuxTask调用底层保存后线程进入等待，待底层保存完后再解锁
 
+
+**************************************
+软解硬保视频帧格式问题
+**************************************
+gl中取出的是 RGBA  ， mediacodec 支持的编码帧格式为？
+需要转换成 mediacodec 支持的帧格式， 再编码封装
+微信Android视频编码爬过的那些坑.md：
+https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81%E7%88%AC%E8%BF%87%E7%9A%84%E9%82%A3%E4%BA%9B%E5%9D%91.md
 
 
 

@@ -4,6 +4,9 @@ import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.util.Log;
+
+import com.meitu.library.videoeditor.util.Tag;
 
 import static junit.framework.Assert.fail;
 
@@ -12,6 +15,7 @@ import static junit.framework.Assert.fail;
  */
 public class ColorFormatUtil {
 
+    private final static String TAG = Tag.build("ColorFormatUtil");
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     public static int selectColorFormat(String mimeType) {
@@ -32,7 +36,9 @@ public class ColorFormatUtil {
         MediaCodecInfo.CodecCapabilities capabilities = codecInfo.getCapabilitiesForType(mimeType);
         for (int i = 0; i < capabilities.colorFormats.length; i++) {
             int colorFormat = capabilities.colorFormats[i];
+            Log.d(TAG, " support colorFormat = " + colorFormat);
             if (isRecognizedFormat(colorFormat)) {
+                Log.d(TAG, " isRecognizedFormat colorFormat = " + colorFormat);
                 return colorFormat;
             }
         }
@@ -79,8 +85,72 @@ public class ColorFormatUtil {
             case MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar:
                 return true;
             default:
-                return false;
+                return true;
         }
+    }
+
+    public static byte[] rgb2YCbCr420(int[] pixels, int width, int height) {
+        int len = width * height;
+        //yuv格式数组大小，y亮度占len长度，u,v各占len/4长度。
+        byte[] yuv = new byte[len * 3 / 2];
+        int y, u, v;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                //屏蔽ARGB的透明度值
+                int rgb = pixels[i * width + j] & 0x00FFFFFF;
+                //像素的颜色顺序为bgr，移位运算。
+                int r = rgb & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = (rgb >> 16) & 0xFF;
+                //套用公式
+                y = ((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
+                u = ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
+                v = ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+                //调整
+                y = y < 16 ? 16 : (y > 255 ? 255 : y);
+                u = u < 0 ? 0 : (u > 255 ? 255 : u);
+                v = v < 0 ? 0 : (v > 255 ? 255 : v);
+                //赋值
+                yuv[i * width + j] = (byte) y;
+                yuv[len + (i >> 1) * width + (j & ~1) + 0] = (byte) u;
+                yuv[len + +(i >> 1) * width + (j & ~1) + 1] = (byte) v;
+            }
+        }
+        return yuv;
+    }
+
+    public static byte[] colorconvertRGB_IYUV_I420(int[] aRGB, int width, int height) {
+        final int frameSize = width * height;
+        final int chromasize = frameSize / 4;
+
+        int yIndex = 0;
+        int uIndex = frameSize;
+        int vIndex = frameSize + chromasize;
+        byte[] yuv = new byte[width * height * 3 / 2];
+
+        int a, R, G, B, Y, U, V;
+        int index = 0;
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                //a = (aRGB[index] & 0xff000000) >> 24; //not using it right now
+                R = (aRGB[index] & 0xff0000) >> 16;
+                G = (aRGB[index] & 0xff00) >> 8;
+                B = (aRGB[index] & 0xff) >> 0;
+
+                Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
+                U = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
+                V = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
+
+                yuv[yIndex++] = (byte) ((Y < 0) ? 0 : ((Y > 255) ? 255 : Y));
+
+                if (j % 2 == 0 && index % 2 == 0) {
+                    yuv[vIndex++] = (byte) ((U < 0) ? 0 : ((U > 255) ? 255 : U));
+                    yuv[uIndex++] = (byte) ((V < 0) ? 0 : ((V > 255) ? 255 : V));
+                }
+                index++;
+            }
+        }
+        return yuv;
     }
 
 }

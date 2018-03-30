@@ -462,7 +462,7 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
             return GL_TRUE;
         }
         int size = overlay->w * overlay->h * 3 / 2;
-        ffmux_video_encode(data, overlay->pts, size);
+        ffmux_video_encode(data, overlay->pts, size, overlay->w, overlay->h);
     }
 
     return GL_TRUE;
