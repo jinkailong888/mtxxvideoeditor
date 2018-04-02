@@ -9,24 +9,27 @@
 #include <jni.h>
 #include <android/log.h>
 
+#define TAG "VideoEditor"
+#define logd(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
+#define loge(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
+
 void ff_ffmux_hard_init(JavaVM *vm,JNIEnv * env);
 
 void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject filter);
 
-void init_hard();
 
-void release_hard();
+void ff_ffmux_hard_release();
 
-void onVideoEncode(unsigned char *data, double pts, int size,int w,int h);
-
-
-void onVideoEncodeDone();
+void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size,int w,int h);
 
 
-void onAudioEncode();
+void ff_ffmux_hard_onVideoEncodeDone();
 
 
-void onAudioEncodeDone();
+void ff_ffmux_hard_onAudioEncode();
+
+
+void ff_ffmux_hard_onAudioEncodeDone();
 
 
 #endif //MTXXVIDEOEDITOR_FF_FFMUX_HARD_H

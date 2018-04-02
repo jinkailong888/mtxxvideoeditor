@@ -78,7 +78,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
                 .registerFilters(mFilters)
                 .setDebuggable(true)
                 .setNativeDebuggable(true)
-//                .setSaveMode(true) //保存模式
                 .build();
 
         mVideoEditor.setVideoPathWithFilter(filePaths, null);
@@ -96,10 +95,13 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         switch (SAVE_MODE) {
             case SaveMode.SOFT_SAVE_MODE:
                 outputPath = "softOutput";
+                break;
             case SaveMode.HARD_SAVE_MODE:
                 outputPath = "hardOutput";
+                break;
             case SaveMode.HARD_ENCODE_SAVE_MODE:
                 outputPath = "hardEncodeOutput";
+                break;
         }
 
         mVideoEditor.getSaveBuilder()
@@ -111,14 +113,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
     @Override
     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-//        if (mWaterMarkSwitch == compoundButton) {
-//            if (b) {
-//                mVideoEditor.showWatermark();
-//            } else {
-//               mVideoEditor.clearWaterMark();
-//                mVideoEditor.hideWatermark();
-//            }
-//        }
+
         if (mMusicSwitch == compoundButton) {
             if (b) {
                 mVideoEditor.getBgMusicBuilder().setMusicPath(FileUtil.getMusicPath()).setLoop(true).setBgMusic();
@@ -131,21 +126,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         if (mFilterSwitch == compoundButton) {
             mVideoEditor.setGLFilter(b);
         }
-//        if (mTransFilterSwitch == compoundButton) {
-//            if (b) {
-//                if (filePaths.size() <= 1) {
-//                    Toast.makeText(this, "添加2段及以上视频才能设置转场", Toast.LENGTH_SHORT).show();
-//                    mTransFilterSwitch.setChecked(false);
-//                    return;
-//                }
-//                mVideoEditor.setTransitionEffect(TransitionEffect.GaussianBlur);
-//            } else {
-//                if (filePaths.size() <= 1) {
-//                    return;
-//                }
-//                mVideoEditor.setTransitionEffect(TransitionEffect.None);
-//            }
-//        }
+
         if (mMediaCodecSwitch == compoundButton) {
             if (b) {
                 mFFmpegSwitch.setChecked(false);
@@ -217,8 +198,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
     private void initView() {
         mVideoPlayerView = findViewById(R.id.videoPlayerView);
-//        mWaterMarkSwitch = findViewById(R.id.switchWaterMark);
-//        mTransFilterSwitch = findViewById(R.id.transFilter);
         mMusicSwitch = findViewById(R.id.switchMusic);
         mFilterSwitch = findViewById(R.id.switchFilter);
         mMediaCodecSwitch = findViewById(R.id.mediaCodec);
@@ -242,11 +221,6 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mBgMusicSeekBar.setOnSeekBarChangeListener(this);
         mVideoSeekBar.setProgress(50);
         mBgMusicSeekBar.setProgress(50);
-
-//        mWaterMarkSwitch.setEnabled(false);
-//        mTransFilterSwitch.setEnabled(false);
-//        mFFmpegMediaCodecSwitch.setEnabled(false);
-        mFFmpegSwitch.setEnabled(false);
 
         mMediaCodecSwitch.setChecked(true);
     }

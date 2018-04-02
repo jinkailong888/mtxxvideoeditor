@@ -66,6 +66,7 @@ struct SDL_VoutOverlay {
 
     double pts;//方便gl渲染过的视频帧直接使用pts
     bool save_mode;//是否为保存模式
+    bool hard_mux;//是否为软解硬保
 };
 
 typedef struct SDL_Vout_Opaque SDL_Vout_Opaque;

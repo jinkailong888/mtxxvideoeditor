@@ -21,10 +21,12 @@
 
 #include "internal.h"
 #include "gl_util.h"
-#include "ff_ffmux.h"
+#include "ff_ffmux_hard.h"
+#include "ff_ffmux_soft.h"
 
-#define TAG "renderer" // 这个是自定义的LOG的标识
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
+#define TAG "VideoEditor"
+#define logd(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
+#define loge(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
 
 static bool renderer_save_mode;
 
@@ -453,16 +455,21 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     IJK_GLES2_checkError_TRACE("glDrawArrays");
 
-    logd("before readDataFromGPU saveMode:%d,pts=%f", overlay->save_mode, overlay->pts);
+//    logd("before readDataFromGPU saveMode:%d,pts=%f", overlay->save_mode, overlay->pts);
     if (overlay && overlay->save_mode) {
-        logd("readDataFromGPU w=%d,h=%d", overlay->w, overlay->h);
+
+//        logd("readDataFromGPU w=%d,h=%d", overlay->w, overlay->h);
         unsigned char *data = readDataFromGPU(overlay->w, overlay->h);
         if (data == NULL) {
             loge("readDataFromGPU   !data");
             return GL_TRUE;
         }
         int size = overlay->w * overlay->h * 3 / 2;
-        ffmux_video_encode(data, overlay->pts, size, overlay->w, overlay->h);
+        if (overlay->hard_mux) {
+            ff_ffmux_hard_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
+        } else {
+            ff_ffmux_soft_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
+        }
     }
 
     return GL_TRUE;

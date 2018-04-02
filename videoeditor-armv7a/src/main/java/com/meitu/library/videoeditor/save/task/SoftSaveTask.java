@@ -30,11 +30,6 @@ public class SoftSaveTask extends ISaveTask {
 
     @Override
     public void prepare() throws IOException {
-        initPlayer();
-
-    }
-
-    private void initPlayer() throws IOException {
         mIjkMediaPlayer = createSaveModePlayer(false);
         mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
@@ -43,6 +38,16 @@ public class SoftSaveTask extends ISaveTask {
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
         mIjkMediaPlayer.setDataSource(v.getSrcPath());
         mIjkMediaPlayer.prepareAsync();
+    }
+
+
+    @Override
+    public void run() {
+        try {
+            prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {

@@ -249,8 +249,12 @@ static int open_output_file(EditorState *es) {
 
                 es->pix_fmt = enc_ctx->pix_fmt;
 
+
                 //设置时间基准
                 enc_ctx->time_base = dec_ctx->time_base;
+
+                logd("pix_fmt %d", enc_ctx->pix_fmt);
+                logd("time_base den=%d num=%d", enc_ctx->time_base.den,enc_ctx->time_base.num);
 
                 //必须设置，否则系统播放器及pc无法播放(ijk可以)
                 enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -776,7 +780,7 @@ int ffeditor_save(EditorState *es) {
     //todo 插入 filter
 
     es->mediaCodecDec = false;//目前保存硬解在java层实现，后面转ndk实现时才可能会用到此参数
-    es->mediaCodecEnc = true;
+    es->mediaCodecEnc = false;
 
     if (es->mediaCodecEnc) {
 //        mediacodec_encode_init(es);

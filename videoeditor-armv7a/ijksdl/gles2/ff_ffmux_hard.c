@@ -7,7 +7,6 @@
 #include <malloc.h>
 #include <ijkyuv/include/libyuv.h>
 #include "ff_ffmux_hard.h"
-#include "ff_ffmux.h"
 
 
 //void rgb565ToYuv(int width,int height,int size,unsigned char * rgb,unsigned char * yuv){
@@ -25,7 +24,7 @@
 
 
 
-void rgbaToYuv(int width, int height, unsigned char *rgb, unsigned char *yuv) {
+void rgbaToYuv(int width, int height, int size, unsigned char *rgb, unsigned char *yuv) {
     int src_stride_rgba = width * 2;
     int y_stride = width;
     int u_stride = (width +1)/2;
@@ -33,13 +32,13 @@ void rgbaToYuv(int width, int height, unsigned char *rgb, unsigned char *yuv) {
     size_t ySize = (size_t) (y_stride * height);
     size_t uSize = (size_t) (u_stride * height >> 1);
 
-    ARGBToI420(rgb,
+    BGRAToI420(rgb,
                src_stride_rgba, //数据每一行的大小，如果是argb_8888格式的话这个值为wX4，argb4444的话值为wX2
                yuv,//用于保存y分量数据
                y_stride,
-               yuv + ySize,//用于保存u分量数据
+               yuv + size,//用于保存u分量数据
                u_stride,
-               yuv + ySize + uSize,//用于保存分量数据
+               yuv + size + u_stride * (height + 1) / 2,//用于保存分量数据
                v_stride,
                width,
                height
@@ -77,16 +76,13 @@ void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject hardMuxJni) 
 }
 
 
-void init_hard() {
+
+void ff_ffmux_hard_release() {
 
 }
 
-void release_hard() {
 
-}
-
-
-void onVideoEncode(unsigned char *data, double pts, int size, int width, int height) {
+void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size, int width, int height) {
     JNIEnv *env;
     logd("onVideoEncode size=%d", size);
 
@@ -96,8 +92,8 @@ void onVideoEncode(unsigned char *data, double pts, int size, int width, int hei
         loge("onVideoEncode JNI NOT OK!");
         return;
     }
-//    unsigned char *yuv = (unsigned char *) malloc(sizeof(uint8_t) * size);
-//    rgbaToYuv(width, height, data, yuv);
+    unsigned char *yuv = (unsigned char *) malloc(sizeof(uint8_t) * size);
+    rgbaToYuv(width, height, size, data, yuv);
 
     if (onVideoEncodeMethod == NULL) {
         jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
@@ -118,7 +114,7 @@ void onVideoEncode(unsigned char *data, double pts, int size, int width, int hei
     (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
-void onVideoEncodeDone() {
+void ff_ffmux_hard_onVideoEncodeDone() {
     JNIEnv *env;
     logd("onVideoEncodeDone ");
 
@@ -141,12 +137,12 @@ void onVideoEncodeDone() {
 }
 
 
-void onAudioEncode() {
+void ff_ffmux_hard_onAudioEncode() {
 
 }
 
 
-void onAudioEncodeDone() {
+void ff_ffmux_hard_onAudioEncodeDone() {
 
 }
 

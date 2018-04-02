@@ -22,7 +22,6 @@
 
 #include "ff_ffplay.h"
 
-#define CONFIG_AVFILTER 0
 /**
  * @file
  * simple media player based on the FFmpeg libraries
@@ -55,8 +54,6 @@
 
 #include "libswscale/swscale.h"
 #include "libavutil/opt.h"
-#include "libavcodec/avfft.h"
-#include "libavcodec/jni.h"
 #include "libswresample/swresample.h"
 #include "libavcodec/avcodec.h"
 
@@ -81,7 +78,8 @@
 #include <stdatomic.h>
 #include <ijksdl/android/ijksdl_codec_android_mediadef.h>
 #include <ijksdl/ijksdl_gles2.h>
-#include <ijksdl/gles2/ff_ffmux.h>
+#include <ijksdl/gles2/ff_ffmux_hard.h>
+#include <ijksdl/gles2/ff_ffmux_soft.h>
 
 #if defined(__ANDROID__)
 
@@ -1001,6 +999,7 @@ static void video_image_display2(FFPlayer *ffp) {
         vp->bmp->filter = ffp->gl_filter;
         vp->bmp->pts = vp->pts;
         vp->bmp->save_mode = ffp->save_mode;
+        vp->bmp->hard_mux = ffp->hard_mux;
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY,
                                              "vfps[ffplay]");
@@ -3049,7 +3048,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     ret = avcodec_parameters_to_context(avctx, ic->streams[stream_index]->codecpar);
     if (ret < 0)
         goto fail;
-    //
+    //软解软保时此句代码未成功设置视频解码器的 time_base
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
     // 获取解码器
     codec = avcodec_find_decoder(avctx->codec_id);
@@ -3516,10 +3515,7 @@ static int read_thread(void *arg) {
         stream_component_open(ffp, st_index[AVMEDIA_TYPE_SUBTITLE]);
     }
     ffp_notify_msg1(ffp, FFP_MSG_COMPONENT_OPEN);
-    //解码器上下文都已经初始化完毕，如果要保存，在此初始化
-    if (ffp->save_mode) {
-        ffmux_init(ffp->hard_mux);
-    }
+
 
     //设置metadata信息
     ijkmeta_set_avformat_context_l(ffp->meta, ic);
@@ -3573,6 +3569,23 @@ static int read_thread(void *arg) {
     ffp->prepared = true;
     //通知上层视频的音频流和视频流已打开，准备完毕
     ffp_notify_msg1(ffp, FFP_MSG_PREPARED);
+
+    //解码器上下文都已经初始化完毕，如果要保存，在此初始化
+    av_log(NULL, AV_LOG_DEBUG,
+           "解码器上下文都已经初始化完毕，如果要保存，在此初始化 ");
+    if (ffp->save_mode) {
+        if (ffp->hard_mux) {
+            //在 JNI_ONLoad 时初始化
+        } else {
+            av_log(NULL, AV_LOG_DEBUG,
+                   "ff_ffmux_soft_init ");
+            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
+//            ffp_save_l(ffp);
+        }
+    }
+
+
+
     if (!ffp->start_on_prepared) {
         while (is->pause_req && !is->abort_request) {
             SDL_Delay(20);
@@ -3915,12 +3928,14 @@ static int video_refresh_thread(void *arg);
 static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputFormat *iformat) {
     assert(!ffp->is);
     VideoState *is;
-    EditorState *es;
 
     is = av_mallocz(sizeof(VideoState));
     //MeiTu 创建EditorState
-    es = av_mallocz(sizeof(EditorState));
-    ffp->es = es;
+    EditorState *es = ffp->es;
+    if (!es) {
+        es = av_mallocz(sizeof(EditorState));
+        ffp->es = es;
+    }
 
     if (!is)
         return NULL;
@@ -5422,8 +5437,11 @@ ffp_set_save_info(FFPlayer *ffp, const char *path, jint width, jint height,
 
     assert(ffp);
     EditorState *es = ffp->es;
-    if (!es)
-        return;
+    if (!es) {
+        es = av_mallocz(sizeof(EditorState));
+        ffp->es = es;
+    }
+    av_log(NULL, AV_LOG_DEBUG, "ffp_set_save_info ");
     es->outputPath = path;
     es->outputWidth = width;
     es->outputHeight = height;
