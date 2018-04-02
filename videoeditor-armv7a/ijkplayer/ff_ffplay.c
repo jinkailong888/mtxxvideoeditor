@@ -4068,10 +4068,10 @@ static int video_refresh_thread(void *arg) {
                 av_log(NULL, AV_LOG_DEBUG, "保存模式下 取视频帧 拿去渲染\n");
                 //
 
-                video_display2(ffp);
+//                video_display2(ffp);
 
-//                Frame *vp = frame_queue_peek_last(&is->pictq);
-//                ff_ffmux_soft_onFrameEncode(vp->frame);
+                Frame *vp = frame_queue_peek_last(&is->pictq);
+                ff_ffmux_soft_onFrameEncode(vp->frame);
 
 
                 frame_queue_next(&is->pictq);
