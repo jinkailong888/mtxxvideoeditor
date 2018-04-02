@@ -3,6 +3,7 @@
 // Created by wyh3 on 2018/3/26.
 //
 
+#include <android/log.h>
 #include "ff_ffmux_soft.h"
 
 static AVFormatContext *in_fmt_ctx;
@@ -12,6 +13,9 @@ static AVCodecContext *audio_dec_ctx;
 static AVFormatContext *out_fmt_ctx;
 static AVCodecContext *video_enc_ctx;
 static AVCodecContext *audio_enc_ctx;
+
+const int video_stream_index = 0;
+const int audio_stream_index = 1;
 
 const int ffmux_default_output_bitrate = 2000001;
 
@@ -33,7 +37,6 @@ static int ffmux_open_output_file(EditorState *es) {
     }
     //初始化视频流
     if (video_dec_ctx) {
-
         logd("开始初始化视频编码器");
 
         out_stream = avformat_new_stream(out_fmt_ctx, NULL);
@@ -41,9 +44,10 @@ static int ffmux_open_output_file(EditorState *es) {
             loge("Failed allocating output stream\n");
             return AVERROR_UNKNOWN;
         }
-        encoder = avcodec_find_encoder(video_dec_ctx->codec_id);
+//        encoder = avcodec_find_encoder(video_dec_ctx->codec_id);
+        encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
         if (!encoder) {
-            loge("Necessary video encoder not found\n");
+            loge("Necessary video encoder not found, codeId=%d\n", video_dec_ctx->codec_id);
             return AVERROR_INVALIDDATA;
         } else {
             logd("find video encoder : %s \n", encoder->name);
@@ -246,6 +250,10 @@ void ff_ffmux_soft_onFrameEncode(AVFrame *frame) {
     frame->pts = av_frame_get_best_effort_timestamp(frame);
 
     ret = avcodec_encode_video2(video_enc_ctx, &enc_pkt, frame, got_frame);
+    if (ret < 0) {
+        loge("mediacodec_encode_frame ret = %d\n", ret);
+        return;
+    }
 
     av_frame_free(&frame);
 
@@ -254,7 +262,18 @@ void ff_ffmux_soft_onFrameEncode(AVFrame *frame) {
         return;
     }
 
+    enc_pkt.stream_index = video_stream_index;
 
+    av_packet_rescale_ts(&enc_pkt,
+                         video_enc_ctx->time_base,
+                         out_fmt_ctx->streams[video_stream_index]->time_base);
+
+    logd("Muxing frame\n");
+    ret = av_interleaved_write_frame(out_fmt_ctx, &enc_pkt);
+    if (ret < 0) {
+        loge("Failed to muxing frame ret=%d\n", ret);
+    }
+    return;
 }
 
 void ff_ffmux_soft_onAudioEncode(AVFrame *frame) {

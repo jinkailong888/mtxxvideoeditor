@@ -26,4 +26,6 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int 
 
 void ff_ffmux_soft_onAudioEncode(AVFrame *frame);
 
+void ff_ffmux_soft_onFrameEncode(AVFrame *frame);
+
 #endif //MTXXVIDEOEDITOR_FF_FFMUX_SOFT_H

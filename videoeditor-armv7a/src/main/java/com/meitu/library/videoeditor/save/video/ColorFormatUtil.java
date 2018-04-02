@@ -85,7 +85,7 @@ public class ColorFormatUtil {
             case MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar:
                 return true;
             default:
-                return true;
+                return false;
         }
     }
 
