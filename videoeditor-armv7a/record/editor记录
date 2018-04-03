@@ -334,7 +334,27 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 软解软保编码错误
 **************************************
 现象： avcodec_encode_video2 Error ret = -542398533
-分析： 查看此方法源码：  x264/encoder.c/x264_encoder_encode方法
+分析： 查看此方法源码：  x264/encoder.c/x264_encoder_encode方法 ，  此方法太繁琐
+分析： 使用 error.h 宏定义的 av_err2str 方法 输出错误日志 ！！！
+
+问题： non-strictly-monotonic PTS
+解决： https://stackoverflow.com/questions/6603979/ffmpegavcodec-encode-video-setting-pts-h264
+
+问题： 写入数据极小
+现象:
+  示例代码为： frame= 183 QP=35.00 NAL=2 Slice:P Poc:366 I:1004 P:975  SKIP:1621 size=15369 bytes
+
+  此处为：     frame= 140 QP=0.00 NAL=2 Slice:P Poc:280 I:0    P:0    SKIP:3600 size=12 bytes
+
+  Timestamps are unset in a packet for stream 0.
+  This is deprecated and will stop working in the future.
+  Fix your code to set the timestamps properly
+
+  Encoder did not produce proper pts, making some up
+
+解决： 在video_refresh_thread方法中传入的AVFrame 数据已经转移到 Frame->mp了 ，传入时机调整到 queue_picture
+
+问题： 调整到 queue_picture 后， 数据量极大
 
 
 

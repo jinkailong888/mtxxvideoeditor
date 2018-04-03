@@ -1611,6 +1611,11 @@ static void alloc_picture(FFPlayer *ffp, int frame_format) {
 static int
 queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos,
               int serial) {
+    if (ffp->save_mode) {
+        ff_ffmux_soft_onFrameEncode(src_frame, NULL);
+        return 0 ;
+    }
+
     VideoState *is = ffp->is;
     Frame *vp; //帧缓冲队列的可写入位置
     int video_accurate_seek_fail = 0;
@@ -3758,8 +3763,14 @@ static int read_thread(void *arg) {
                 //统计共解码多少帧等播放信息
                 ffp_statistic_l(ffp);
                 if (completed) { //播放完了
-                    av_log(ffp, AV_LOG_DEBUG, "completed: 播放完了\n");
                     av_log(ffp, AV_LOG_INFO, "ffp_toggle_buffering: eof\n");
+                    if (ffp->save_mode) {
+                        if (ffp->hard_mux) {
+
+                        }else{
+                            ff_ffmux_soft_onVideoEncodeDone();
+                        }
+                    }
                     SDL_LockMutex(wait_mutex);
                     // infinite wait may block shutdown
                     while (!is->abort_request && !is->seek_req)
@@ -4061,23 +4072,18 @@ static int video_refresh_thread(void *arg) {
             remaining_time = REFRESH_RATE;
         }
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh)) {
-            if (ffp->save_mode) {
-                if (frame_queue_nb_remaining(&is->pictq) == 0) {
-                    continue;
-                }
-                av_log(NULL, AV_LOG_DEBUG, "保存模式下 取视频帧 拿去渲染\n");
-                //
-
-//                video_display2(ffp);
-
-                Frame *vp = frame_queue_peek_last(&is->pictq);
-                ff_ffmux_soft_onFrameEncode(vp->frame);
-
-
-                frame_queue_next(&is->pictq);
-            } else {
+//            if (ffp->save_mode) {
+//                if (frame_queue_nb_remaining(&is->pictq) == 0) {
+//                    continue;
+//                }
+////                video_display2(ffp);
+//                Frame *vp = frame_queue_peek_last(&is->pictq);
+//                ff_ffmux_soft_onFrameEncode(vp->frame, NULL);
+//                frame_queue_next(&is->pictq);
+//
+//            } else {
                 video_refresh(ffp, &remaining_time);
-            }
+//            }
         }
     }
 

@@ -8,21 +8,22 @@
 static AVFormatContext *in_fmt_ctx;
 static AVCodecContext *video_dec_ctx;
 static AVCodecContext *audio_dec_ctx;
-
 static AVFormatContext *out_fmt_ctx;
 static AVCodecContext *video_enc_ctx;
 static AVCodecContext *audio_enc_ctx;
-
-static const int video_stream_index = 0;
-static const int audio_stream_index = 1;
+static int video_stream_index = -1;
+static int audio_stream_index = -1;
 static const int ffmux_default_output_bitrate = 2000001;
-
+static int64_t ffmux_soft_static_pts;
 static bool ffmux_soft_video_encode_done;
 static bool ffmux_soft_audio_encode_done;
-
+static bool ffmux_soft_init;
 static const bool ffmux_soft_ignoreAudio = true;
 
+int ff_ffmux_soft_flush_video();
 
+#define av_err2str(errnum) \
+    av_make_error_string((char[AV_ERROR_MAX_STRING_SIZE]){0}, AV_ERROR_MAX_STRING_SIZE, errnum)
 
 
 static int ffmux_open_output_file(EditorState *es) {
@@ -68,8 +69,8 @@ static int ffmux_open_output_file(EditorState *es) {
         video_enc_ctx->width = es->outputWidth;
         video_enc_ctx->height = es->outputHeight;
         logd("video src : w=%d,h=%d ; output : w=%d,h=%d",
-             video_dec_ctx->width, video_dec_ctx->height, video_enc_ctx->width,
-             video_enc_ctx->height);
+             video_dec_ctx->width, video_dec_ctx->height,
+             video_enc_ctx->width, video_enc_ctx->height);
 
         //设置角度，若不旋转frame，则需保留角度
         if ((ret = av_dict_set_int(&out_stream->metadata, "rotate",
@@ -109,7 +110,7 @@ static int ffmux_open_output_file(EditorState *es) {
         //设置时间基准
         video_enc_ctx->time_base = video_dec_ctx->time_base;
         //av_codec_set_pkt_timebase方法未成功设置解码器的 timebase
-        video_enc_ctx->time_base.den = 60;
+        video_enc_ctx->time_base.den = 30;
         video_enc_ctx->time_base.num = 1;
         video_enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
         logd("pix_fmt %d", video_enc_ctx->pix_fmt);
@@ -213,14 +214,27 @@ static int ffmux_open_output_file(EditorState *es) {
 void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_dec_ctx,
                         AVCodecContext *p_audio_dec_ctx, EditorState *es) {
     logd("ff_ffmux_soft_init");
+    ffmux_soft_init = true;
     in_fmt_ctx = p_in_fmt_ctx;
+
+    int i;
+    for (i = 0; i < in_fmt_ctx->nb_streams; i++) {
+        AVStream *stream = in_fmt_ctx->streams[i];
+        if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            video_stream_index = i;
+        }
+        if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            audio_stream_index = i;
+        }
+    }
+
     video_dec_ctx = p_video_dec_ctx;
     if (!ffmux_soft_ignoreAudio)
         audio_dec_ctx = p_audio_dec_ctx;
     ffmux_open_output_file(es);
 }
 
- void ff_ffmux_soft_close() {
+void ff_ffmux_soft_close() {
     int ret = av_write_trailer(out_fmt_ctx);
     if (ret != 0) {
         loge("av_write_trailer error !");
@@ -229,18 +243,38 @@ void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_d
     ff_ffmux_soft_release();
 }
 
- void ff_ffmux_soft_check_close() {
+void ff_ffmux_soft_check_close() {
 
     ffmux_soft_audio_encode_done = ffmux_soft_ignoreAudio ? true : ffmux_soft_audio_encode_done;
 
     if (ffmux_soft_video_encode_done && ffmux_soft_audio_encode_done) {
+        ff_ffmux_soft_flush_video();
         ff_ffmux_soft_close();
     }
 }
 
- void ff_ffmux_soft_release() {
+int ff_ffmux_soft_flush_video() {
+    int got_frame;
+    int ret;
+    if (!(video_enc_ctx->codec->capabilities &
+          AV_CODEC_CAP_DELAY))
+        return 0;
+    while (1) {
+        logd("Flushing stream %s encoder\n", "video");
+        ret = ff_ffmux_soft_onFrameEncode(NULL, &got_frame);
+        if (ret < 0)
+            break;
+        if (!got_frame)
+            return 0;
+    }
+    return ret;
+}
+
+void ff_ffmux_soft_release() {
 
     logd("ff_ffmux_soft_release start \n");
+
+    ffmux_soft_init = false;
 
     avcodec_free_context(&video_dec_ctx);
     avcodec_free_context(&audio_dec_ctx);
@@ -259,50 +293,126 @@ void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_d
 
 
 void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int width, int height) {
+    if (!ffmux_soft_init) {
+        return;
+    }
+    logd("ff_ffmux_soft_onVideoEncode pts=%f,size=%d,width=%d,height=%d", pts, size, width, height);
 
+    AVFrame *pFrame = av_frame_alloc();
+    int picture_size = avpicture_get_size(video_enc_ctx->pix_fmt,
+                                          video_enc_ctx->width, video_enc_ctx->height);
+    uint8_t* picture_buf = (uint8_t *)av_malloc((size_t) picture_size);
+    avpicture_fill((AVPicture *)pFrame, picture_buf, video_enc_ctx->pix_fmt,
+                   video_enc_ctx->width, video_enc_ctx->height);
 
 }
 
 
-void ff_ffmux_soft_onFrameEncode(AVFrame *frame) {
+int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
+    int ret = 0;
 
     AVPacket encode_pkt;
-    int got_picture = 0;
-    int encode_ret = 0;
-    av_new_packet(&encode_pkt, avpicture_get_size(video_enc_ctx->pix_fmt, video_enc_ctx->width,
-                                                  video_enc_ctx->height));
-    int ret = 0;
-    ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, &got_picture);
+    encode_pkt.data = NULL;
+    encode_pkt.size = 0;
+    av_init_packet(&encode_pkt);
+
+//    int encode_pkt_size = av_image_get_buffer_size(
+//            video_enc_ctx->pix_fmt, video_enc_ctx->width, video_enc_ctx->height, 1);
+//
+//    logd("encode_pkt_size=%d", encode_pkt_size);
+//
+//    ret = av_new_packet(&encode_pkt, encode_pkt_size);
+
+//    if (ret < 0) {
+//        loge("Failed to av_new_packet");
+//        av_err2str(ret);
+//    }
+
+    if (frame) {
+        if (frame->data) {
+            logd("frame->data");
+        } else {
+            loge("!!!frame->data");
+        }
+
+        logd("format->width=%d", frame->width);
+        logd("format->height=%d", frame->height);
+        logd("frame->format=%d", frame->format);
+        logd("frame->pts=%lld", frame->pts);
+        logd("frame->pkt_dts=%lld", frame->pkt_dts);
+
+//        frame->width = video_enc_ctx->width;
+//        frame->height = video_enc_ctx->height;
+//        frame->format = video_enc_ctx->pix_fmt;
+//        frame->pts = (int64_t) ((1.0 / 30) * 90 * ffmux_soft_static_pts);
+//        ffmux_soft_static_pts++;
+
+
+//        uint8_t *ptrPictureBuf = (uint8_t *) av_malloc((size_t) encode_pkt_size);
+//
+//        av_image_fill_arrays(frame->data,
+//                             frame->linesize,
+//                             ptrPictureBuf,
+//                             video_enc_ctx->pix_fmt,
+//                             video_enc_ctx->width,
+//                             video_enc_ctx->height,
+//                             1);
+
+//        encode_pkt.dts = frame->pts;
+    }
+
+    ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, &got_frame);
+
     if (ret < 0) {
         loge("avcodec_encode_video2 Error ret = %d\n", ret);
-        encode_ret = -1;
+        av_err2str(ret);
         goto encode_end;
-    } else {
-        logd("avcodec_encode_video2 ret = %d\n", ret);
     }
-    if (got_picture == 1) {
-        encode_pkt.stream_index = video_stream_index;
-        ret = av_write_frame(video_enc_ctx, &encode_pkt);
-    } else {
-        //
+    logd("encode_pkt.pts=%lld",encode_pkt.pts);
+    logd("encode_pkt.dts=%lld",encode_pkt.dts);
+    encode_pkt.stream_index = video_stream_index;
+
+    //编码后，pkt.pts、pkt.dts使用AVCodecContext->time_base为单位
+    // 通过调用"av_packet_rescale_ts"转换为AVStream->time_base为单位
+//    av_packet_rescale_ts(&encode_pkt,
+//                         video_dec_ctx->time_base,
+//                         out_fmt_ctx->streams[video_stream_index]->time_base
+//                         );
+
+    logd("rescale encode_pkt.pts=%lld",encode_pkt.pts);
+    logd("rescale encode_pkt.dts=%lld",encode_pkt.dts);
+
+    ret = av_write_frame(out_fmt_ctx, &encode_pkt);
+    if (ret < 0) {
+        loge("Failed to muxing frame ret=%d\n", ret);
+        av_err2str(ret);
     }
     encode_end:
-    av_free_packet(&encode_pkt);
-    return;
+    av_packet_unref(&encode_pkt);
+    return ret;
 }
 
 
 void ff_ffmux_soft_onAudioEncode(AVFrame *frame) {
-
+    if (!ffmux_soft_init) {
+        return;
+    }
 }
 
 void ff_ffmux_soft_onVideoEncodeDone() {
+    if (!ffmux_soft_init) {
+        return;
+    }
+    logd("ff_ffmux_soft_onVideoEncodeDone");
     ffmux_soft_video_encode_done = true;
     ff_ffmux_soft_check_close();
 }
 
 
 void ff_ffmux_soft_onAudioEncodeDone() {
+    if (!ffmux_soft_init) {
+        return;
+    }
     ffmux_soft_audio_encode_done = true;
     ff_ffmux_soft_check_close();
 }
