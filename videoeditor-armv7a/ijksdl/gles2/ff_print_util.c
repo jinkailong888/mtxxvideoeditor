@@ -40,10 +40,10 @@ void print_avframe_tag(AVFrame *frame, char *tag) {
 
 void print_avpacket(AVPacket *avPacket) {
     if (avPacket) {
-        logd("enc_pkt->size=%d", avPacket->size);
-        logd("enc_pkt->pts=%lld", avPacket->pts);
-        logd("enc_pkt->dts=%lld", avPacket->dts);
-        logd("enc_pkt->duration=%lld", avPacket->duration);
+        logd("avPacket->size=%d", avPacket->size);
+        logd("avPacket->pts=%lld", avPacket->pts);
+        logd("avPacket->dts=%lld", avPacket->dts);
+        logd("avPacket->duration=%lld", avPacket->duration);
     } else {
         logd("print_avpacket avPacket is null");
     }
@@ -51,11 +51,20 @@ void print_avpacket(AVPacket *avPacket) {
 
 void print_avpacket_tag(AVPacket *avPacket, char *tag) {
     if (avPacket) {
-        logd("%s enc_pkt->size=%d", tag, avPacket->size);
-        logd("%s enc_pkt->pts=%lld", tag, avPacket->pts);
-        logd("%s enc_pkt->dts=%lld", tag, avPacket->dts);
-        logd("%s enc_pkt->duration=%lld", tag, avPacket->duration);
+        logd("%s avPacket->size=%d", tag, avPacket->size);
+        logd("%s avPacket->pts=%lld", tag, avPacket->pts);
+        logd("%s avPacket->dts=%lld", tag, avPacket->dts);
+        logd("%s avPacket->duration=%lld", tag, avPacket->duration);
     } else {
         logd("%s print_avpacket avPacket is null", tag);
+    }
+}
+
+
+void print_AVRational(AVRational avRational, char *tag) {
+    if (&avRational) {
+        logd("%s num/den ：%d/%d", tag, avRational.num, avRational.den);
+    }else{
+        logd("%s print_AVRational avRational is null", tag);
     }
 }

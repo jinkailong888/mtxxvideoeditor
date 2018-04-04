@@ -101,6 +101,9 @@ static int open_input_file(EditorState *es) {
 
         av_codec_set_pkt_timebase(dec_ctx, stream->time_base);
 
+        print_AVRational(dec_ctx->time_base, "open_input_file dec_ctx->time_base");
+        print_AVRational(stream->time_base, "open_input_file in stream->time_base");
+
         codec = avcodec_find_decoder(dec_ctx->codec_id);
 
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO && es->mediaCodecDec) {
@@ -126,6 +129,7 @@ static int open_input_file(EditorState *es) {
             dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
                 dec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
+                logd("av_guess_frame_rate = %d", dec_ctx->framerate);
                 es->rotation = get_rotation(stream);
             }
             /* 打开解码器 */
@@ -134,6 +138,10 @@ static int open_input_file(EditorState *es) {
                 loge("Failed to open decoder for stream #%u\n", i);
                 return ret;
             }
+
+            print_AVRational(dec_ctx->time_base, "avcodec_open2 dec_ctx->time_base");
+            print_AVRational(stream->time_base, "avcodec_open2 in stream->time_base");
+
         }
         stream_ctx[i].dec_ctx = dec_ctx;
     }
@@ -237,12 +245,13 @@ static int open_output_file(EditorState *es) {
 
                 es->pix_fmt = enc_ctx->pix_fmt;
 
-
                 //设置时间基准
                 enc_ctx->time_base = dec_ctx->time_base;
 
+                print_AVRational(enc_ctx->time_base, "编码器");
+                print_AVRational(dec_ctx->time_base, "解码器");
+
                 logd("pix_fmt %d", enc_ctx->pix_fmt);
-                logd("time_base den=%d num=%d", enc_ctx->time_base.den, enc_ctx->time_base.num);
 
                 //必须设置，否则系统播放器及pc无法播放(ijk可以)
                 enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -517,11 +526,11 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
 
-    print_avframe(filt_frame);
+    print_avframe_tag(filt_frame,"即将编码帧：");
 
     ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
 
-    print_avpacket_tag(&enc_pkt,"ffeditor");
+    print_avpacket_tag(&enc_pkt, "编码后包：");
 
     av_frame_free(&filt_frame);
     if (ret < 0) {
@@ -533,11 +542,19 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
 
     /* prepare packet for muxing */
     enc_pkt.stream_index = stream_index;
+
+    print_AVRational(ofmt_ctx->streams[stream_index]->time_base,
+                     "输出流");
+    print_AVRational(stream_ctx[stream_index].enc_ctx->time_base,
+                     "编码器");
+
+
     av_packet_rescale_ts(&enc_pkt,
                          stream_ctx[stream_index].enc_ctx->time_base,
                          ofmt_ctx->streams[stream_index]->time_base);
 
-    print_avpacket_tag(&enc_pkt,"ffeditor after rescale_ts");
+
+    print_avpacket_tag(&enc_pkt, "即将封装包");
 
     logd("Muxing frame\n");
     /* mux encoded frame */
@@ -608,7 +625,7 @@ static int flush_encoder(EditorState *es, unsigned int stream_index) {
         ret = encode_write_frame(es, NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
-        if (!got_frame){
+        if (!got_frame) {
             logd("Flushing done");
             return 0;
         }
@@ -649,20 +666,40 @@ int ffeditor_save_thread(void *arg) {
         logd("Demuxer gave frame of stream_index %u\n", stream_index);
 
 #if CONFIG_FILTER
-//        if (filter_ctx[stream_index].filter_graph) {
+        //        if (filter_ctx[stream_index].filter_graph) {
 #endif
         frame = av_frame_alloc();
         if (!frame) {
             ret = AVERROR(ENOMEM);
             break;
         }
+
+
+        print_AVRational(stream_ctx[stream_index].dec_ctx->time_base,
+                         "解码器 ");
+
+        print_AVRational(ifmt_ctx->streams[stream_index]->time_base,
+                         "输入流 ");
+
+        print_avpacket_tag(&packet, "刚读出来的包");
+
+        /**
+         * 将 packet 中的 pts、dts、duration 从 AVStream 的时间单位 转换为 解码器的时间单位
+         */
         av_packet_rescale_ts(&packet,
                              ifmt_ctx->streams[stream_index]->time_base,
                              stream_ctx[stream_index].dec_ctx->time_base);
+
+        print_avpacket_tag(&packet, "即将解码的包");
+
+
+
+
         dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
                    avcodec_decode_audio4;
         logd("decoding frame\n");
         ret = dec_func(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
+        print_avframe_tag(frame, "刚解码完");
         if (ret < 0) {
             av_frame_free(&frame);
             loge("Decoding failed\n");
@@ -722,7 +759,7 @@ int ffeditor_save_thread(void *arg) {
     end:
     av_packet_unref(&packet);
 #if CONFIG_FILTER
-//    av_frame_free(&frame);  //上面已经free了frame ，再次frame 会报错
+    //    av_frame_free(&frame);  //上面已经free了frame ，再次frame 会报错
 #endif
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         avcodec_free_context(&stream_ctx[i].dec_ctx);

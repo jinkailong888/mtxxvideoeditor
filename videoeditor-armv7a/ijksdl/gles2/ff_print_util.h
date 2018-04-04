@@ -22,4 +22,6 @@ void print_avpacket_tag(AVPacket *avPacket, char *tag);
 
 void print_avframe_tag(AVFrame *frame, char *tag);
 
+void print_AVRational(AVRational avRational, char *tag);
+
 #endif //MTXXVIDEOEDITOR_FF_PRINT_UTIL_H

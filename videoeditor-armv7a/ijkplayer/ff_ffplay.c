@@ -80,6 +80,7 @@
 #include <ijksdl/ijksdl_gles2.h>
 #include <ijksdl/gles2/ff_ffmux_hard.h>
 #include <ijksdl/gles2/ff_ffmux_soft.h>
+#include <ijksdl/gles2/ff_print_util.h>
 
 #if defined(__ANDROID__)
 
@@ -687,8 +688,25 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
 
         switch (d->avctx->codec_type) {
             case AVMEDIA_TYPE_VIDEO: {
+                if (ffp->save_mode) {
+                    if (ffp->hard_mux) {
+
+                    } else {
+                        av_packet_rescale_ts(&d->pkt_temp,
+                                             ffp->is->video_st->time_base,
+                                             d->avctx->time_base);
+                    }
+                    print_AVRational(ffp->is->video_st->time_base, "播放器 视频输入流");
+                    print_AVRational( d->avctx->time_base, "播放器 解码器");
+                    print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的包");
+                }
+
+
                 ret = avcodec_decode_video2(d->avctx, frame, &got_frame, &d->pkt_temp);
                 if (got_frame) {
+
+                    print_avframe_tag(frame, "播放器 刚解码后的帧");
+
                     ffp->stat.vdps = SDL_SpeedSamplerAdd(&ffp->vdps_sampler, FFP_SHOW_VDPS_AVCODEC,
                                                          "vdps[avcodec]");
                     if (ffp->decoder_reorder_pts == -1) {
@@ -1611,8 +1629,11 @@ static void alloc_picture(FFPlayer *ffp, int frame_format) {
 static int
 queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos,
               int serial) {
+
+
     if (ffp->save_mode) {
         if (!ffp->hard_mux) {
+            print_avframe_tag(src_frame, "播放器 即将编码的帧");
             ff_ffmux_soft_onFrameEncode(src_frame, NULL);
             return 0;
         }
@@ -2334,6 +2355,16 @@ static int ffplay_video_thread(void *arg) {
     int ret;
     AVRational tb = is->video_st->time_base;
     AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
+
+    if (ffp->save_mode) {
+        if (ffp->hard_mux) {
+
+        } else {
+            ffp->is->viddec.avctx->framerate = frame_rate;
+        }
+    }
+
+
     int64_t dst_pts = -1;
     int64_t last_dst_pts = -1;
     int retry_convert_image = 0;
@@ -2364,6 +2395,9 @@ static int ffplay_video_thread(void *arg) {
 
     for (;;) {
         ret = get_video_frame(ffp, frame);
+
+//        print_avframe_tag(frame, "get_video_frame");
+
         if (ret < 0)
             goto the_end;
         if (!ret)
@@ -3055,7 +3089,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
     ret = avcodec_parameters_to_context(avctx, ic->streams[stream_index]->codecpar);
     if (ret < 0)
         goto fail;
-    //软解软保时此句代码未成功设置视频解码器的 time_base
+    //todo 尚未知此句代码意义
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
     // 获取解码器
     codec = avcodec_find_decoder(avctx->codec_id);
@@ -3073,6 +3107,15 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         case AVMEDIA_TYPE_VIDEO   :
             is->last_video_stream = stream_index;
             forced_codec_name = ffp->video_codec_name;
+            if (ffp->save_mode) {
+                if (ffp->hard_mux) {
+
+                } else {
+
+                    //在打开编码器之前设置帧率，打开后avctx才会有时间基
+                    avctx->framerate = av_guess_frame_rate(ic, ic->streams[stream_index], NULL);
+                }
+            }
             break;
         default:
             break;
@@ -3894,6 +3937,8 @@ static int read_thread(void *arg) {
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    &&
                    !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+
+            print_avpacket_tag(pkt, "播放器 刚读出来的包");
             packet_queue_put(&is->videoq, pkt);
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);

@@ -367,7 +367,6 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
  1. 何时从播放器取解码后的帧， 检测取出的帧是否正常，与 ffeditor 对比 AVFrame 数据
 
  ffeditor:
-
      frame->width=1280
      frame->height=720
      frame->format=0
@@ -377,23 +376,18 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
      frame->linesize[0]=1280
      frame->linesize[1]=640
      frame->linesize[2]=640
-
      <encode>
-
      enc_pkt->size=1620
      enc_pkt->pts=12
      enc_pkt->dts=12
      enc_pkt->duration=0
-
      <rescale_ts>
-
      enc_pkt->size=1620
      enc_pkt->pts=3072
      enc_pkt->dts=3072
      enc_pkt->duration=0
 
  ijkplayer:
-
      frame->width=1280
      frame->height=720
      frame->format=0
@@ -403,13 +397,89 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
      frame->linesize[0]=1280
      frame->linesize[1]=640
      frame->linesize[2]=640
-
+     <encode>
      enc_pkt->size=323150
      enc_pkt->pts=47181
      enc_pkt->dts=47181
      enc_pkt->duration=0
 
  可以看出 pts、dts 异常， ijkplayer 方式编码后包大小竟然变大 ？
+
+  ijkplayer 播放解码完后pts就为此值：
+     ffplay_decode frame->width=1280
+     ffplay_decode frame->height=720
+     ffplay_decode frame->format=0
+     ffplay_decode frame->pts=513190
+     ffplay_decode frame->pkt_dts=513190
+     ffplay_decode frame->pkt_size=118768
+     ffplay_decode frame->linesize[0]=1280
+     ffplay_decode frame->linesize[1]=640
+     ffplay_decode frame->linesize[2]=640
+
+   ffeditor 解码后到编码也为此值，中间没有处理！
+   所以应该是解码前的配置，ffeditor中在解码前调用了：
+
+     av_packet_rescale_ts(&packet,
+                  ifmt_ctx->streams[stream_index]->time_base,
+                  stream_ctx[stream_index].dec_ctx->time_base);
+
+   尝试屏蔽此方法，出现跟 ijkplayer 一样的 问题 ： 体积异常、时长异常！
+
+   所以，应该在ijkplayer 中解码前加入此方法！
+
+问题：加入后 文件大小和时长极小，可以播放，画质很糊
+
+
+
+
+ffeditor video pts 变化：
+
+start)))))))))
+刚读出来包： 65268
+输入流->解码器时间基转换后包：36      (输入流 num/den ：1/90000 , 解码器 num/den ：2/99)
+刚解码后的帧：36
+即将编码的帧：36
+编码后得到的包：22
+编码器->输出流时间基转换后包：5632    (输出流 num/den ：1/12672 , 编码器 num/den ：2/99)
+end)))))))))))
+
+问题: ffeditor  对手机录制的视频转码保存成功，对保存过的视频再次保存就会出现问题
+现象：第一次保存后0.9M，时长正常为3S，再次保存后只有20K，时长小于1s
+分析：可能就是第一次保存时pts没写对？ 先不管这个错误，先实现 ijkplayer 的第一次成功保存
+
+
+ijkplayer video pts 变化：
+start)))))))))
+刚读出来的包：32598
+即将解码的包：32598
+解码后的帧：32598
+end)))))))))))
+
+可见未做转换，开始改造：
+
+1.输入流->解码器时间基转换
+问题：发现解码器时间基为 0/2，未设置
+原因：对比ffeditor, avcodec_open2之前若设置 dec_ctx->framerate 打开后就会有时间基信息
+      ffeditor中：  dec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
+      framerate=99， 打开解码器后时间基为 2/99
+解决：修改ijkplayer，在打开编码器之前设置帧率
+
+
+2.编码器->输出流时间基转换
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

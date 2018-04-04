@@ -108,23 +108,14 @@ static int ffmux_open_output_file(EditorState *es) {
             video_enc_ctx->pix_fmt = video_dec_ctx->pix_fmt;
         es->pix_fmt = video_enc_ctx->pix_fmt;
 
-        //设置时间基准
-        video_enc_ctx->time_base = video_dec_ctx->time_base;
-        //av_codec_set_pkt_timebase方法未成功设置解码器的 timebase
-        video_enc_ctx->time_base.den = 30;
-        video_enc_ctx->time_base.num = 1;
-        video_enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
         logd("pix_fmt %d", video_enc_ctx->pix_fmt);
-        logd("time_base den=%d num=%d", video_enc_ctx->time_base.den, video_enc_ctx->time_base.num);
 
-        // 返回-22 ,原因为   video_enc_ctx->time_base 字段参数无效
         video_enc_ctx->codec_type = encoder->type;
         video_enc_ctx->gop_size = 30;
         video_enc_ctx->keyint_min = 60;
-        video_enc_ctx->framerate.num = 1;
-        video_enc_ctx->framerate.den = 30;
-        video_enc_ctx->time_base.num = 1;
-        video_enc_ctx->time_base.den = 30;
+        video_enc_ctx->time_base = video_dec_ctx->time_base;
+        video_enc_ctx->framerate = video_dec_ctx->framerate;
+        video_enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
 
         AVDictionary *opts = NULL;
         av_dict_set(&opts, "threads", "auto", 0);
@@ -139,12 +130,7 @@ static int ffmux_open_output_file(EditorState *es) {
             loge("Failed to copy video encoder parameters");
             return ret;
         }
-
         out_stream->time_base = video_enc_ctx->time_base;
-        out_stream->time_base.num = 1;
-        out_stream->time_base.den = 90000;
-
-
         logd("视频编码器初始化完毕");
     }
 
@@ -342,8 +328,6 @@ int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
     if (!got_frame)
         got_frame = &got_frame_local;
 
-    print_avframe_tag(frame,"ffmux_soft");
-
     ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, got_frame);
 
     if (ret < 0) {
@@ -368,7 +352,7 @@ int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
     print_avpacket_tag(&encode_pkt,"ffmux_soft after rescale_ts");
 
     logd("Muxing frame\n");
-    ret = av_interleaved_write_frame(out_fmt_ctx, &encode_pkt);
+    ret = av_write_frame(out_fmt_ctx, &encode_pkt);
     if (ret < 0) {
         loge("Failed to muxing frame ret=%d\n", ret);
         av_err2str(ret);
