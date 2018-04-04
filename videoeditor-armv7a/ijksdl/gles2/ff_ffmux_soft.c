@@ -6,6 +6,8 @@
 #include "ff_ffmux_soft.h"
 #include "ff_print_util.h"
 
+static const int VIDEO_TYPE = -1;
+static const int AUDIO_TYPE = -2;
 static AVFormatContext *in_fmt_ctx;
 static AVCodecContext *video_dec_ctx;
 static AVCodecContext *audio_dec_ctx;
@@ -22,6 +24,10 @@ static bool ffmux_soft_init;
 static const bool ffmux_soft_ignoreAudio = true;
 
 int ff_ffmux_soft_flush_video();
+
+int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int type);
+
+int ff_ffmux_flush_encode(const int type);
 
 #define av_err2str(errnum) \
     av_make_error_string((char[AV_ERROR_MAX_STRING_SIZE]){0}, AV_ERROR_MAX_STRING_SIZE, errnum)
@@ -251,9 +257,34 @@ void ff_ffmux_soft_check_close() {
     ffmux_soft_audio_encode_done = ffmux_soft_ignoreAudio ? true : ffmux_soft_audio_encode_done;
 
     if (ffmux_soft_video_encode_done && ffmux_soft_audio_encode_done) {
-        ff_ffmux_soft_flush_video();
+//        ff_ffmux_soft_flush_video();
+
+        ff_ffmux_flush_encode(VIDEO_TYPE);
+        if (!ffmux_soft_ignoreAudio)
+            ff_ffmux_flush_encode(AUDIO_TYPE);
+
         ff_ffmux_soft_close();
     }
+}
+
+int ff_ffmux_flush_encode(const int type) {
+    AVCodecContext *enc_ctx = type == VIDEO_TYPE ? video_enc_ctx : audio_enc_ctx;
+    int got_frame;
+    int ret;
+    if (!(enc_ctx->codec->capabilities &
+          AV_CODEC_CAP_DELAY))
+        return 0;
+    while (1) {
+        logd("Flushing stream %s encoder\n", "video");
+        ret = ff_ffmux_soft_onFrameEncode(NULL, &got_frame, type);
+        if (ret < 0)
+            break;
+        if (!got_frame) {
+            logd("Flushing done");
+            return 0;
+        }
+    }
+    return ret;
 }
 
 int ff_ffmux_soft_flush_video() {
@@ -264,10 +295,10 @@ int ff_ffmux_soft_flush_video() {
         return 0;
     while (1) {
         logd("Flushing stream %s encoder\n", "video");
-        ret = ff_ffmux_soft_onFrameEncode(NULL, &got_frame);
+        ret = ff_ffmux_soft_onFrameEncode(NULL, &got_frame, VIDEO_TYPE);
         if (ret < 0)
             break;
-        if (!got_frame){
+        if (!got_frame) {
             logd("Flushing done");
             return 0;
         }
@@ -312,26 +343,44 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int 
 
 }
 
-
-int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
+int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int type) {
     if (!ffmux_soft_init) {
+        loge("软解软保未初始化！");
         return 0;
     }
+    AVCodecContext *enc_ctx;
+    int (*enc_func)(AVCodecContext *, AVPacket *, const AVFrame *, int *);
+
+    bool is_video_type = type == VIDEO_TYPE ? true : false;
+
+    if (is_video_type) {
+        enc_ctx = video_enc_ctx;
+        enc_func = avcodec_encode_video2;
+    } else {
+        enc_ctx = audio_enc_ctx;
+        enc_func = avcodec_encode_audio2;
+    }
+
     int ret;
     int got_frame_local;
+    if (!got_frame)
+        got_frame = &got_frame_local;
 
     AVPacket encode_pkt;
     encode_pkt.data = NULL;
     encode_pkt.size = 0;
     av_init_packet(&encode_pkt);
 
-    if (!got_frame)
-        got_frame = &got_frame_local;
+    if (is_video_type) {
+        print_avframe_tag(frame, "即将编码视频帧");
+    } else {
+        print_avframe_tag(frame, "即将编码音频帧");
+    }
 
-    ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, got_frame);
+    ret = enc_func(enc_ctx, &encode_pkt, frame, got_frame);
 
     if (ret < 0) {
-        loge("avcodec_encode_video2 Error ret = %d\n", ret);
+        loge("enc_func Error ret = %d\n", ret);
         av_err2str(ret);
         return ret;
     }
@@ -339,19 +388,25 @@ int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
     if (!(*got_frame))
         return 0;
 
-    print_avpacket_tag(&encode_pkt,"ffmux_soft");
+    if (is_video_type) {
+        print_avpacket_tag(&encode_pkt, "编码后 视频 包");
+    } else {
+        print_avpacket_tag(&encode_pkt, "编码后 音频 包");
+    }
 
-
-    /* prepare packet for muxing */
+    //准备mux
     encode_pkt.stream_index = video_stream_index;
     av_packet_rescale_ts(&encode_pkt,
                          video_enc_ctx->time_base,
                          out_fmt_ctx->streams[video_stream_index]->time_base
     );
 
-    print_avpacket_tag(&encode_pkt,"ffmux_soft after rescale_ts");
+    if (is_video_type) {
+        print_avpacket_tag(&encode_pkt, "即将写入的 视频 包");
+    } else {
+        print_avpacket_tag(&encode_pkt, "即将写入的 音频 包");
+    }
 
-    logd("Muxing frame\n");
     ret = av_write_frame(out_fmt_ctx, &encode_pkt);
     if (ret < 0) {
         loge("Failed to muxing frame ret=%d\n", ret);
@@ -360,11 +415,14 @@ int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
     return ret;
 }
 
+int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame, int *got_frame) {
+    return ff_ffmux_soft_onFrameEncode(frame, got_frame, VIDEO_TYPE);
+}
 
-void ff_ffmux_soft_onAudioEncode(AVFrame *frame) {
-    if (!ffmux_soft_init) {
-        return;
-    }
+int ff_ffmux_soft_onAudioEncode(AVFrame *frame, int *got_frame) {
+    if (ffmux_soft_ignoreAudio)
+        return 0;
+    return ff_ffmux_soft_onFrameEncode(frame, got_frame, AUDIO_TYPE);
 }
 
 void ff_ffmux_soft_onVideoEncodeDone() {

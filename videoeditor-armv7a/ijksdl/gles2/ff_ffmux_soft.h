@@ -21,9 +21,9 @@ void ff_ffmux_soft_init(AVFormatContext *in_fmt_ctx, AVCodecContext *video_dec_c
 
 void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int width, int height);
 
-void ff_ffmux_soft_onAudioEncode(AVFrame *frame);
+int ff_ffmux_soft_onAudioEncode(AVFrame *frame,int *got_frame);
 
-int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame);
+int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame, int *got_frame);
 
 void ff_ffmux_soft_onVideoEncodeDone();
 
