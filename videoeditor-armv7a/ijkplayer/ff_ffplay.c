@@ -1612,8 +1612,10 @@ static int
 queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos,
               int serial) {
     if (ffp->save_mode) {
-        ff_ffmux_soft_onFrameEncode(src_frame, NULL);
-        return 0 ;
+        if (ffp->hard_mux) {
+            ff_ffmux_soft_onFrameEncode(src_frame, NULL);
+            return 0;
+        }
     }
 
     VideoState *is = ffp->is;
@@ -3584,11 +3586,10 @@ static int read_thread(void *arg) {
         } else {
             av_log(NULL, AV_LOG_DEBUG,
                    "ff_ffmux_soft_init ");
-            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
-//            ffp_save_l(ffp);
+//            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
+            ffp_save_l(ffp);
         }
     }
-
 
 
     if (!ffp->start_on_prepared) {
@@ -3767,7 +3768,7 @@ static int read_thread(void *arg) {
                     if (ffp->save_mode) {
                         if (ffp->hard_mux) {
 
-                        }else{
+                        } else {
                             ff_ffmux_soft_onVideoEncodeDone();
                         }
                     }
@@ -4082,7 +4083,7 @@ static int video_refresh_thread(void *arg) {
 //                frame_queue_next(&is->pictq);
 //
 //            } else {
-                video_refresh(ffp, &remaining_time);
+            video_refresh(ffp, &remaining_time);
 //            }
         }
     }

@@ -346,15 +346,19 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 
   此处为：     frame= 140 QP=0.00 NAL=2 Slice:P Poc:280 I:0    P:0    SKIP:3600 size=12 bytes
 
+解决： 在video_refresh_thread方法中传入的AVFrame 数据已经转移到 Frame->mp了 ，传入时机调整到 queue_picture
+
+问题： 调整到 queue_picture 后， 数据量极大
+
+
+
+问题：
+
   Timestamps are unset in a packet for stream 0.
   This is deprecated and will stop working in the future.
   Fix your code to set the timestamps properly
 
   Encoder did not produce proper pts, making some up
-
-解决： 在video_refresh_thread方法中传入的AVFrame 数据已经转移到 Frame->mp了 ，传入时机调整到 queue_picture
-
-问题： 调整到 queue_picture 后， 数据量极大
 
 
 

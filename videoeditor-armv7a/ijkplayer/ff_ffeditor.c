@@ -4,7 +4,7 @@
 //
 
 
-#define CONFIG_FILTER 1
+#define CONFIG_FILTER 0
 #define MY_TAG  "VideoEditor"
 
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
@@ -189,17 +189,6 @@ static int open_output_file(EditorState *es) {
             }
 
             if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-
-                //设置宽高，若未手动设置则默认与原视频相同
-//                if (!es->outputWidth || !es->outputHeight) {
-//                    es->outputWidth = dec_ctx->width;
-//                    es->outputHeight = dec_ctx->height;
-//                } else {
-//                    int temp_outputWidth = es->outputWidth;
-//                    es->outputWidth = es->rotation ? es->outputHeight : es->outputWidth;
-//                    es->outputHeight = es->rotation ? temp_outputWidth : es->outputHeight;
-//                }
-
                 es->outputWidth = dec_ctx->width;
                 es->outputHeight = dec_ctx->height;
 
@@ -220,10 +209,8 @@ static int open_output_file(EditorState *es) {
                 /* h264编码器特有设置域，具体见“ijk记录” */
                 av_opt_set(enc_ctx->priv_data, "preset", "ultrafast", 0);
                 av_opt_set(enc_ctx->priv_data, "lookahead", "0", 0);
-//                av_opt_set(enc_ctx->priv_data, "level", "4.1", 0);
                 av_opt_set(enc_ctx->priv_data, "2pass", "0", 0);
                 av_opt_set(enc_ctx->priv_data, "zerolatency", "1", 0);
-//                av_dict_set(&encode_opts, "profile", "baseline", 0);
 
                 //设置码率，只设置bit_rate是平均码率，不一定能控制住
                 if (!es->outputBitrate) {
@@ -254,7 +241,7 @@ static int open_output_file(EditorState *es) {
                 enc_ctx->time_base = dec_ctx->time_base;
 
                 logd("pix_fmt %d", enc_ctx->pix_fmt);
-                logd("time_base den=%d num=%d", enc_ctx->time_base.den,enc_ctx->time_base.num);
+                logd("time_base den=%d num=%d", enc_ctx->time_base.den, enc_ctx->time_base.num);
 
                 //必须设置，否则系统播放器及pc无法播放(ijk可以)
                 enc_ctx->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -529,17 +516,7 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
 
-    //todo gl渲染
-//    int *da = uploadTexture(filt_frame);
-//    onDrawFrame(da);
-//    filt_frame->data[0] = readDataFromGPU(720, 1280);
-
-
-    if (es->mediaCodecEnc) {
-//        ret = mediacodec_encode_frame(es, &enc_pkt, filt_frame);
-    } else {
-        ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
-    }
+    ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
 
     av_frame_free(&filt_frame);
     if (ret < 0) {
@@ -566,7 +543,6 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
 }
 
 #if CONFIG_FILTER
-
 static int filter_encode_write_frame(EditorState *es, AVFrame *frame, unsigned int stream_index) {
     int ret;
     AVFrame *filt_frame;
@@ -610,7 +586,6 @@ static int filter_encode_write_frame(EditorState *es, AVFrame *frame, unsigned i
 
     return ret;
 }
-
 #endif
 
 static int flush_encoder(EditorState *es, unsigned int stream_index) {
@@ -623,7 +598,6 @@ static int flush_encoder(EditorState *es, unsigned int stream_index) {
 
     while (1) {
         logd("Flushing stream #%u encoder\n", stream_index);
-
         ret = encode_write_frame(es, NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
@@ -666,47 +640,53 @@ int ffeditor_save_thread(void *arg) {
         logd("Demuxer gave frame of stream_index %u\n", stream_index);
 
 #if CONFIG_FILTER
-        if (filter_ctx[stream_index].filter_graph) {
-#else
+//        if (filter_ctx[stream_index].filter_graph) {
 #endif
-            frame = av_frame_alloc();
-            if (!frame) {
-                ret = AVERROR(ENOMEM);
-                break;
-            }
-            av_packet_rescale_ts(&packet,
-                                 ifmt_ctx->streams[stream_index]->time_base,
-                                 stream_ctx[stream_index].dec_ctx->time_base);
-            dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
-                       avcodec_decode_audio4;
-            logd("decoding frame\n");
-            ret = dec_func(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
-            if (ret < 0) {
-                av_frame_free(&frame);
-                loge("Decoding failed\n");
-                break;
-            }
-            if (got_frame) {
-                logd("frame width=%d,height=%d\n", frame->width, frame->height);
-                frame->pts = av_frame_get_best_effort_timestamp(frame);
-                ret = filter_encode_write_frame(es, frame, stream_index);
-                av_frame_free(&frame);
-                if (ret < 0)
-                    goto end;
-            } else {
-                av_frame_free(&frame);
-            }
-        } else {
-            /* remux this frame without reencoding */
-            av_log(NULL, AV_LOG_DEBUG, "remux this frame without reencoding\n");
-            av_packet_rescale_ts(&packet,
-                                 ifmt_ctx->streams[stream_index]->time_base,
-                                 ofmt_ctx->streams[stream_index]->time_base);
-
-            ret = av_interleaved_write_frame(ofmt_ctx, &packet);
+        frame = av_frame_alloc();
+        if (!frame) {
+            ret = AVERROR(ENOMEM);
+            break;
+        }
+        av_packet_rescale_ts(&packet,
+                             ifmt_ctx->streams[stream_index]->time_base,
+                             stream_ctx[stream_index].dec_ctx->time_base);
+        dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
+                   avcodec_decode_audio4;
+        logd("decoding frame\n");
+        ret = dec_func(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
+        if (ret < 0) {
+            av_frame_free(&frame);
+            loge("Decoding failed\n");
+            break;
+        }
+        if (got_frame) {
+            logd("frame width=%d,height=%d\n", frame->width, frame->height);
+            frame->pts = av_frame_get_best_effort_timestamp(frame);
+#if CONFIG_FILTER
+            ret = filter_encode_write_frame(es, frame, stream_index);
+            av_frame_free(&frame);
+#else
+            ret = encode_write_frame(es, frame, stream_index, NULL);
+#endif
             if (ret < 0)
                 goto end;
+        } else {
+            av_frame_free(&frame);
         }
+#if CONFIG_FILTER
+        //        } else {
+//            /* remux this frame without reencoding */
+//            av_log(NULL, AV_LOG_DEBUG, "remux this frame without reencoding\n");
+//            av_packet_rescale_ts(&packet,
+//                                 ifmt_ctx->streams[stream_index]->time_base,
+//                                 ofmt_ctx->streams[stream_index]->time_base);
+//
+//            ret = av_interleaved_write_frame(ofmt_ctx, &packet);
+//            if (ret < 0)
+//                goto end;
+//        }
+#endif
+
         av_packet_unref(&packet);
     }
 
@@ -714,20 +694,14 @@ int ffeditor_save_thread(void *arg) {
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         /* flush filter */
 #if CONFIG_FILTER
-        if (!filter_ctx[i].filter_graph)
-            continue;
-#endif
-
-#if CONFIG_FILTER
+        //        if (!filter_ctx[i].filter_graph)
+        //            continue;
         ret = filter_encode_write_frame(es, frame, i);
-#else
-        //        ret = encode_write_frame(es, frame, i, NULL);
-#endif
         if (ret < 0) {
             loge("Flushing filter failed\n");
             goto end;
         }
-
+#endif
         /* flush encoder */
         ret = flush_encoder(es, i);
         if (ret < 0) {
@@ -735,11 +709,10 @@ int ffeditor_save_thread(void *arg) {
             goto end;
         }
     }
-
     av_write_trailer(ofmt_ctx);
     end:
     av_packet_unref(&packet);
-    av_frame_free(&frame);
+//    av_frame_free(&frame);  //上面已经free了frame ，再次frame 会报错
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         avcodec_free_context(&stream_ctx[i].dec_ctx);
         if (ofmt_ctx && ofmt_ctx->nb_streams > i && ofmt_ctx->streams[i] && stream_ctx[i].enc_ctx)
@@ -764,11 +737,9 @@ int ffeditor_save_thread(void *arg) {
         logd("save done , outputPath: %s\n", es->outputPath);
     }
 
-
     c_end = time(NULL);
     logd("The save used %lf s by time()\n", difftime(c_end, c_start));
     return ret ? 1 : 0;
-
 }
 
 

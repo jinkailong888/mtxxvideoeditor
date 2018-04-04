@@ -28,7 +28,6 @@ int ff_ffmux_soft_flush_video();
 
 static int ffmux_open_output_file(EditorState *es) {
     AVStream *out_stream;
-    AVDictionary *encode_opts = NULL;
     AVCodec *encoder;
     int ret;
     const char *filename;
@@ -50,6 +49,7 @@ static int ffmux_open_output_file(EditorState *es) {
             loge("Failed allocating output stream\n");
             return AVERROR_UNKNOWN;
         }
+        video_stream_index = out_stream->index;
         encoder = avcodec_find_encoder(video_dec_ctx->codec_id);
         if (!encoder) {
             loge("Necessary video encoder not found, codeId=%d\n", video_dec_ctx->codec_id);
@@ -117,7 +117,18 @@ static int ffmux_open_output_file(EditorState *es) {
         logd("time_base den=%d num=%d", video_enc_ctx->time_base.den, video_enc_ctx->time_base.num);
 
         // 返回-22 ,原因为   video_enc_ctx->time_base 字段参数无效
-        ret = avcodec_open2(video_enc_ctx, encoder, &encode_opts);
+        video_enc_ctx->codec_type = encoder->type;
+        video_enc_ctx->gop_size = 30;
+        video_enc_ctx->keyint_min = 60;
+        video_enc_ctx->framerate.num = 1;
+        video_enc_ctx->framerate.den = 30;
+        video_enc_ctx->time_base.num = 1;
+        video_enc_ctx->time_base.den = 30;
+
+        AVDictionary *opts = NULL;
+        av_dict_set(&opts, "threads", "auto", 0);
+        av_dict_set(&opts, "profile", "main", 0);
+        ret = avcodec_open2(video_enc_ctx, encoder, &opts);
         if (ret < 0) {
             loge("Cannot open video encoder ret=%d", ret);
             return ret;
@@ -129,6 +140,9 @@ static int ffmux_open_output_file(EditorState *es) {
         }
 
         out_stream->time_base = video_enc_ctx->time_base;
+        out_stream->time_base.num = 1;
+        out_stream->time_base.den = 90000;
+
 
         logd("视频编码器初始化完毕");
     }
@@ -173,7 +187,9 @@ static int ffmux_open_output_file(EditorState *es) {
         audio_enc_ctx->sample_fmt = encoder->sample_fmts[0];
         audio_enc_ctx->time_base = (AVRational) {1, audio_dec_ctx->sample_rate};
 
-        ret = avcodec_open2(audio_enc_ctx, encoder, &encode_opts);
+
+        ret = avcodec_open2(audio_enc_ctx, encoder, NULL);
+
         if (ret < 0) {
             loge("Cannot open audio encoder");
             return ret;
@@ -196,7 +212,7 @@ static int ffmux_open_output_file(EditorState *es) {
     av_dump_format(out_fmt_ctx, 0, filename, 1);
 
     if (!(out_fmt_ctx->oformat->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&out_fmt_ctx->pb, filename, AVIO_FLAG_WRITE);
+        ret = avio_open(&out_fmt_ctx->pb, filename, AVIO_FLAG_READ_WRITE);
         if (ret < 0) {
             loge("Could not open output file '%s'", filename);
             return ret;
@@ -310,12 +326,13 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int 
 
 int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
     int ret = 0;
-
+    if (!ffmux_soft_init) {
+        return 0;
+    }
     AVPacket encode_pkt;
     encode_pkt.data = NULL;
     encode_pkt.size = 0;
     av_init_packet(&encode_pkt);
-
 //    int encode_pkt_size = av_image_get_buffer_size(
 //            video_enc_ctx->pix_fmt, video_enc_ctx->width, video_enc_ctx->height, 1);
 //
@@ -340,6 +357,10 @@ int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
         logd("frame->format=%d", frame->format);
         logd("frame->pts=%lld", frame->pts);
         logd("frame->pkt_dts=%lld", frame->pkt_dts);
+        logd("frame->pkt_size=%d", frame->pkt_size);
+        logd("frame->linesize[0]=%d", frame->linesize[0]);
+        logd("frame->linesize[1]=%d", frame->linesize[1]);
+        logd("frame->linesize[2]=%d", frame->linesize[2]);
 
 //        frame->width = video_enc_ctx->width;
 //        frame->height = video_enc_ctx->height;
