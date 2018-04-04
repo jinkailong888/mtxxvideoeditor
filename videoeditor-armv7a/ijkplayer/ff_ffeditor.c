@@ -4,7 +4,7 @@
 //
 
 
-#define CONFIG_FILTER 0
+#define CONFIG_FILTER 1
 #define MY_TAG  "VideoEditor"
 
 #define loge(format, ...)  __android_log_print(ANDROID_LOG_ERROR, MY_TAG, format, ##__VA_ARGS__)
@@ -28,7 +28,7 @@ const char *ffeditor_hd_video_codec_name = "h264_mediacodec";
 //const char *ffeditor_hd_video_codec_name = "null";
 
 
-//加水印耗时与不加差不多，但改变色调耗时巨长，由4S涨到20+S
+//加水印耗时与不加差不多，但改变色调耗时巨长，由4S涨到20+S0.0
 //设置rgba四个分量的变换关系，共接受16个参数, 灰阶效果
 //const char *ffeditor_video_filter_spec = "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3";
 //const char *ffeditor_video_filter_spec = "movie='/storage/emulated/0/VideoEditorDir/save.png',"
@@ -266,15 +266,14 @@ static int open_output_file(EditorState *es) {
                      dec_ctx->channels, dec_ctx->channels);
                 logd("audio src sample_fmt=%d ; output sample_fmt=%d",
                      dec_ctx->sample_fmt, dec_ctx->sample_fmt);
-                logd("audio src time_base=%d ; output time_base=%d",
-                     dec_ctx->time_base, dec_ctx->time_base);
 
                 enc_ctx->sample_rate = dec_ctx->sample_rate;
                 enc_ctx->channel_layout = dec_ctx->channel_layout;
                 enc_ctx->channels = av_get_channel_layout_nb_channels(enc_ctx->channel_layout);
                 /* take first format from list of supported formats */
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
-                enc_ctx->time_base = (AVRational) {1, enc_ctx->sample_rate};
+//                enc_ctx->time_base = (AVRational) {1, enc_ctx->sample_rate};
+                enc_ctx->time_base = enc_ctx->time_base;
             }
 
             /* Third parameter can be used to pass settings to encoder */
@@ -376,6 +375,7 @@ static int init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx,
             goto end;
         }
 
+        //通过avfilter做帧格式转换
         ret = av_opt_set_bin(buffersink_ctx, "pix_fmts",
                              (uint8_t *) &enc_ctx->pix_fmt, sizeof(enc_ctx->pix_fmt),
                              AV_OPT_SEARCH_CHILDREN);
@@ -414,6 +414,7 @@ static int init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx,
             goto end;
         }
 
+        //借助avfilter做音频数据格式转换、重采样等操作
         ret = av_opt_set_bin(buffersink_ctx, "sample_fmts",
                              (uint8_t *) &enc_ctx->sample_fmt, sizeof(enc_ctx->sample_fmt),
                              AV_OPT_SEARCH_CHILDREN);
@@ -526,11 +527,11 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
 
-    print_avframe_tag(filt_frame,"即将编码帧：");
+//    print_avframe_tag(filt_frame,"即将编码帧：");
 
     ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
 
-    print_avpacket_tag(&enc_pkt, "编码后包：");
+//    print_avpacket_tag(&enc_pkt, "编码后包：");
 
     av_frame_free(&filt_frame);
     if (ret < 0) {
@@ -543,10 +544,10 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     /* prepare packet for muxing */
     enc_pkt.stream_index = stream_index;
 
-    print_AVRational(ofmt_ctx->streams[stream_index]->time_base,
-                     "输出流");
-    print_AVRational(stream_ctx[stream_index].enc_ctx->time_base,
-                     "编码器");
+//    print_AVRational(ofmt_ctx->streams[stream_index]->time_base,
+//                     "输出流");
+//    print_AVRational(stream_ctx[stream_index].enc_ctx->time_base,
+//                     "编码器");
 
 
     av_packet_rescale_ts(&enc_pkt,
@@ -554,7 +555,7 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
                          ofmt_ctx->streams[stream_index]->time_base);
 
 
-    print_avpacket_tag(&enc_pkt, "即将封装包");
+//    print_avpacket_tag(&enc_pkt, "即将封装包");
 
     logd("Muxing frame\n");
     /* mux encoded frame */
@@ -602,7 +603,10 @@ static int filter_encode_write_frame(EditorState *es, AVFrame *frame, unsigned i
             break;
         }
 
-        filt_frame->pict_type = AV_PICTURE_TYPE_NONE;
+        print_avframe_tag(frame, "avfilter 渲染后的帧");
+
+
+//        filt_frame->pict_type = AV_PICTURE_TYPE_NONE;
         ret = encode_write_frame(es, filt_frame, stream_index, NULL);
         if (ret < 0)
             break;
@@ -675,13 +679,13 @@ int ffeditor_save_thread(void *arg) {
         }
 
 
-        print_AVRational(stream_ctx[stream_index].dec_ctx->time_base,
-                         "解码器 ");
+//        print_AVRational(stream_ctx[stream_index].dec_ctx->time_base,
+//                         "解码器 ");
+//
+//        print_AVRational(ifmt_ctx->streams[stream_index]->time_base,
+//                         "输入流 ");
 
-        print_AVRational(ifmt_ctx->streams[stream_index]->time_base,
-                         "输入流 ");
-
-        print_avpacket_tag(&packet, "刚读出来的包");
+//        print_avpacket_tag(&packet, "刚读出来的包");
 
         /**
          * 将 packet 中的 pts、dts、duration 从 AVStream 的时间单位 转换为 解码器的时间单位
@@ -690,14 +694,20 @@ int ffeditor_save_thread(void *arg) {
                              ifmt_ctx->streams[stream_index]->time_base,
                              stream_ctx[stream_index].dec_ctx->time_base);
 
-        print_avpacket_tag(&packet, "即将解码的包");
+//        print_avpacket_tag(&packet, "即将解码的包");
 
 
 
 
         dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
                    avcodec_decode_audio4;
-        logd("decoding frame\n");
+
+        if (type == AVMEDIA_TYPE_VIDEO) {
+            logd("decoding video frame\n");
+        }else{
+            logd("decoding audio frame\n");
+        }
+
         ret = dec_func(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
         print_avframe_tag(frame, "刚解码完");
         if (ret < 0) {

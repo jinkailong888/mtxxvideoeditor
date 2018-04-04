@@ -18,7 +18,9 @@ assertion "thread" failed
 软解硬保ijk实例提前释放
 软解硬保视频帧格式问题
 视频模糊马赛克问题
-软解软保编码错误
+软解软保视频编码
+软解软保音频编码
+ffeditor例子屏蔽avfilter后音频杂音问题
 **************************************
 
 
@@ -263,6 +265,8 @@ stop muxer failed
 先转换成相同的，再进行混音：
 http://www.open-open.com/lib/view/open1467185744307.html
 
+//todo avfilter对音频做重采样 ！
+
 
 **************************************
 混音方案
@@ -331,7 +335,7 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 解决：默认采用 decode encode 方式
 
 **************************************
-软解软保编码错误
+软解软保视频编码
 **************************************
 现象： avcodec_encode_video2 Error ret = -542398533
 分析： 查看此方法源码：  x264/encoder.c/x264_encoder_encode方法 ，  此方法太繁琐
@@ -429,9 +433,6 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 
 问题：加入后 文件大小和时长极小，可以播放，画质很糊
 
-
-
-
 ffeditor video pts 变化：
 
 start)))))))))
@@ -446,7 +447,6 @@ end)))))))))))
 问题: ffeditor  对手机录制的视频转码保存成功，对保存过的视频再次保存就会出现问题
 现象：第一次保存后0.9M，时长正常为3S，再次保存后只有20K，时长小于1s
 分析：可能就是第一次保存时pts没写对？ 先不管这个错误，先实现 ijkplayer 的第一次成功保存
-
 
 ijkplayer video pts 变化：
 start)))))))))
@@ -468,6 +468,65 @@ end)))))))))))
 2.编码器->输出流时间基转换
 
 
+
+
+
+**************************************
+软解软保音频编码
+**************************************
+
+依然是模仿 editor 逻辑
+
+editor audio pts:
+
+start)))))))))
+刚读出来包： 164939
+输入流->解码器时间基转换后包：164939   (输入流 num/den ：1/48000 , 解码器 num/den ：1/48000)
+刚解码后的帧：164939
+即将编码的帧：164939
+编码后得到的包：162891
+编码器->输出流时间基转换后包：162891   (输出流 num/den ：1/48000 , 编码器 num/den ：1/48000)
+end)))))))))))
+
+
+
+**************************************
+ffeditor例子屏蔽avfilter后音频杂音问题
+**************************************
+
+问题：如题
+现象：开启avfilter后音频正常，关闭avfilter后音频出现杂音
+分析：开启avfilter后对音频做了哪些工作？？？
+
+音频帧：
+  刚解码完 frame->width=0
+  刚解码完 frame->height=0
+  刚解码完 frame->format=8
+  刚解码完 frame->pts=497664
+  刚解码完 frame->pkt_dts=497664
+  刚解码完 frame->pkt_size=185
+  刚解码完 frame->linesize[0]=8192
+  刚解码完 frame->linesize[1]=0
+  刚解码完 frame->linesize[2]=0
+
+filter_encode_write_frame 用 anull 渲染后：
+  avfilter 渲染后的帧 frame->width=0
+  avfilter 渲染后的帧 frame->height=0
+  avfilter 渲染后的帧 frame->format=8
+  avfilter 渲染后的帧 frame->pts=497664
+  avfilter 渲染后的帧 frame->pkt_dts=497664
+  avfilter 渲染后的帧 frame->pkt_size=185
+  avfilter 渲染后的帧 frame->linesize[0]=8192
+  avfilter 渲染后的帧 frame->linesize[1]=0
+  avfilter 渲染后的帧 frame->linesize[2]=0
+
+avfilter 除了渲染外中还多一句 ：filt_frame->pict_type = AV_PICTURE_TYPE_NONE
+
+加上这一句仍然杂音.
+
+avfilter 对音频的 sample_fmts 、channel_layouts 、sample_rates 做了转换， 此处杂音是因为 sample_fmts
+
+要对音频重采样，用avfilter 很方便
 
 
 

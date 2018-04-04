@@ -3640,8 +3640,8 @@ static int read_thread(void *arg) {
         } else {
             av_log(NULL, AV_LOG_DEBUG,
                    "ff_ffmux_soft_init ");
-            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
-//            ffp_save_l(ffp);
+//            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
+            ffp_save_l(ffp);
         }
     }
 
