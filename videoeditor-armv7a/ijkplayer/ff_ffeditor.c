@@ -18,6 +18,7 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <jni.h>
+#include <ijksdl/gles2/ff_print_util.h>
 #include "ff_ffplay_def.h"
 #include "ff_cmdutils.h"
 #include "ff_ffeditor.h"
@@ -516,12 +517,16 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     enc_pkt.size = 0;
     av_init_packet(&enc_pkt);
 
+    print_avframe(filt_frame);
+
     ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt, filt_frame, got_frame);
+
+    print_avpacket_tag(&enc_pkt,"ffeditor");
 
     av_frame_free(&filt_frame);
     if (ret < 0) {
-        loge("mediacodec_encode_frame ret = %d\n", ret);
-        return 0;
+        loge("enc_func ret = %d\n", ret);
+        return ret;
     }
     if (!(*got_frame))
         return 0;
@@ -532,6 +537,8 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
                          stream_ctx[stream_index].enc_ctx->time_base,
                          ofmt_ctx->streams[stream_index]->time_base);
 
+    print_avpacket_tag(&enc_pkt,"ffeditor after rescale_ts");
+
     logd("Muxing frame\n");
     /* mux encoded frame */
     //硬解的情况下有些帧  mux 会返回-22，无效参数（对于3S视频有7帧异常）
@@ -539,7 +546,7 @@ static int encode_write_frame(EditorState *es, AVFrame *filt_frame, unsigned int
     if (ret < 0) {
         loge("Failed to muxing frame ret=%d\n", ret);
     }
-    return 0;
+    return ret;
 }
 
 #if CONFIG_FILTER
@@ -601,8 +608,10 @@ static int flush_encoder(EditorState *es, unsigned int stream_index) {
         ret = encode_write_frame(es, NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
-        if (!got_frame)
+        if (!got_frame){
+            logd("Flushing done");
             return 0;
+        }
     }
     return ret;
 }
@@ -712,7 +721,9 @@ int ffeditor_save_thread(void *arg) {
     av_write_trailer(ofmt_ctx);
     end:
     av_packet_unref(&packet);
+#if CONFIG_FILTER
 //    av_frame_free(&frame);  //上面已经free了frame ，再次frame 会报错
+#endif
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         avcodec_free_context(&stream_ctx[i].dec_ctx);
         if (ofmt_ctx && ofmt_ctx->nb_streams > i && ofmt_ctx->streams[i] && stream_ctx[i].enc_ctx)

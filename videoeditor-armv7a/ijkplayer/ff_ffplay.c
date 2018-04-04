@@ -1612,7 +1612,7 @@ static int
 queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, int64_t pos,
               int serial) {
     if (ffp->save_mode) {
-        if (ffp->hard_mux) {
+        if (!ffp->hard_mux) {
             ff_ffmux_soft_onFrameEncode(src_frame, NULL);
             return 0;
         }
@@ -3179,6 +3179,8 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         case AVMEDIA_TYPE_VIDEO:
             is->video_stream = stream_index;
             is->video_st = ic->streams[stream_index];
+            //记录视频角度，方便后面使用，比如软解软保就需要使用
+            ffp->es->rotation = get_rotation(is->video_st);
             decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
             // 创建视频解码器,实际上就是根据软/硬解配置指定对应的函数指针，指向不同的解码方法
             // 下面的decoder_start方法执行
@@ -3586,8 +3588,8 @@ static int read_thread(void *arg) {
         } else {
             av_log(NULL, AV_LOG_DEBUG,
                    "ff_ffmux_soft_init ");
-//            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
-            ffp_save_l(ffp);
+            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
+//            ffp_save_l(ffp);
         }
     }
 

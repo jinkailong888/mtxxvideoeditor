@@ -4,6 +4,7 @@
 //
 
 #include "ff_ffmux_soft.h"
+#include "ff_print_util.h"
 
 static AVFormatContext *in_fmt_ctx;
 static AVCodecContext *video_dec_ctx;
@@ -280,8 +281,10 @@ int ff_ffmux_soft_flush_video() {
         ret = ff_ffmux_soft_onFrameEncode(NULL, &got_frame);
         if (ret < 0)
             break;
-        if (!got_frame)
+        if (!got_frame){
+            logd("Flushing done");
             return 0;
+        }
     }
     return ret;
 }
@@ -317,99 +320,59 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int 
     AVFrame *pFrame = av_frame_alloc();
     int picture_size = avpicture_get_size(video_enc_ctx->pix_fmt,
                                           video_enc_ctx->width, video_enc_ctx->height);
-    uint8_t* picture_buf = (uint8_t *)av_malloc((size_t) picture_size);
-    avpicture_fill((AVPicture *)pFrame, picture_buf, video_enc_ctx->pix_fmt,
+    uint8_t *picture_buf = (uint8_t *) av_malloc((size_t) picture_size);
+    avpicture_fill((AVPicture *) pFrame, picture_buf, video_enc_ctx->pix_fmt,
                    video_enc_ctx->width, video_enc_ctx->height);
 
 }
 
 
 int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame) {
-    int ret = 0;
     if (!ffmux_soft_init) {
         return 0;
     }
+    int ret;
+    int got_frame_local;
+
     AVPacket encode_pkt;
     encode_pkt.data = NULL;
     encode_pkt.size = 0;
     av_init_packet(&encode_pkt);
-//    int encode_pkt_size = av_image_get_buffer_size(
-//            video_enc_ctx->pix_fmt, video_enc_ctx->width, video_enc_ctx->height, 1);
-//
-//    logd("encode_pkt_size=%d", encode_pkt_size);
-//
-//    ret = av_new_packet(&encode_pkt, encode_pkt_size);
 
-//    if (ret < 0) {
-//        loge("Failed to av_new_packet");
-//        av_err2str(ret);
-//    }
+    if (!got_frame)
+        got_frame = &got_frame_local;
 
-    if (frame) {
-        if (frame->data) {
-            logd("frame->data");
-        } else {
-            loge("!!!frame->data");
-        }
+    print_avframe_tag(frame,"ffmux_soft");
 
-        logd("format->width=%d", frame->width);
-        logd("format->height=%d", frame->height);
-        logd("frame->format=%d", frame->format);
-        logd("frame->pts=%lld", frame->pts);
-        logd("frame->pkt_dts=%lld", frame->pkt_dts);
-        logd("frame->pkt_size=%d", frame->pkt_size);
-        logd("frame->linesize[0]=%d", frame->linesize[0]);
-        logd("frame->linesize[1]=%d", frame->linesize[1]);
-        logd("frame->linesize[2]=%d", frame->linesize[2]);
-
-//        frame->width = video_enc_ctx->width;
-//        frame->height = video_enc_ctx->height;
-//        frame->format = video_enc_ctx->pix_fmt;
-//        frame->pts = (int64_t) ((1.0 / 30) * 90 * ffmux_soft_static_pts);
-//        ffmux_soft_static_pts++;
-
-
-//        uint8_t *ptrPictureBuf = (uint8_t *) av_malloc((size_t) encode_pkt_size);
-//
-//        av_image_fill_arrays(frame->data,
-//                             frame->linesize,
-//                             ptrPictureBuf,
-//                             video_enc_ctx->pix_fmt,
-//                             video_enc_ctx->width,
-//                             video_enc_ctx->height,
-//                             1);
-
-//        encode_pkt.dts = frame->pts;
-    }
-
-    ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, &got_frame);
+    ret = avcodec_encode_video2(video_enc_ctx, &encode_pkt, frame, got_frame);
 
     if (ret < 0) {
         loge("avcodec_encode_video2 Error ret = %d\n", ret);
         av_err2str(ret);
-        goto encode_end;
+        return ret;
     }
-    logd("encode_pkt.pts=%lld",encode_pkt.pts);
-    logd("encode_pkt.dts=%lld",encode_pkt.dts);
+
+    if (!(*got_frame))
+        return 0;
+
+    print_avpacket_tag(&encode_pkt,"ffmux_soft");
+
+
+    /* prepare packet for muxing */
     encode_pkt.stream_index = video_stream_index;
+    av_packet_rescale_ts(&encode_pkt,
+                         video_enc_ctx->time_base,
+                         out_fmt_ctx->streams[video_stream_index]->time_base
+    );
 
-    //编码后，pkt.pts、pkt.dts使用AVCodecContext->time_base为单位
-    // 通过调用"av_packet_rescale_ts"转换为AVStream->time_base为单位
-//    av_packet_rescale_ts(&encode_pkt,
-//                         video_dec_ctx->time_base,
-//                         out_fmt_ctx->streams[video_stream_index]->time_base
-//                         );
+    print_avpacket_tag(&encode_pkt,"ffmux_soft after rescale_ts");
 
-    logd("rescale encode_pkt.pts=%lld",encode_pkt.pts);
-    logd("rescale encode_pkt.dts=%lld",encode_pkt.dts);
-
-    ret = av_write_frame(out_fmt_ctx, &encode_pkt);
+    logd("Muxing frame\n");
+    ret = av_interleaved_write_frame(out_fmt_ctx, &encode_pkt);
     if (ret < 0) {
         loge("Failed to muxing frame ret=%d\n", ret);
         av_err2str(ret);
     }
-    encode_end:
-    av_packet_unref(&encode_pkt);
     return ret;
 }
 

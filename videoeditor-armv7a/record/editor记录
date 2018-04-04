@@ -350,15 +350,67 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 
 问题： 调整到 queue_picture 后， 数据量极大
 
-
-
 问题：
 
   Timestamps are unset in a packet for stream 0.
   This is deprecated and will stop working in the future.
   Fix your code to set the timestamps properly
-
   Encoder did not produce proper pts, making some up
+
+理清思路：
+
+  ffeditor: 读包 -> 解码 -> 编码 -> 封装
+ ijkplayer:   播放器解码 -> 编码 -> 封装
+
+ 为什么ijkplayer无法实现？ 两个方案的不同点？
+
+ 1. 何时从播放器取解码后的帧， 检测取出的帧是否正常，与 ffeditor 对比 AVFrame 数据
+
+ ffeditor:
+
+     frame->width=1280
+     frame->height=720
+     frame->format=0
+     frame->pts=26
+     frame->pkt_dts=26
+     frame->pkt_size=84052
+     frame->linesize[0]=1280
+     frame->linesize[1]=640
+     frame->linesize[2]=640
+
+     <encode>
+
+     enc_pkt->size=1620
+     enc_pkt->pts=12
+     enc_pkt->dts=12
+     enc_pkt->duration=0
+
+     <rescale_ts>
+
+     enc_pkt->size=1620
+     enc_pkt->pts=3072
+     enc_pkt->dts=3072
+     enc_pkt->duration=0
+
+ ijkplayer:
+
+     frame->width=1280
+     frame->height=720
+     frame->format=0
+     frame->pts=72565
+     frame->pkt_dts=72565
+     frame->pkt_size=63837
+     frame->linesize[0]=1280
+     frame->linesize[1]=640
+     frame->linesize[2]=640
+
+     enc_pkt->size=323150
+     enc_pkt->pts=47181
+     enc_pkt->dts=47181
+     enc_pkt->duration=0
+
+ 可以看出 pts、dts 异常， ijkplayer 方式编码后包大小竟然变大 ？
+
 
 
 

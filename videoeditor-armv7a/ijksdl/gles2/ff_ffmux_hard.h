@@ -7,11 +7,6 @@
 
 #include <stdbool.h>
 #include <jni.h>
-#include <android/log.h>
-
-#define TAG "VideoEditor"
-#define logd(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
-#define loge(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
 
 void ff_ffmux_hard_init(JavaVM *vm,JNIEnv * env);
 

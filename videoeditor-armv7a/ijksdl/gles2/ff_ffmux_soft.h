@@ -7,14 +7,11 @@
 #define MTXXVIDEOEDITOR_FF_FFMUX_SOFT_H
 
 #include <ffmpeg/output/armv7a/include/libavutil/frame.h>
-#include <android/log.h>
 #include "libavformat/avformat.h"
 #include "libavutil/opt.h"
 #include "../ijksdl_def.h"
 
-#define TAG "VideoEditor"
-#define logd(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
-#define loge(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
+
 
 void ff_ffmux_soft_release();
 

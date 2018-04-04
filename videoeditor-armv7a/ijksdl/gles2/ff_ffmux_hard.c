@@ -7,6 +7,7 @@
 #include <malloc.h>
 #include <ijkyuv/include/libyuv.h>
 #include "ff_ffmux_hard.h"
+#include "ff_print_util.h"
 
 
 //void rgb565ToYuv(int width,int height,int size,unsigned char * rgb,unsigned char * yuv){
