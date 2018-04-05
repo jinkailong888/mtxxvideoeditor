@@ -477,7 +477,7 @@ end)))))))))))
 
 依然是模仿 editor 逻辑
 
-editor audio pts:
+ffeditor audio pts:
 
 start)))))))))
 刚读出来包： 164939
@@ -487,6 +487,12 @@ start)))))))))
 编码后得到的包：162891
 编码器->输出流时间基转换后包：162891   (输出流 num/den ：1/48000 , 编码器 num/den ：1/48000)
 end)))))))))))
+
+ffsoft audio pts
+刚读出来的包: 正常
+decoder_decode_frame 中 av_packet_rescale_ts前 : 0
+分析: 加入到队列中的pts是正常的,播放器肯定做了一些工作改变了pts,首先应该检测到在哪里从音频包队列中取出音频包
+解决: 调整播放器中取音频帧去编码的时机
 
 
 

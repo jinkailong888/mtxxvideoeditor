@@ -700,13 +700,10 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
 //                    print_AVRational( d->avctx->time_base, "播放器 视频解码器");
 //                    print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的视频包");
                 }
-
-
                 ret = avcodec_decode_video2(d->avctx, frame, &got_frame, &d->pkt_temp);
                 if (got_frame) {
 
 //                    print_avframe_tag(frame, "播放器 刚解码后的视频帧");
-
                     ffp->stat.vdps = SDL_SpeedSamplerAdd(&ffp->vdps_sampler, FFP_SHOW_VDPS_AVCODEC,
                                                          "vdps[avcodec]");
                     if (ffp->decoder_reorder_pts == -1) {
@@ -718,8 +715,24 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
             }
                 break;
             case AVMEDIA_TYPE_AUDIO:
+                if (ffp->save_mode) {
+                    if (ffp->hard_mux) {
+
+                    } else {
+                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包111");
+                        print_AVRational(ffp->is->audio_st->time_base, "播放器 音频输入流");
+                        print_AVRational(d->avctx->time_base, "播放器 音频解码器");
+
+                        av_packet_rescale_ts(&d->pkt_temp,
+                                             ffp->is->audio_st->time_base,
+                                             d->avctx->time_base);
+                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包222");
+                    }
+
+                }
                 ret = avcodec_decode_audio4(d->avctx, frame, &got_frame, &d->pkt_temp);
                 if (got_frame) {
+
                     AVRational tb = (AVRational) {1, frame->sample_rate};
                     if (frame->pts != AV_NOPTS_VALUE)
                         frame->pts = av_rescale_q(frame->pts, av_codec_get_pkt_timebase(d->avctx),
@@ -1634,7 +1647,7 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
     if (ffp->save_mode) {
         if (!ffp->hard_mux) {
 //            print_avframe_tag(src_frame, "播放器 即将编码的视频帧");
-            ff_ffmux_soft_onVideoFrameEncode(src_frame, NULL);
+            ff_ffmux_soft_onVideoFrameEncode(src_frame);
             return 0;
         }
     }
@@ -2208,15 +2221,6 @@ static int audio_thread(void *arg) {
             goto the_end;
 
         if (got_frame) {
-            if (ffp->save_mode) {
-                if (ffp->hard_mux) {
-
-                } else {
-                    ff_ffmux_soft_onAudioEncode(frame, NULL);
-                }
-                continue;
-            }
-
             tb = (AVRational) {1, frame->sample_rate};
             if (ffp->enable_accurate_seek && is->audio_accurate_seek_req && !is->seek_req) {
                 frame_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
@@ -2319,17 +2323,28 @@ static int audio_thread(void *arg) {
                 audio_accurate_seek_fail = 0;
             }
 
-            //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
-            if (!(af = frame_queue_peek_writable(&is->sampq)))
-                goto the_end;
+            if (ffp->save_mode) {
 
-            af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            af->pos = av_frame_get_pkt_pos(frame);
-            af->serial = is->auddec.pkt_serial;
-            af->duration = av_q2d((AVRational) {frame->nb_samples, frame->sample_rate});
-            // 把frame放入到sampq相应位置
-            av_frame_move_ref(af->frame, frame);
-            frame_queue_push(&is->sampq);
+                if (ffp->hard_mux) {
+
+                } else {
+
+                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
+                    ff_ffmux_soft_onAudioEncode(frame, NULL);
+                }
+            }else{
+                //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
+                if (!(af = frame_queue_peek_writable(&is->sampq)))
+                    goto the_end;
+
+                af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+                af->pos = av_frame_get_pkt_pos(frame);
+                af->serial = is->auddec.pkt_serial;
+                af->duration = av_q2d((AVRational) {frame->nb_samples, frame->sample_rate});
+                // 把frame放入到sampq相应位置
+                av_frame_move_ref(af->frame, frame);
+                frame_queue_push(&is->sampq);
+            }
 
         }
     } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
@@ -3120,7 +3135,6 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
                 if (ffp->hard_mux) {
 
                 } else {
-
                     //在打开编码器之前设置帧率，打开后avctx才会有时间基
                     avctx->framerate = av_guess_frame_rate(ic, ic->streams[stream_index], NULL);
                 }
@@ -3640,8 +3654,8 @@ static int read_thread(void *arg) {
         } else {
             av_log(NULL, AV_LOG_DEBUG,
                    "ff_ffmux_soft_init ");
-//            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
-            ffp_save_l(ffp);
+            ff_ffmux_soft_init(is->ic, is->viddec.avctx, is->auddec.avctx, ffp->es);
+//            ffp_save_l(ffp);
         }
     }
 
@@ -3944,6 +3958,7 @@ static int read_thread(void *arg) {
                             <= ((double) ffp->duration / 1000000);
         if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
             // 放入队列
+            print_avpacket_tag(pkt, "播放器 刚读出来的音频包");
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    &&

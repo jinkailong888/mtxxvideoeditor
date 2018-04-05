@@ -2,10 +2,15 @@
 // Created by wyh3 on 2018/4/4.
 //
 
+#include <stdbool.h>
 #include "ff_print_util.h"
 
+const bool print = true;
 
 void print_avframe(AVFrame *frame) {
+    if (!print) {
+        return;
+    }
     if (frame) {
         logd("frame->width=%d", frame->width);
         logd("frame->height=%d", frame->height);
@@ -22,6 +27,9 @@ void print_avframe(AVFrame *frame) {
 }
 
 void print_avframe_tag(AVFrame *frame, char *tag) {
+    if (!print) {
+        return;
+    }
     if (frame) {
         logd("%s frame->width=%d", tag, frame->width);
         logd("%s frame->height=%d", tag, frame->height);
@@ -39,6 +47,9 @@ void print_avframe_tag(AVFrame *frame, char *tag) {
 
 
 void print_avpacket(AVPacket *avPacket) {
+    if (!print) {
+        return;
+    }
     if (avPacket) {
         logd("avPacket->size=%d", avPacket->size);
         logd("avPacket->pts=%lld", avPacket->pts);
@@ -50,6 +61,9 @@ void print_avpacket(AVPacket *avPacket) {
 }
 
 void print_avpacket_tag(AVPacket *avPacket, char *tag) {
+    if (!print) {
+        return;
+    }
     if (avPacket) {
         logd("%s avPacket->size=%d", tag, avPacket->size);
         logd("%s avPacket->pts=%lld", tag, avPacket->pts);
@@ -62,6 +76,9 @@ void print_avpacket_tag(AVPacket *avPacket, char *tag) {
 
 
 void print_AVRational(AVRational avRational, char *tag) {
+    if (!print) {
+        return;
+    }
     if (&avRational) {
         logd("%s num/den ：%d/%d", tag, avRational.num, avRational.den);
     }else{

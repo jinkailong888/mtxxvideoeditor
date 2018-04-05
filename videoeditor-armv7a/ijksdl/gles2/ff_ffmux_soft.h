@@ -23,7 +23,7 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int 
 
 int ff_ffmux_soft_onAudioEncode(AVFrame *frame,int *got_frame);
 
-int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame, int *got_frame);
+int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame);
 
 void ff_ffmux_soft_onVideoEncodeDone();
 
