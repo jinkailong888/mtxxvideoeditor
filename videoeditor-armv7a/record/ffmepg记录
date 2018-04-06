@@ -4,6 +4,7 @@
 结构体分析
 avfilter
 examples
+帧像素格式
 **************************************
 **************************************
 常用命令
@@ -37,3 +38,10 @@ avfilter
 examples
 **************************************
 官方案例： /ffmpeg/ffmpeg-armv7a/doc/examples
+
+**************************************
+帧像素格式
+**************************************
+https://blog.csdn.net/leixiaohua1020/article/details/42134965
+描述像素格式的结构体AVPixFmtDescriptor
+通过av_pix_fmt_desc_get()可以获得指定像素格式的AVPixFmtDescriptor结构体

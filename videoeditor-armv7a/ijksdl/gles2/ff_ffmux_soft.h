@@ -19,7 +19,12 @@ void ff_ffmux_soft_init(AVFormatContext *in_fmt_ctx, AVCodecContext *video_dec_c
                         AVCodecContext *audio_enc_ctx,
                         EditorState *es);
 
-void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int width, int height);
+void ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t size, int format,
+                                 int width, int height, int i, AVDictionary *pDictionary,
+                                 enum AVColorRange range, enum AVColorPrimaries primaries,
+                                 enum AVColorTransferCharacteristic characteristic,
+                                 enum AVColorSpace space, enum AVChromaLocation location, int i1,
+                                 int64_t i2);
 
 int ff_ffmux_soft_onAudioEncode(AVFrame *frame,int *got_frame);
 

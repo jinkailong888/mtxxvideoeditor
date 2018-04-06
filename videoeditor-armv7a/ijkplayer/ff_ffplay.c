@@ -719,14 +719,14 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                     if (ffp->hard_mux) {
 
                     } else {
-                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包111");
-                        print_AVRational(ffp->is->audio_st->time_base, "播放器 音频输入流");
-                        print_AVRational(d->avctx->time_base, "播放器 音频解码器");
+//                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包111");
+//                        print_AVRational(ffp->is->audio_st->time_base, "播放器 音频输入流");
+//                        print_AVRational(d->avctx->time_base, "播放器 音频解码器");
 
                         av_packet_rescale_ts(&d->pkt_temp,
                                              ffp->is->audio_st->time_base,
                                              d->avctx->time_base);
-                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包222");
+//                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包222");
                     }
 
                 }
@@ -1031,6 +1031,7 @@ static void video_image_display2(FFPlayer *ffp) {
         vp->bmp->pts = vp->pts;
         vp->bmp->save_mode = ffp->save_mode;
         vp->bmp->hard_mux = ffp->hard_mux;
+
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY,
                                              "vfps[ffplay]");
@@ -1647,8 +1648,10 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
     if (ffp->save_mode) {
         if (!ffp->hard_mux) {
 //            print_avframe_tag(src_frame, "播放器 即将编码的视频帧");
-            ff_ffmux_soft_onVideoFrameEncode(src_frame);
-            return 0;
+
+            //非gl渲染模式才可在此传递编码帧
+//            ff_ffmux_soft_onVideoFrameEncode(src_frame);
+//            return 0;
         }
     }
 
@@ -1788,10 +1791,14 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
 #endif
 #endif
         // FIXME: set swscale options
+
+
+        // 此处将原始帧格式转换为rgb格式, 转移数据到bmp，av_frame_ref 到 SDL_VoutOverlay->opaque
         if (SDL_VoutFillFrameYUVOverlay(vp->bmp, src_frame) < 0) {
             av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
             exit(1);
         }
+
         /* update the bitmap content */
         SDL_VoutUnlockYUVOverlay(vp->bmp);
 
@@ -1802,6 +1809,25 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
         vp->sar = src_frame->sample_aspect_ratio;
         vp->bmp->sar_num = vp->sar.num;
         vp->bmp->sar_den = vp->sar.den;
+
+        //MeiTu  把软件保存时需要的参数传递过去
+        vp->bmp->frame_pts = src_frame->pts;
+        vp->bmp->frame_pkt_dts = src_frame->pkt_dts;
+        vp->bmp->frame_format = src_frame->format;
+        vp->bmp->frame_metadata = src_frame->metadata;
+
+        vp->bmp->frame_color_range = src_frame->color_range;
+        vp->bmp->frame_color_primaries = src_frame->color_primaries;
+        vp->bmp->frame_color_trc = src_frame->color_trc;
+        vp->bmp->frame_colorspace = src_frame->colorspace;
+        vp->bmp->frame_chroma_location = src_frame->chroma_location;
+
+        vp->bmp->frame_pkt_duration = src_frame->pkt_duration;
+        vp->bmp->frame_pkt_size = src_frame->pkt_size;
+
+
+
+
 
 #ifdef FFP_MERGE
         av_frame_move_ref(vp->frame, src_frame);
@@ -2329,10 +2355,10 @@ static int audio_thread(void *arg) {
 
                 } else {
 
-                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
+//                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
                     ff_ffmux_soft_onAudioEncode(frame, NULL);
                 }
-            }else{
+            } else {
                 //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
                 if (!(af = frame_queue_peek_writable(&is->sampq)))
                     goto the_end;
@@ -3958,7 +3984,7 @@ static int read_thread(void *arg) {
                             <= ((double) ffp->duration / 1000000);
         if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
             // 放入队列
-            print_avpacket_tag(pkt, "播放器 刚读出来的音频包");
+//            print_avpacket_tag(pkt, "播放器 刚读出来的音频包");
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    &&
@@ -4146,18 +4172,15 @@ static int video_refresh_thread(void *arg) {
             remaining_time = REFRESH_RATE;
         }
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh)) {
-//            if (ffp->save_mode) {
-//                if (frame_queue_nb_remaining(&is->pictq) == 0) {
-//                    continue;
-//                }
-////                video_display2(ffp);
-//                Frame *vp = frame_queue_peek_last(&is->pictq);
-//                ff_ffmux_soft_onVideoFrameEncode(vp->frame, NULL);
-//                frame_queue_next(&is->pictq);
-//
-//            } else {
-            video_refresh(ffp, &remaining_time);
-//            }
+            if (ffp->save_mode) {
+                if (frame_queue_nb_remaining(&is->pictq) == 0) {
+                    continue;
+                }
+                video_display2(ffp);
+                frame_queue_next(&is->pictq);
+            } else {
+                video_refresh(ffp, &remaining_time);
+            }
         }
     }
 

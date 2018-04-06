@@ -468,7 +468,13 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
         if (overlay->hard_mux) {
             ff_ffmux_hard_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
         } else {
-            ff_ffmux_soft_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
+            ff_ffmux_soft_onVideoEncode(data, overlay->frame_pts, overlay->frame_pkt_dts,
+                                        overlay->frame_format, size, overlay->w, overlay->h,
+                                        overlay->frame_metadata, overlay->frame_color_range,
+                                        overlay->frame_color_primaries,
+                                        overlay->frame_color_trc, overlay->frame_colorspace,
+                                        overlay->frame_chroma_location, overlay->frame_pkt_size,
+                                        overlay->frame_pkt_duration);
         }
     }
 

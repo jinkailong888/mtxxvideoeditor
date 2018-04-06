@@ -67,6 +67,21 @@ struct SDL_VoutOverlay {
     double pts;//方便gl渲染过的视频帧直接使用pts
     bool save_mode;//是否为保存模式
     bool hard_mux;//是否为软解硬保
+
+    //原视频帧信息
+    int64_t frame_pts;
+    int64_t frame_pkt_dts;
+    int frame_format;
+    AVDictionary *frame_metadata;
+    enum AVColorRange frame_color_range;
+    enum AVColorPrimaries frame_color_primaries;
+    enum AVColorTransferCharacteristic frame_color_trc;
+    enum AVColorSpace frame_colorspace;
+    enum AVChromaLocation frame_chroma_location;
+    int frame_pkt_size;
+    int64_t frame_pkt_duration;
+
+
 };
 
 typedef struct SDL_Vout_Opaque SDL_Vout_Opaque;

@@ -28,6 +28,10 @@ static bool ffmux_soft_init;
 static const bool ffmux_soft_ignoreAudio = false;
 static const bool ffmux_soft_print = true;
 
+static const enum AVPixelFormat ffmux_soft_gl_pix_fmt = AV_PIX_FMT_BGR24;
+
+static struct SwsContext *ffmux_soft_frame_img_convert_ctx;
+
 
 static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int type);
 
@@ -238,10 +242,12 @@ static int ff_ffmux_soft_filter_encode_write_frame(AVFrame *frame, const int typ
     logd("Pushing decoded frame to filters\n");
 
     /* push the decoded frame into the filtergraph */
+    //todo Changing frame properties on the fly is not supported by all filters
     ret = av_buffersrc_add_frame_flags(filter_ctx[stream_index].buffersrc_ctx,
                                        frame, 0);
     if (ret < 0) {
-        loge("Error while feeding the filtergraph\n");
+        loge("Error while feeding the filtergraph ret=%d \n", ret);
+        av_err2str(ret);
         return ret;
     }
 
@@ -311,7 +317,7 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
         if (is_video_type) {
             print_avframe_tag(frame, "即将编码-----视频帧----");
         } else {
-            print_avframe_tag(frame, "即将编码-----音频帧---");
+//            print_avframe_tag(frame, "即将编码-----音频帧---");
         }
     }
 
@@ -333,10 +339,10 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
             print_AVRational(out_fmt_ctx->streams[stream_index]->time_base,
                              "编码后视频包开始转换时间基 视频输出流为:");
         } else {
-            print_avpacket_tag(&encode_pkt, "编码后 音频 包");
-            print_AVRational(enc_ctx->time_base, "编码后音频包开始转换时间基 编码器为:");
-            print_AVRational(out_fmt_ctx->streams[stream_index]->time_base,
-                             "编码后视频包开始转换时间基 音频输出流为:");
+//            print_avpacket_tag(&encode_pkt, "编码后 音频 包");
+//            print_AVRational(enc_ctx->time_base, "编码后音频包开始转换时间基 编码器为:");
+//            print_AVRational(out_fmt_ctx->streams[stream_index]->time_base,
+//                             "编码后音频包开始转换时间基 音频输出流为:");
         }
     }
 
@@ -351,7 +357,7 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
         if (is_video_type) {
             print_avpacket_tag(&encode_pkt, "即将写入的 视频 包");
         } else {
-            print_avpacket_tag(&encode_pkt, "即将写入的 音频 包");
+//            print_avpacket_tag(&encode_pkt, "即将写入的 音频 包");
         }
     }
 
@@ -360,14 +366,14 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
         if (is_video_type) {
             loge("Failed to muxing 视频 frame ret=%d\n", ret);
         } else {
-            loge("Failed to muxing 音频 frame ret=%d\n", ret);
+//            loge("Failed to muxing 音频 frame ret=%d\n", ret);
         }
         av_err2str(ret);
     } else {
         if (is_video_type) {
             logd("成功写入 视频 包");
         } else {
-            logd("成功写入 音频 包");
+//            logd("成功写入 音频 包");
         }
     }
     return ret;
@@ -454,7 +460,10 @@ static int ffmux_open_output_file(EditorState *es) {
             video_enc_ctx->pix_fmt = video_dec_ctx->pix_fmt;
         es->pix_fmt = video_enc_ctx->pix_fmt;
 
-        logd("pix_fmt %d", video_enc_ctx->pix_fmt);
+
+        logd(" pix_fmt  decoder:%s encodec:%s",
+             av_pix_fmt_desc_get(video_dec_ctx->pix_fmt)->name,
+             av_pix_fmt_desc_get(video_enc_ctx->pix_fmt)->name);
 
         video_enc_ctx->codec_type = encoder->type;
         video_enc_ctx->gop_size = 30;
@@ -666,24 +675,116 @@ void ff_ffmux_soft_release() {
         avio_closep(&out_fmt_ctx->pb);
     avformat_free_context(out_fmt_ctx);
 
+    if (ffmux_soft_frame_img_convert_ctx) {
+        sws_freeContext(ffmux_soft_frame_img_convert_ctx);
+    }
+
     logd("ff_ffmux_soft_release end \n");
 
 }
 
 
-void ff_ffmux_soft_onVideoEncode(unsigned char *data, double pts, int size, int width, int height) {
+void
+ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, int format, int size,
+                            int width, int height, AVDictionary *pDictionary,
+                            enum AVColorRange range, enum AVColorPrimaries primaries,
+                            enum AVColorTransferCharacteristic characteristic,
+                            enum AVColorSpace space, enum AVChromaLocation location, int i1,
+                            int64_t i2) {
+    int ret;
     if (!ffmux_soft_init) {
         return;
     }
-    logd("ff_ffmux_soft_onVideoEncode pts=%f,size=%d,width=%d,height=%d", pts, size, width, height);
 
-    AVFrame *pFrame = av_frame_alloc();
-    int picture_size = avpicture_get_size(video_enc_ctx->pix_fmt,
-                                          video_enc_ctx->width, video_enc_ctx->height);
-    uint8_t *picture_buf = (uint8_t *) av_malloc((size_t) picture_size);
-    avpicture_fill((AVPicture *) pFrame, picture_buf, video_enc_ctx->pix_fmt,
-                   video_enc_ctx->width, video_enc_ctx->height);
+    AVFrame *pRgbaFrame = av_frame_alloc();
 
+
+    ret = av_image_fill_arrays(pRgbaFrame->data,
+                               pRgbaFrame->linesize,
+//                               rgbaData,
+                               (uint8_t *) av_malloc(size * sizeof(uint8_t)),
+                               ffmux_soft_gl_pix_fmt,
+                               width,
+                               height,
+                               1);
+
+    if (ret < 0) {
+        loge("%s pRgbaFrame av_image_fill_arrays failed\n", __func__);
+        return;
+    }
+    pRgbaFrame->data[0] = rgbaData;
+
+
+    AVFrame *pYuvFrame = av_frame_alloc();
+
+    int bytes = av_image_get_buffer_size(video_dec_ctx->pix_fmt, width, height, 1);
+    uint8_t *buffer = (uint8_t *) av_malloc(bytes * sizeof(uint8_t));
+    if (!buffer) {
+        loge("%s av_image_get_buffer_size failed\n", __func__);
+        return;
+    }
+
+
+    ret = av_image_fill_arrays(pYuvFrame->data,
+                               pYuvFrame->linesize,
+                               buffer,
+                               video_dec_ctx->pix_fmt,
+                               width,
+                               height,
+                               1);
+    if (ret < 0) {
+        loge("%s pYuvFrame av_image_fill_arrays failed\n", __func__);
+        return;
+    }
+
+    if (!ffmux_soft_frame_img_convert_ctx) {
+        ffmux_soft_frame_img_convert_ctx = sws_getContext(width,
+                                                          height,
+                                                          ffmux_soft_gl_pix_fmt,
+                                                          width,
+                                                          height,
+                                                          video_dec_ctx->pix_fmt,
+                                                          SWS_BICUBIC,
+                                                          NULL,
+                                                          NULL,
+                                                          NULL);
+    }
+
+    ret = sws_scale(ffmux_soft_frame_img_convert_ctx,
+                    (const uint8_t *const *) pRgbaFrame->data,
+                    pRgbaFrame->linesize,
+                    0,
+                    pRgbaFrame->height,
+                    pYuvFrame->data,
+                    pYuvFrame->linesize);
+
+    if (ret < 0) {
+        loge("%s sws_scale failed ret=%d\n", __func__, ret);
+        av_err2str(ret);
+        return;
+    }
+
+    pYuvFrame->width = width;
+    pYuvFrame->height = height;
+    pYuvFrame->pts = pts;
+    pYuvFrame->pkt_dts = dts;
+    pYuvFrame->pkt_size = i1;
+    pYuvFrame->pkt_duration = i2;
+    pYuvFrame->format = format;
+    pYuvFrame->metadata = pDictionary;
+    pYuvFrame->color_range = range;
+    pYuvFrame->color_primaries = primaries;
+    pYuvFrame->color_trc = characteristic;
+    pYuvFrame->colorspace = space;
+    pYuvFrame->chroma_location = location;
+
+
+
+    print_avframe_tag(pYuvFrame, "sws_scale 转换后的视频帧：");
+
+
+
+    ff_ffmux_soft_filter_encode_write_frame(pYuvFrame, VIDEO_TYPE);
 }
 
 

@@ -231,6 +231,8 @@ typedef struct Frame {
     int format;
     AVRational sar;
     int uploaded;
+
+
 } Frame;
 
 typedef struct FrameQueue {
