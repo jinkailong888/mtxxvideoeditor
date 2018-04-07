@@ -148,7 +148,7 @@ int ABGRToI420(const uint8* src_frame, int src_stride_frame,
 
 // RGBA little endian (abgr in memory) to I420.
 LIBYUV_API
-int RGBAToI420(const uint8* src_frame, int src_stride_frame,
+int     RGBAToI420(const uint8* src_frame, int src_stride_frame,
                uint8* dst_y, int dst_stride_y,
                uint8* dst_u, int dst_stride_u,
                uint8* dst_v, int dst_stride_v,

@@ -49,6 +49,8 @@ static FilteringContext *filter_ctx;
 
 
 bool once;
+int ff_ffmux_soft_onVideoEncode_num = 0;
+
 
 static int ff_ffmux_soft_init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx,
                                      AVCodecContext *enc_ctx, const char *filter_spec) {
@@ -594,6 +596,8 @@ void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_d
         loge("Failed to init filters");
     }
 #endif
+
+    ff_ffmux_soft_onVideoEncode_num = 0;
 }
 
 void ff_ffmux_soft_close() {
@@ -693,14 +697,6 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
     if (!ffmux_soft_init) {
         return;
     }
-    if (!once) {
-        char *dst_file_path = "/storage/emulated/0/VideoEditorDir/soft_rgba";
-        FILE *dst_file = fopen(dst_file_path, "wb");
-        fwrite(rgbaData, 1, (size_t) size, dst_file);
-        fflush(dst_file);
-        fclose(dst_file);
-        once = true;
-    }
 
     AVFrame *pYuvFrame = av_frame_alloc();
     int yuvSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
@@ -721,11 +717,35 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
         return;
     }
 
-    RGBAToI420(rgbaData, width * 4,
+    //todo 镜像
+
+    ABGRToI420(rgbaData, width * 4,
                pYuvFrame->data[0], pYuvFrame->linesize[0],
                pYuvFrame->data[1], pYuvFrame->linesize[1],
                pYuvFrame->data[2], pYuvFrame->linesize[2],
                width, height);
+
+
+
+    //test frame
+    if (ff_ffmux_soft_onVideoEncode_num == 5) {
+
+        {
+            char *dst_file_path = "/storage/emulated/0/VideoEditorDir/soft_rgba";
+            FILE *dst_file = fopen(dst_file_path, "wb");
+            fwrite(rgbaData, 1, (size_t) size, dst_file);
+            fflush(dst_file);
+            fclose(dst_file);
+        }
+
+        {
+            char *dst_file_path = "/storage/emulated/0/VideoEditorDir/soft_yuv";
+            FILE *dst_file = fopen(dst_file_path, "wb");
+            fwrite(yuvBuffer, 1, (size_t) yuvSize, dst_file);
+            fflush(dst_file);
+            fclose(dst_file);
+        }
+    }
 
 
     //todo 删除无用参数
@@ -746,6 +766,8 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
     print_avframe_tag(pYuvFrame, "sws_scale 转换后的视频帧：");
 
     ff_ffmux_soft_filter_encode_write_frame(pYuvFrame, VIDEO_TYPE);
+
+    ff_ffmux_soft_onVideoEncode_num++;
 }
 
 

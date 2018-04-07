@@ -23,6 +23,7 @@ assertion "thread" failed
 ffeditor例子屏蔽avfilter后音频杂音问题
 软解软保gl渲染帧模式
 软解硬保音频编码错误
+argb->yuv 色差问题
 **************************************
 
 
@@ -542,8 +543,11 @@ avfilter 对音频的 sample_fmts 、channel_layouts 、sample_rates 做了转�
 **************************************
 软解软保gl渲染帧模式
 **************************************
+软解软保gl视频帧->yuv->avframe
 问题：数据量为12b，
 原因：gl_util.c中读取大小应该为 w*h*4 而不是 w*h*2/3
+
+
 
 
 
@@ -585,10 +589,12 @@ pts不递增，mux崩溃，为什么会这样？
 
 
 
+**************************************
+argb->yuv 色差问题
+**************************************
 
-
-
-
+ibyuv表示的排列顺序和Bitmap的RGBA表示的顺序是反向的。所以实际要调用libyuv::ABGRToI420才能得到正确的结果
+https://www.tuicool.com/articles/ma2EVrJ
 
 
 

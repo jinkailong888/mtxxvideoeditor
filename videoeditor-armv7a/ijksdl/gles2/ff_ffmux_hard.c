@@ -15,6 +15,8 @@ static JavaVM *g_jvm;
 static JNIEnv *mEnv;
 
 
+void yuv420p_to_yuv420sp(unsigned char *yuv420p, unsigned char *yuv420sp, int width, int height);
+
 void ff_ffmux_hard_init(JavaVM *vm, JNIEnv *env) {
     g_jvm = vm;
     mEnv = env;
@@ -40,6 +42,8 @@ void ff_ffmux_hard_release() {
 
 }
 
+
+int dst_pix_fmt = AV_PIX_FMT_YUV420P;
 
 void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSize, int width,
                                  int height) {
@@ -74,11 +78,46 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
         return;
     }
 
-    RGBAToI420(rgbaData, width * 4,
+
+    ABGRToI420(rgbaData, width * 4,
                pYuvFrame->data[0], pYuvFrame->linesize[0],
                pYuvFrame->data[1], pYuvFrame->linesize[1],
                pYuvFrame->data[2], pYuvFrame->linesize[2],
                width, height);
+
+
+    int yuvSpSize = av_image_get_buffer_size(AV_PIX_FMT_NV12, width, height, 1);
+    uint8_t *yuvSpBuffer = (uint8_t *) av_malloc(yuvSpSize * sizeof(uint8_t));
+    if (!yuvSpBuffer) {
+        loge("%s av_image_get_buffer_size failed\n", __func__);
+        return;
+    }
+
+//    yuv420p_to_yuv420sp(yuvBuffer,yuvSpBuffer,width,height);
+
+    AVFrame *pYuvSpFrame = av_frame_alloc();
+    ret = av_image_fill_arrays(pYuvSpFrame->data,
+                               pYuvSpFrame->linesize,
+                               yuvSpBuffer,
+                               AV_PIX_FMT_NV12,
+                               width,
+                               height,
+                               1);
+    if (ret < 0) {
+        loge("%s pYuvSpFrame av_image_fill_arrays failed\n", __func__);
+        return;
+    }
+
+
+    I420ToNV12(pYuvFrame->data[0], pYuvFrame->linesize[0],
+               pYuvFrame->data[1], pYuvFrame->linesize[1],
+               pYuvFrame->data[2], pYuvFrame->linesize[2],
+
+               pYuvSpFrame->data[0], pYuvSpFrame->linesize[0],
+               pYuvSpFrame->data[1], pYuvSpFrame->linesize[1],
+               width, height);
+
+
 
     if (onVideoEncodeMethod == NULL) {
         jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
@@ -88,7 +127,7 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
     if (onVideoEncodeMethod != NULL) {
         logd("onVideoEncodeMethod != null");
         jbyteArray array = (*env)->NewByteArray(env, yuvSize);
-        (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) pYuvFrame->data);
+        (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) yuvSpBuffer);
         if (array == NULL) {
             loge("array = null");
             return;
@@ -201,6 +240,34 @@ void ff_ffmux_hard_onAudioEncodeDone() {
     }
 
     (*g_jvm)->DetachCurrentThread(g_jvm);
+}
+
+
+void yuv420p_to_yuv420sp(unsigned char *yuv420p, unsigned char *yuv420sp, int width, int height) {
+    int i, j;
+    int y_size = width * height;
+
+    unsigned char *y = yuv420p;
+    unsigned char *u = yuv420p + y_size;
+    unsigned char *v = yuv420p + y_size * 5 / 4;
+
+    unsigned char *y_tmp = yuv420sp;
+    unsigned char *uv_tmp = yuv420sp + y_size;
+
+    // y
+    memcpy(y_tmp, y, y_size);
+
+    // u
+    for (j = 0, i = 0; j < y_size / 2; j += 2, i++) {
+        // 此处可调整U、V的位置，变成NV12或NV21
+#if 01
+        uv_tmp[j] = u[i];
+        uv_tmp[j + 1] = v[i];
+#else
+        uv_tmp[j] = v[i];
+        uv_tmp[j+1] = u[i];
+#endif
+    }
 }
 
 

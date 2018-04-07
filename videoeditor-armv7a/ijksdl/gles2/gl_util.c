@@ -171,6 +171,7 @@ uint8_t *readDataFromGPU(int width, int height) {
             initPBO();
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
+
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         if (!mInitRecord) {//第一帧没有数据跳出
             unbindPixelBuffer();

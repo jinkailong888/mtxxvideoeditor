@@ -223,6 +223,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mBgMusicSeekBar.setProgress(50);
 
         mMediaCodecSwitch.setChecked(true);
+
+//        mFFmpegMediaCodecSwitch.setEnabled(false);
     }
 
 
