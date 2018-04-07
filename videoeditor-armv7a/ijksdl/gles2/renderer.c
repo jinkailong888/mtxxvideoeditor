@@ -464,7 +464,7 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
             loge("readDataFromGPU   !data");
             return GL_TRUE;
         }
-        int size = overlay->w * overlay->h * 3 / 2;
+        int size = overlay->w * overlay->h * 4;
         if (overlay->hard_mux) {
             ff_ffmux_hard_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
         } else {

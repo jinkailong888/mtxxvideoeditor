@@ -345,7 +345,7 @@ public class AudioConverter {
                     } else {
                         inputBuffer.limit(pcmData.data.length);
                         inputBuffer.put(pcmData.data);
-//                        Log.d(TAG, "encode 把pcm数据加入编码队列");
+                        Log.d(TAG, "encode 把pcm数据加入编码队列 pcmData.pts"+pcmData.pts);
                         mEncoder.queueInputBuffer(bufIndex, 0, pcmData.data.length,
                                 pcmData.pts, 0);
                     }
@@ -373,10 +373,9 @@ public class AudioConverter {
                     bufferInfo.size = 0;
                 }
                 if (bufferInfo.size > 0) {
-                    Log.d(TAG, "encode 写入音频数据");
                     byteBuffer.position(bufferInfo.offset);
                     byteBuffer.limit(bufferInfo.offset + bufferInfo.size);
-                    Log.d(TAG, VELog.toString(bufferInfo));
+                    Log.d(TAG, "写入音频数据"+VELog.toString(bufferInfo));
                     mMuxStore.addData(mMuxTrackIndex, byteBuffer, bufferInfo);
                 }
                 mEncoder.releaseOutputBuffer(encodeStatus, false);

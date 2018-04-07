@@ -3,49 +3,8 @@
 //
 
 
-#include <string.h>
-#include <malloc.h>
-#include <ijkyuv/include/libyuv.h>
 #include "ff_ffmux_hard.h"
-#include "ff_print_util.h"
-
-
-//void rgb565ToYuv(int width,int height,int size,unsigned char * rgb,unsigned char * yuv){
-//    int rgba_stride= ((type & 0xF0) >> 4)*width;
-//
-//
-//
-//
-//
-//    RGBAToI420(rgb,);
-//}
-
-
-
-
-
-
-void rgbaToYuv(int width, int height, int size, unsigned char *rgb, unsigned char *yuv) {
-    int src_stride_rgba = width * 2;
-    int y_stride = width;
-    int u_stride = (width +1)/2;
-    int v_stride = u_stride;
-    size_t ySize = (size_t) (y_stride * height);
-    size_t uSize = (size_t) (u_stride * height >> 1);
-
-    BGRAToI420(rgb,
-               src_stride_rgba, //数据每一行的大小，如果是argb_8888格式的话这个值为wX4，argb4444的话值为wX2
-               yuv,//用于保存y分量数据
-               y_stride,
-               yuv + size,//用于保存u分量数据
-               u_stride,
-               yuv + size + u_stride * (height + 1) / 2,//用于保存分量数据
-               v_stride,
-               width,
-               height
-    );
-}
-
+#include <ijkyuv/include/libyuv.h>
 
 static jobject mHardMuxJni;
 static jmethodID onVideoEncodeMethod = NULL;
@@ -77,15 +36,15 @@ void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject hardMuxJni) 
 }
 
 
-
 void ff_ffmux_hard_release() {
 
 }
 
 
-void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size, int width, int height) {
+void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSize, int width,
+                                 int height) {
     JNIEnv *env;
-    logd("onVideoEncode size=%d", size);
+    logd("onVideoEncode rgbSize=%d", rgbSize);
 
     int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
 
@@ -93,8 +52,33 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size, int 
         loge("onVideoEncode JNI NOT OK!");
         return;
     }
-    unsigned char *yuv = (unsigned char *) malloc(sizeof(uint8_t) * size);
-    rgbaToYuv(width, height, size, data, yuv);
+
+    int ret;
+
+    AVFrame *pYuvFrame = av_frame_alloc();
+    int yuvSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
+    uint8_t *yuvBuffer = (uint8_t *) av_malloc(yuvSize * sizeof(uint8_t));
+    if (!yuvBuffer) {
+        loge("%s av_image_get_buffer_size failed\n", __func__);
+        return;
+    }
+    ret = av_image_fill_arrays(pYuvFrame->data,
+                               pYuvFrame->linesize,
+                               yuvBuffer,
+                               AV_PIX_FMT_YUV420P,
+                               width,
+                               height,
+                               1);
+    if (ret < 0) {
+        loge("%s pYuvFrame av_image_fill_arrays failed\n", __func__);
+        return;
+    }
+
+    RGBAToI420(rgbaData, width * 4,
+               pYuvFrame->data[0], pYuvFrame->linesize[0],
+               pYuvFrame->data[1], pYuvFrame->linesize[1],
+               pYuvFrame->data[2], pYuvFrame->linesize[2],
+               width, height);
 
     if (onVideoEncodeMethod == NULL) {
         jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
@@ -103,8 +87,8 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size, int 
 
     if (onVideoEncodeMethod != NULL) {
         logd("onVideoEncodeMethod != null");
-        jbyteArray array = (*env)->NewByteArray(env, size);
-        (*env)->SetByteArrayRegion(env, array, 0, size, (const jbyte *) data);
+        jbyteArray array = (*env)->NewByteArray(env, yuvSize);
+        (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) pYuvFrame->data);
         if (array == NULL) {
             loge("array = null");
             return;
@@ -138,13 +122,85 @@ void ff_ffmux_hard_onVideoEncodeDone() {
 }
 
 
-void ff_ffmux_hard_onAudioEncode() {
+void ff_ffmux_hard_onAudioEncode(AVFrame *pFrame) {
+    JNIEnv *env;
+    jlong jpts = pFrame->pts;
+    logd("ff_ffmux_hard_onAudioEncode size=%d,pts=%lld", pFrame->linesize[0], jpts);
 
+    int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+    if (status != JNI_OK) {
+        loge("onAudioEncode JNI NOT OK!");
+        return;
+    }
+    if (onVideoEncodeMethod == NULL) {
+        jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
+        onAudioEncodeMethod = (*env)->GetMethodID(env, hardMuxJniClass, "onAudioFrame", "([BJ)V");
+    }
+    if (onAudioEncodeMethod != NULL) {
+        logd("onAudioEncodeMethod != null");
+
+        int t_data_size = av_samples_get_buffer_size(
+                NULL, pFrame->channels,
+                pFrame->nb_samples,
+                (enum AVSampleFormat) pFrame->format,
+                0);
+
+
+
+//        if(av_sample_fmt_is_planar((enum AVSampleFormat)pFrame->format))
+//        {//如果是平面的
+//            uint8_t *buf = (uint8_t *)malloc(t_data_size);
+//            interleave(pFrame->data, buf,
+//                       pFrame->channels, (enum AVSampleFormat)pFrame->format);
+//
+//        }
+//        else
+//        {
+//
+//            outPcmFilePtr->write((const char *)inFrame->data[0],t_data_size);
+//            outPcmFilePtr->flush();
+//        }
+        int planar = av_sample_fmt_is_planar((enum AVSampleFormat) (pFrame->format));
+        if (planar) {
+            logd("音频数据为平面类型 ");
+            //todo
+        }
+
+
+        jbyteArray array = (*env)->NewByteArray(env, t_data_size);
+        (*env)->SetByteArrayRegion(env, array, 0, t_data_size,
+                                   (const jbyte *) pFrame->extended_data);
+        if (array == NULL) {
+            loge("array = null");
+            return;
+        }
+        (*env)->CallVoidMethod(env, mHardMuxJni, onAudioEncodeMethod, array, jpts);
+    }
+
+    (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
 
 void ff_ffmux_hard_onAudioEncodeDone() {
+    JNIEnv *env;
+    logd("ff_ffmux_hard_onAudioEncodeDone ");
 
+    int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+    if (status != JNI_OK) {
+        loge("onVideoEncodeDone JNI NOT OK!");
+        return;
+    }
+    if (onVideoDoneMethod == NULL) {
+        jclass hardMuxJniClass = (*env)->GetObjectClass(env, mHardMuxJni);
+        onAudioDoneMethod = (*env)->GetMethodID(env, hardMuxJniClass, "onAudioDone", "()V");
+    }
+
+    if (onAudioDoneMethod != NULL) {
+        logd("CallVoidMethod onAudioDoneMethod");
+        (*env)->CallVoidMethod(env, mHardMuxJni, onAudioDoneMethod);
+    }
+
+    (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
 

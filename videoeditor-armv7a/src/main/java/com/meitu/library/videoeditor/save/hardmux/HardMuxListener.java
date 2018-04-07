@@ -8,7 +8,7 @@ public interface HardMuxListener {
 
    void onVideoFrame(byte[] data, double pts) ;
 
-   void onAudioFrame(byte[] data, double pts) ;
+   void onAudioFrame(byte[] data, long pts) ;
 
    void onVideoDone() ;
 

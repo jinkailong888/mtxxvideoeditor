@@ -63,7 +63,7 @@ void initPBO() {
 //    }
     mPboIndex = 0;
     mPboNewIndex = 1;
-    mPboSize = mWidth * mHeight * 3 / 2;
+    mPboSize = mWidth * mHeight * 4;
 
 
     glGenBuffers(2, mPboIds);
@@ -171,19 +171,13 @@ uint8_t *readDataFromGPU(int width, int height) {
             initPBO();
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboIndex]);
-
-        glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         if (!mInitRecord) {//第一帧没有数据跳出
             unbindPixelBuffer();
             mInitRecord = true;
             return NULL;
         }
-
         glBindBuffer(GL_PIXEL_PACK_BUFFER, mPboIds[mPboNewIndex]);
-
-
         //glMapBufferRange会等待DMA传输完成，所以需要交替使用pbo,这边获取的是上一帧的内容
         uint8_t *byteBuffer = (uint8_t *) glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
                                                            mPboSize,
@@ -195,9 +189,9 @@ uint8_t *readDataFromGPU(int width, int height) {
         unbindPixelBuffer();
         return byteBuffer;
     } else {
-        int size = width * height * 3 / 2;
+        int size = width * height * 4;
         uint8_t *data = (uint8_t *) malloc(sizeof(uint8_t) * size);
-        glReadPixels(0, 0, width, height * 3 / 8, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
         return data;
     }
 }

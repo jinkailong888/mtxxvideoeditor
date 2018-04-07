@@ -48,8 +48,8 @@ public class HardMuxTask extends ISaveTask {
         }
 
         @Override
-        public void onAudioFrame(byte[] data, double pts) {
-//            mAudioHardMux.encode(data, (long) (pts * PTS_Conversion), false);
+        public void onAudioFrame(byte[] data, long pts) {
+            mAudioHardMux.encode(data, pts);
         }
 
         @Override
@@ -59,7 +59,7 @@ public class HardMuxTask extends ISaveTask {
 
         @Override
         public void onAudioDone() {
-//            mAudioHardMux.encode(null, 0, true);
+            mAudioHardMux.decodeDone();
         }
     };
 
@@ -69,10 +69,10 @@ public class HardMuxTask extends ISaveTask {
         mExecutors = Executors.newCachedThreadPool();
         mMuxStore = new Mp4MuxStore(v.getVideoSavePath(), v.getRotate());
 
-        mMuxStore.setIgnoreAudio(true);
+        mMuxStore.setIgnoreAudio(false);
 
         mVideoHardMux = new VideoHardMux(v, s, mMuxStore, VideoWroteLock);
-//        mAudioHardMux = new AudioHardMux(v, s, mMuxStore, VideoWroteLock);
+        mAudioHardMux = new AudioHardMux(v, s, mMuxStore, VideoWroteLock);
         mIjkMediaPlayer = createSaveModePlayer(true);
         mIjkMediaPlayer.setHardMuxListener(mHardMuxListener);
         mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
@@ -101,7 +101,7 @@ public class HardMuxTask extends ISaveTask {
             e.printStackTrace();
         }
         mVideoHardMux.run(mExecutors);
-//        mAudioHardMux.run(mExecutors);
+        mAudioHardMux.run(mExecutors);
         mExecutors.shutdown();
 
 

@@ -716,9 +716,7 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                 break;
             case AVMEDIA_TYPE_AUDIO:
                 if (ffp->save_mode) {
-                    if (ffp->hard_mux) {
 
-                    } else {
 //                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包111");
 //                        print_AVRational(ffp->is->audio_st->time_base, "播放器 音频输入流");
 //                        print_AVRational(d->avctx->time_base, "播放器 音频解码器");
@@ -727,7 +725,7 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                                              ffp->is->audio_st->time_base,
                                              d->avctx->time_base);
 //                        print_avpacket_tag(&d->pkt_temp, "播放器 即将解码的音频包222");
-                    }
+
 
                 }
                 ret = avcodec_decode_audio4(d->avctx, frame, &got_frame, &d->pkt_temp);
@@ -1826,9 +1824,6 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
         vp->bmp->frame_pkt_size = src_frame->pkt_size;
 
 
-
-
-
 #ifdef FFP_MERGE
         av_frame_move_ref(vp->frame, src_frame);
 #endif
@@ -2350,12 +2345,12 @@ static int audio_thread(void *arg) {
             }
 
             if (ffp->save_mode) {
-
+//                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
                 if (ffp->hard_mux) {
 
+                    frame->pts = (int64_t) (frame->pts * av_q2d(tb) * 1000000);
+                    ff_ffmux_hard_onAudioEncode(frame);
                 } else {
-
-//                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
                     ff_ffmux_soft_onAudioEncode(frame, NULL);
                 }
             } else {
@@ -3861,7 +3856,8 @@ static int read_thread(void *arg) {
                     av_log(ffp, AV_LOG_INFO, "ffp_toggle_buffering: eof\n");
                     if (ffp->save_mode) {
                         if (ffp->hard_mux) {
-
+                            ff_ffmux_hard_onVideoEncodeDone();
+                            ff_ffmux_hard_onAudioEncodeDone();
                         } else {
                             ff_ffmux_soft_onVideoEncodeDone();
                             ff_ffmux_soft_onAudioEncodeDone();

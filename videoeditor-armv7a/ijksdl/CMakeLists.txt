@@ -80,6 +80,7 @@ set(source_files
     ${pwd_dir}/gles2/ff_ffmux_soft.c
     ${pwd_dir}/gles2/ff_ffmux_hard.c
     ${pwd_dir}/gles2/ff_print_util.c
+    ${pwd_dir}/gles2/ff_converter.c
     ${pwd_dir}/ijksdl_aout.c
     ${pwd_dir}/ijksdl_audio.c
     ${pwd_dir}/ijksdl_egl.c

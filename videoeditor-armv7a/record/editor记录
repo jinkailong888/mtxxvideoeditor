@@ -22,6 +22,7 @@ assertion "thread" failed
 软解软保音频编码
 ffeditor例子屏蔽avfilter后音频杂音问题
 软解软保gl渲染帧模式
+软解硬保音频编码错误
 **************************************
 
 
@@ -339,6 +340,8 @@ https://github.com/WeMobileDev/article/blob/master/%E5%BE%AE%E4%BF%A1Android%E8%
 软解软保视频编码
 **************************************
 现象： avcodec_encode_video2 Error ret = -542398533
+3
+.
 分析： 查看此方法源码：  x264/encoder.c/x264_encoder_encode方法 ，  此方法太繁琐
 分析： 使用 error.h 宏定义的 av_err2str 方法 输出错误日志 ！！！
 
@@ -539,10 +542,46 @@ avfilter 对音频的 sample_fmts 、channel_layouts 、sample_rates 做了转�
 **************************************
 软解软保gl渲染帧模式
 **************************************
-avfilter
+问题：数据量为12b，
+原因：gl_util.c中读取大小应该为 w*h*4 而不是 w*h*2/3
 
 
 
+
+**************************************
+软解硬保音频编码错误
+**************************************
+底层传过来数据如下：正常
+ encode: data.length=8192 pts=0
+ encode: data.length=8192 pts=21333
+ encode: data.length=8192 pts=42666
+ encode: data.length=8192 pts=64000
+ encode: data.length=8192 pts=85333
+ encode: data.length=8192 pts=106666
+ encode: data.length=8192 pts=128000
+ encode: data.length=8192 pts=149333
+ encode: data.length=8192 pts=170666
+ encode: data.length=8192 pts=192000
+ encode: data.length=8192 pts=213333
+ encode: data.length=8192 pts=234666
+ encode: data.length=8192 pts=256000
+
+按次序加入编码队列，编码后竟然得到:
+
+ 写入音频数据bufferInfo: size=429 presentationTimeUs=23219 flags=0 offset=0
+ 写入音频数据bufferInfo: size=378 presentationTimeUs=21333 flags=0 offset=0
+
+ 写入音频数据bufferInfo: size=367 presentationTimeUs=44552 flags=0 offset=0
+ 写入音频数据bufferInfo: size=370 presentationTimeUs=42666 flags=0 offset=0
+
+ 写入音频数据bufferInfo: size=319 presentationTimeUs=65885 flags=0 offset=0
+ 写入音频数据bufferInfo: size=332 presentationTimeUs=64000 flags=0 offset=0
+
+pts不递增，mux崩溃，为什么会这样？
+
+先屏蔽掉pts变小的，声音异常。
+
+分析：
 
 
 

@@ -6,10 +6,7 @@
 #define FFMUX_SOFT_CONFIG_FILTER 1
 
 #include "ff_ffmux_soft.h"
-#include "ff_print_util.h"
-#include <libavfilter/avfiltergraph.h>
-#include <libavfilter/buffersink.h>
-#include <libavfilter/buffersrc.h>
+#include <ijkyuv/include/libyuv.h>
 
 static const int VIDEO_TYPE = -1;
 static const int AUDIO_TYPE = -2;
@@ -27,8 +24,6 @@ static bool ffmux_soft_audio_encode_done;
 static bool ffmux_soft_init;
 static const bool ffmux_soft_ignoreAudio = false;
 static const bool ffmux_soft_print = true;
-
-static const enum AVPixelFormat ffmux_soft_gl_pix_fmt = AV_PIX_FMT_BGR24;
 
 static struct SwsContext *ffmux_soft_frame_img_convert_ctx;
 
@@ -51,6 +46,9 @@ typedef struct FilteringContext {
     AVFilterGraph *filter_graph;
 } FilteringContext;
 static FilteringContext *filter_ctx;
+
+
+bool once;
 
 static int ff_ffmux_soft_init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx,
                                      AVCodecContext *enc_ctx, const char *filter_spec) {
@@ -695,40 +693,26 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
     if (!ffmux_soft_init) {
         return;
     }
-
-    AVFrame *pRgbaFrame = av_frame_alloc();
-
-
-    ret = av_image_fill_arrays(pRgbaFrame->data,
-                               pRgbaFrame->linesize,
-//                               rgbaData,
-                               (uint8_t *) av_malloc(size * sizeof(uint8_t)),
-                               ffmux_soft_gl_pix_fmt,
-                               width,
-                               height,
-                               1);
-
-    if (ret < 0) {
-        loge("%s pRgbaFrame av_image_fill_arrays failed\n", __func__);
-        return;
+    if (!once) {
+        char *dst_file_path = "/storage/emulated/0/VideoEditorDir/soft_rgba";
+        FILE *dst_file = fopen(dst_file_path, "wb");
+        fwrite(rgbaData, 1, (size_t) size, dst_file);
+        fflush(dst_file);
+        fclose(dst_file);
+        once = true;
     }
-    pRgbaFrame->data[0] = rgbaData;
-
 
     AVFrame *pYuvFrame = av_frame_alloc();
-
-    int bytes = av_image_get_buffer_size(video_dec_ctx->pix_fmt, width, height, 1);
-    uint8_t *buffer = (uint8_t *) av_malloc(bytes * sizeof(uint8_t));
-    if (!buffer) {
+    int yuvSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
+    uint8_t *yuvBuffer = (uint8_t *) av_malloc(yuvSize * sizeof(uint8_t));
+    if (!yuvBuffer) {
         loge("%s av_image_get_buffer_size failed\n", __func__);
         return;
     }
-
-
     ret = av_image_fill_arrays(pYuvFrame->data,
                                pYuvFrame->linesize,
-                               buffer,
-                               video_dec_ctx->pix_fmt,
+                               yuvBuffer,
+                               AV_PIX_FMT_YUV420P,
                                width,
                                height,
                                1);
@@ -737,33 +721,14 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
         return;
     }
 
-    if (!ffmux_soft_frame_img_convert_ctx) {
-        ffmux_soft_frame_img_convert_ctx = sws_getContext(width,
-                                                          height,
-                                                          ffmux_soft_gl_pix_fmt,
-                                                          width,
-                                                          height,
-                                                          video_dec_ctx->pix_fmt,
-                                                          SWS_BICUBIC,
-                                                          NULL,
-                                                          NULL,
-                                                          NULL);
-    }
+    RGBAToI420(rgbaData, width * 4,
+               pYuvFrame->data[0], pYuvFrame->linesize[0],
+               pYuvFrame->data[1], pYuvFrame->linesize[1],
+               pYuvFrame->data[2], pYuvFrame->linesize[2],
+               width, height);
 
-    ret = sws_scale(ffmux_soft_frame_img_convert_ctx,
-                    (const uint8_t *const *) pRgbaFrame->data,
-                    pRgbaFrame->linesize,
-                    0,
-                    pRgbaFrame->height,
-                    pYuvFrame->data,
-                    pYuvFrame->linesize);
 
-    if (ret < 0) {
-        loge("%s sws_scale failed ret=%d\n", __func__, ret);
-        av_err2str(ret);
-        return;
-    }
-
+    //todo 删除无用参数
     pYuvFrame->width = width;
     pYuvFrame->height = height;
     pYuvFrame->pts = pts;
@@ -778,11 +743,7 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
     pYuvFrame->colorspace = space;
     pYuvFrame->chroma_location = location;
 
-
-
     print_avframe_tag(pYuvFrame, "sws_scale 转换后的视频帧：");
-
-
 
     ff_ffmux_soft_filter_encode_write_frame(pYuvFrame, VIDEO_TYPE);
 }

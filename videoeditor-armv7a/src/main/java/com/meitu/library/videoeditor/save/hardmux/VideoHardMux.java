@@ -109,6 +109,7 @@ public class VideoHardMux implements Runnable {
                             synchronized (VideoWroteLock) {
                                 videoWrote = true;
                                 VideoWroteLock.notifyAll();
+                                Log.d(TAG, "encode: 通知音频线程解锁");
                             }
                         }
                     }
@@ -121,6 +122,7 @@ public class VideoHardMux implements Runnable {
     }
 
     public void encode(byte[] data, long pts) {
+        Log.d(TAG, "encode: data.length=" + data.length + " pts=" + pts);
         AVDataUtil.putAVData(mVideoRgbQueue, new AVData(data, pts));
     }
 

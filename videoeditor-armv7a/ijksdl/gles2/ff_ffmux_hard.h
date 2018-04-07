@@ -5,8 +5,17 @@
 #ifndef MTXXVIDEOEDITOR_FF_FFMUX_HARD_H
 #define MTXXVIDEOEDITOR_FF_FFMUX_HARD_H
 
+#include <ffmpeg/output/armv7a/include/libavutil/frame.h>
+#include "libavformat/avformat.h"
+#include "libavutil/opt.h"
 #include <stdbool.h>
 #include <jni.h>
+#include <string.h>
+#include <malloc.h>
+
+#include "ff_print_util.h"
+#include "ff_converter.h"
+#include "../ijksdl_def.h"
 
 void ff_ffmux_hard_init(JavaVM *vm,JNIEnv * env);
 
@@ -21,7 +30,7 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *data, double pts, int size,int w
 void ff_ffmux_hard_onVideoEncodeDone();
 
 
-void ff_ffmux_hard_onAudioEncode();
+void ff_ffmux_hard_onAudioEncode(AVFrame *pFrame);
 
 
 void ff_ffmux_hard_onAudioEncodeDone();

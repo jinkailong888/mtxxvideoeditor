@@ -10,8 +10,11 @@
 #include "libavformat/avformat.h"
 #include "libavutil/opt.h"
 #include "../ijksdl_def.h"
-
-
+#include "ff_print_util.h"
+#include "ff_converter.h"
+#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 
 void ff_ffmux_soft_release();
 

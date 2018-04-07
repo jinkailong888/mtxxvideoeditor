@@ -21,7 +21,7 @@ public class HardMuxJni implements HardMuxListener {
     }
 
     @Override
-    public void onAudioFrame(byte[] data, double pts) {
+    public void onAudioFrame(byte[] data, long pts) {
 
     }
 
