@@ -24,9 +24,7 @@
 #define TAG "[VideoEditor]" // 这个是自定义的LOG的标识
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
-//矫正图片上下左右颠倒矩阵
-GLfloat gMVPMatrix[16] = {1.0, 8.742278E-8, 8.742278E-8, 0.0, 8.742278E-8, (GLfloat) -1.0, 0.0, 0.0,
-                          8.742278E-8, 7.642742E-15, (GLfloat) -1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+
 
 
 static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer) {
@@ -53,7 +51,7 @@ static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer) {
 
     glUniformMatrix3fv(renderer->um3_color_conversion, 1, GL_FALSE,
                        IJK_GLES2_getColorMatrix_bt709());
-    glUniformMatrix4fv(renderer->uMatrixLocation, 1, GL_FALSE, gMVPMatrix);
+
     return GL_TRUE;
 }
 
@@ -123,9 +121,6 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p(bool filter) {
     if (!renderer)
         goto fail;
 
-    renderer->uMatrixLocation = glGetUniformLocation(renderer->program,
-                                                             "uMatrix");
-    IJK_GLES2_checkError_TRACE("glGetUniformLocation(uMatrix)");
     renderer->us2_sampler[0] = glGetUniformLocation(renderer->program, "us2_SamplerX");
     IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerX)");
     renderer->us2_sampler[1] = glGetUniformLocation(renderer->program, "us2_SamplerY");

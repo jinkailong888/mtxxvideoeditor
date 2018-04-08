@@ -34,7 +34,7 @@ static const char g_shader[] = IJK_GLES_STRING(
 
     void main()
     {
-        gl_Position  = um4_ModelViewProjection * uMatrix * av4_Position;
+        gl_Position  = um4_ModelViewProjection  * av4_Position;
         vv2_Texcoord = av2_Texcoord.xy;
 
     }

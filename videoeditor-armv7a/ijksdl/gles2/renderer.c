@@ -152,7 +152,9 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_base(const char *fragment_shader_s
     IJK_GLES2_checkError_TRACE("glGetAttribLocation(av2_Texcoord)");
     renderer->um4_mvp = glGetUniformLocation(renderer->program, "um4_ModelViewProjection");
     IJK_GLES2_checkError_TRACE("glGetUniformLocation(um4_ModelViewProjection)");
-
+    renderer->uMatrixLocation = glGetUniformLocation(renderer->program,
+                                                     "uMatrix");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(uMatrix)");
     return renderer;
 
     fail:
@@ -382,6 +384,11 @@ GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer) {
     IJK_GLES2_loadOrtho(&modelViewProj, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
     glUniformMatrix4fv(renderer->um4_mvp, 1, GL_FALSE, modelViewProj.m);
     IJK_GLES2_checkError_TRACE("glUniformMatrix4fv(um4_mvp)");
+
+    IJK_GLES_Matrix modelViewProj2;
+    IJK_GLES2_loadRotate(&modelViewProj2);
+    logd("umatrix   :%d,%f",renderer->uMatrixLocation,modelViewProj2.m[0]);
+    glUniformMatrix4fv(renderer->uMatrixLocation, 1, GL_FALSE, modelViewProj2.m);
 
     IJK_GLES2_Renderer_TexCoords_reset(renderer);
     IJK_GLES2_Renderer_TexCoords_reloadVertex(renderer);

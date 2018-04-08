@@ -85,6 +85,7 @@ typedef struct IJK_GLES_Matrix
     GLfloat m[16];
 } IJK_GLES_Matrix;
 void IJK_GLES2_loadOrtho(IJK_GLES_Matrix *matrix, GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat near, GLfloat far);
+void IJK_GLES2_loadRotate(IJK_GLES_Matrix *matrix);
 
 const char *IJK_GLES2_getVertexShader_default();
 const char *IJK_GLES2_getFragmentShader_yuv420p();

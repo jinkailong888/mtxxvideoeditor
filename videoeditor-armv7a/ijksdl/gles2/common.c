@@ -32,6 +32,29 @@ void IJK_GLES2_printString(const char *name, GLenum s) {
     ALOGI("[GLES2] %s = %s\n", name, v);
 }
 
+void IJK_GLES2_loadRotate(IJK_GLES_Matrix *matrix){
+
+    matrix->m[0] = 1.0f;
+    matrix->m[1] = 0.0f;
+    matrix->m[2] = 0.0f;
+    matrix->m[3] = 0.0f;
+
+    matrix->m[4] = 0.0f;
+    matrix->m[5] = -1.0f;
+    matrix->m[6] = 0.0f;
+    matrix->m[7] = 0.0f;
+
+    matrix->m[8] = 0.0f;
+    matrix->m[9] = 0.0f;
+    matrix->m[10] = -1.0f;
+    matrix->m[11] = 0.0f;
+
+    matrix->m[12] = 0.0;
+    matrix->m[13] = 0.0;
+    matrix->m[14] = 0.0;
+    matrix->m[15] = 1.0f;
+}
+
 void IJK_GLES2_loadOrtho(IJK_GLES_Matrix *matrix, GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat near, GLfloat far)
 {
     GLfloat r_l = right - left;
