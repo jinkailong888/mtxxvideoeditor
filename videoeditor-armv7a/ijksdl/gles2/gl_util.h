@@ -26,3 +26,6 @@ unsigned char *readDataFromGPU(int width, int height);
 
 void release();
 
+
+void gl_util_init();
+

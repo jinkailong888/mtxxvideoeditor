@@ -81,6 +81,7 @@
 #include <ijksdl/gles2/ff_ffmux_hard.h>
 #include <ijksdl/gles2/ff_ffmux_soft.h>
 #include <ijksdl/gles2/ff_print_util.h>
+#include <ijksdl/gles2/gl_util.h>
 
 #if defined(__ANDROID__)
 
@@ -3670,6 +3671,7 @@ static int read_thread(void *arg) {
     av_log(NULL, AV_LOG_DEBUG,
            "解码器上下文都已经初始化完毕，如果要保存，在此初始化 ");
     if (ffp->save_mode) {
+        gl_util_init();
         if (ffp->hard_mux) {
             //在 JNI_ONLoad 时初始化
         } else {
