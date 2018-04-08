@@ -20,15 +20,21 @@
  */
 
 #include "internal.h"
+
 #define TAG "[VideoEditor]" // 这个是自定义的LOG的标识
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
 
-static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer)
-{
+//矫正图片上下左右颠倒矩阵
+GLfloat gMVPMatrix[16] = {1.0, 8.742278E-8, 8.742278E-8, 0.0, 8.742278E-8, (GLfloat) -1.0, 0.0, 0.0,
+                          8.742278E-8, 7.642742E-15, (GLfloat) -1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+
+
+static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer) {
     ALOGI("use render yuv420p\n");
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    glUseProgram(renderer->program);            IJK_GLES2_checkError_TRACE("glUseProgram");
+    glUseProgram(renderer->program);
+    IJK_GLES2_checkError_TRACE("glUseProgram");
 
     if (0 == renderer->plane_textures[0])
         glGenTextures(3, renderer->plane_textures);
@@ -45,28 +51,27 @@ static GLboolean yuv420p_use(IJK_GLES2_Renderer *renderer)
         glUniform1i(renderer->us2_sampler[i], i);
     }
 
-    glUniformMatrix3fv(renderer->um3_color_conversion, 1, GL_FALSE, IJK_GLES2_getColorMatrix_bt709());
-
+    glUniformMatrix3fv(renderer->um3_color_conversion, 1, GL_FALSE,
+                       IJK_GLES2_getColorMatrix_bt709());
+    glUniformMatrix4fv(renderer->uMatrixLocation, 1, GL_FALSE, gMVPMatrix);
     return GL_TRUE;
 }
 
-static GLsizei yuv420p_getBufferWidth(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay)
-{
+static GLsizei yuv420p_getBufferWidth(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay) {
     if (!overlay)
         return 0;
 
     return overlay->pitches[0] / 1;
 }
 
-static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay)
-{
+static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay) {
     if (!renderer || !overlay)
         return GL_FALSE;
 
-          int     planes[3]    = { 0, 1, 2 };
-    const GLsizei widths[3]    = { overlay->pitches[0], overlay->pitches[1], overlay->pitches[2] };
-    const GLsizei heights[3]   = { overlay->h,          overlay->h / 2,      overlay->h / 2 };
-    const GLubyte *pixels[3]   = { overlay->pixels[0],  overlay->pixels[1],  overlay->pixels[2] };
+    int planes[3] = {0, 1, 2};
+    const GLsizei widths[3] = {overlay->pitches[0], overlay->pitches[1], overlay->pitches[2]};
+    const GLsizei heights[3] = {overlay->h, overlay->h / 2, overlay->h / 2};
+    const GLubyte *pixels[3] = {overlay->pixels[0], overlay->pixels[1], overlay->pixels[2]};
 
     switch (overlay->format) {
         case SDL_FCC_I420:
@@ -98,13 +103,12 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
     return GL_TRUE;
 }
 
-static GLboolean yuv420p_readTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay){
+static GLboolean yuv420p_readTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay) {
 
 }
 
-IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p(bool filter)
-{
-    ALOGI("create render yuv420p  filter:%d \n",filter);
+IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p(bool filter) {
+    ALOGI("create render yuv420p  filter:%d \n", filter);
     IJK_GLES2_Renderer *renderer;
     if (filter) {
         renderer = IJK_GLES2_Renderer_create_base(
@@ -119,19 +123,26 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_yuv420p(bool filter)
     if (!renderer)
         goto fail;
 
-    renderer->us2_sampler[0] = glGetUniformLocation(renderer->program, "us2_SamplerX"); IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerX)");
-    renderer->us2_sampler[1] = glGetUniformLocation(renderer->program, "us2_SamplerY"); IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerY)");
-    renderer->us2_sampler[2] = glGetUniformLocation(renderer->program, "us2_SamplerZ"); IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerZ)");
+    renderer->uMatrixLocation = glGetUniformLocation(renderer->program,
+                                                             "uMatrix");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(uMatrix)");
+    renderer->us2_sampler[0] = glGetUniformLocation(renderer->program, "us2_SamplerX");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerX)");
+    renderer->us2_sampler[1] = glGetUniformLocation(renderer->program, "us2_SamplerY");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerY)");
+    renderer->us2_sampler[2] = glGetUniformLocation(renderer->program, "us2_SamplerZ");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(us2_SamplerZ)");
 
-    renderer->um3_color_conversion = glGetUniformLocation(renderer->program, "um3_ColorConversion"); IJK_GLES2_checkError_TRACE("glGetUniformLocation(um3_ColorConversionMatrix)");
+    renderer->um3_color_conversion = glGetUniformLocation(renderer->program, "um3_ColorConversion");
+    IJK_GLES2_checkError_TRACE("glGetUniformLocation(um3_ColorConversionMatrix)");
 
-    renderer->func_use            = yuv420p_use;
+    renderer->func_use = yuv420p_use;
     renderer->func_getBufferWidth = yuv420p_getBufferWidth;
-    renderer->func_uploadTexture  = yuv420p_uploadTexture;
+    renderer->func_uploadTexture = yuv420p_uploadTexture;
     renderer->func_readTexture = yuv420p_readTexture;
 
     return renderer;
-fail:
+    fail:
     IJK_GLES2_Renderer_free(renderer);
     return NULL;
 }

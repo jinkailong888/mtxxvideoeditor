@@ -49,6 +49,8 @@ typedef struct IJK_GLES2_Renderer
     GLuint av2_texcoord;
     GLuint um4_mvp;
 
+    GLuint um4_ModelViewProjection;
+    GLuint uMatrixLocation;
     GLuint us2_sampler[IJK_GLES2_MAX_PLANE];
     GLuint um3_color_conversion;
 

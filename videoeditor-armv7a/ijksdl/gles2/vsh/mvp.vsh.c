@@ -29,10 +29,12 @@ static const char g_shader[] = IJK_GLES_STRING(
     attribute highp vec4 av4_Position;
     attribute highp vec2 av2_Texcoord;
     uniform         mat4 um4_ModelViewProjection;
+    uniform mat4 uMatrix;
+
 
     void main()
     {
-        gl_Position  = um4_ModelViewProjection * av4_Position;
+        gl_Position  = um4_ModelViewProjection * uMatrix * av4_Position;
         vv2_Texcoord = av2_Texcoord.xy;
 
     }
