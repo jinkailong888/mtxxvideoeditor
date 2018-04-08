@@ -59,7 +59,7 @@ public class SoftSaveTask extends ISaveTask {
     private IMediaPlayer.OnCompletionListener mCompletionListener =
             new IMediaPlayer.OnCompletionListener() {
                 public void onCompletion(IMediaPlayer mp) {
-                    Log.e(TAG, "OnCompletionListener\n");
+                    Log.e(TAG, "软件保存 OnCompletionListener\n");
                 }
             };
 }
