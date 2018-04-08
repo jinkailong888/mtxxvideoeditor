@@ -268,7 +268,7 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
         }
         v.setVideoVolume(mAudioVolume);
         saveFilters.setBgMusicInfo(mBgMusicInfo);
-        SaveTask.save(v, saveFilters);
+        SaveTask.save(v, saveFilters,mOnSaveListener);
 
 
     }

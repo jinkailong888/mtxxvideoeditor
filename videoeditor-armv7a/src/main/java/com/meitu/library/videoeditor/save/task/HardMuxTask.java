@@ -4,6 +4,7 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.hardmux.AudioHardMux;
 import com.meitu.library.videoeditor.save.hardmux.HardMuxJni;
@@ -78,6 +79,10 @@ public class HardMuxTask extends ISaveTask {
         mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         mIjkMediaPlayer.setGLFilter(s.isFilter());
+        if (s.getBgMusicInfo() != null) {
+            mIjkMediaPlayer.setBgMusic(s.getBgMusicInfo().getMusicPath(), s.getBgMusicInfo().getStartTime(),
+                    s.getBgMusicInfo().getDuration(), s.getBgMusicInfo().getSpeed(), s.getBgMusicInfo().isLoop());
+        }
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
         mIjkMediaPlayer.setDataSource(v.getSrcPath());
@@ -85,7 +90,7 @@ public class HardMuxTask extends ISaveTask {
         mIjkMediaPlayer.prepareAsync();
     }
 
-    public HardMuxTask(VideoSaveInfo v, SaveFilters s) {
+    public HardMuxTask(VideoSaveInfo v, SaveFilters s, OnSaveListener onSaveListener) {
         super();
         this.v = v;
         this.s = s;

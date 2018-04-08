@@ -1644,15 +1644,15 @@ queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double duration, in
               int serial) {
 
 
-    if (ffp->save_mode) {
-        if (!ffp->hard_mux) {
+//    if (ffp->save_mode) {
+//        if (!ffp->hard_mux) {
 //            print_avframe_tag(src_frame, "播放器 即将编码的视频帧");
 
             //非gl渲染模式才可在此传递编码帧
 //            ff_ffmux_soft_onVideoFrameEncode(src_frame);
 //            return 0;
-        }
-    }
+//        }
+//    }
 
     VideoState *is = ffp->is;
     Frame *vp; //帧缓冲队列的可写入位置
@@ -2352,7 +2352,7 @@ static int audio_thread(void *arg) {
                     frame->pts = (int64_t) (frame->pts * av_q2d(tb) * 1000000);
                     ff_ffmux_hard_onAudioEncode(frame);
                 } else {
-                    ff_ffmux_soft_onAudioEncode(frame, NULL);
+                    ff_ffmux_soft_onAudioEncode(frame);
                 }
             } else {
                 //判断是否能把刚刚解码的frame写入is->sampq中,返回一个待写入的frame
@@ -2796,9 +2796,11 @@ static int audio_decode_frame(FFPlayer *ffp) {
         swr_free(&is->swr_ctx);
         //创建重采样上下文
         is->swr_ctx = swr_alloc_set_opts(NULL,
-                                         is->audio_tgt.channel_layout, is->audio_tgt.fmt,
+                                         is->audio_tgt.channel_layout,
+                                         is->audio_tgt.fmt,
                                          is->audio_tgt.freq,
-                                         dec_channel_layout, af->frame->format,
+                                         dec_channel_layout,
+                                         af->frame->format,
                                          af->frame->sample_rate,
                                          0, NULL);
         if (!is->swr_ctx) {
@@ -5540,10 +5542,19 @@ void ffp_setBgMusic(FFPlayer *ffp,
                     jint duration,
                     jfloat speed,
                     jboolean loop) {
+    assert(ffp);
+    EditorState *es = ffp->es;
+    if (!es)
+        return;
 
+    av_log(NULL, AV_LOG_DEBUG, "ffp_setBgMusic ");
 
-    //todo ffp_setBgMusic
-
+    es->bgMusic = true;
+    es->musicPath = musicPath;
+    es->startTime = startTime;
+    es->duration = duration;
+    es->speed = speed;
+    es->loop = loop;
 }
 
 void ffp_clearBgMusic(FFPlayer *ffp) {

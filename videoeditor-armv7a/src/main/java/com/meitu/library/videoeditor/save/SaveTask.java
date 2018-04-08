@@ -2,6 +2,7 @@ package com.meitu.library.videoeditor.save;
 
 import android.os.Build;
 
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.task.HardMuxTask;
 import com.meitu.library.videoeditor.save.task.HardSaveTask;
@@ -18,23 +19,23 @@ import com.meitu.library.videoeditor.video.VideoSaveInfo;
 public class SaveTask {
     private static int SAVE_MODE;
 
-    public static void save(VideoSaveInfo v, SaveFilters s) {
+    public static void save(VideoSaveInfo v, SaveFilters s, OnSaveListener onSaveListener) {
 
         SAVE_MODE = v.getSaveMode();
 
         ISaveTask saveTask = null;
         switch (SAVE_MODE) {
             case SaveMode.SOFT_SAVE_MODE:
-                saveTask = new SoftSaveTask(v, s);
+                saveTask = new SoftSaveTask(v, s, onSaveListener);
                 break;
             case SaveMode.HARD_ENCODE_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    saveTask = new HardMuxTask(v, s);
+                    saveTask = new HardMuxTask(v, s, onSaveListener);
                 }
                 break;
             case SaveMode.HARD_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    saveTask = new HardSaveTask(v, s);
+                    saveTask = new HardSaveTask(v, s, onSaveListener);
                 }
                 break;
         }

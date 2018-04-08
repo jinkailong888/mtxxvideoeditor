@@ -29,7 +29,7 @@ void ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t s
                                  enum AVColorSpace space, enum AVChromaLocation location, int i1,
                                  int64_t i2);
 
-int ff_ffmux_soft_onAudioEncode(AVFrame *frame,int *got_frame);
+int ff_ffmux_soft_onAudioEncode(AVFrame *frame);
 
 int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame);
 

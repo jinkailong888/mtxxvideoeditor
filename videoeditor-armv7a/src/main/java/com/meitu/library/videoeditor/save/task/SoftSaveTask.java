@@ -2,6 +2,7 @@ package com.meitu.library.videoeditor.save.task;
 
 import android.util.Log;
 
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
@@ -22,7 +23,7 @@ public class SoftSaveTask extends ISaveTask {
     private VideoSaveInfo v;
     private SaveFilters s;
 
-    public SoftSaveTask(VideoSaveInfo v, SaveFilters s) {
+    public SoftSaveTask(VideoSaveInfo v, SaveFilters s, OnSaveListener onSaveListener) {
         super();
         this.v = v;
         this.s = s;
@@ -34,6 +35,10 @@ public class SoftSaveTask extends ISaveTask {
         mIjkMediaPlayer.setSaveInfo(v.getVideoSavePath(),
                 v.getOutputWidth(), v.getOutputHeight(), v.getOutputBitrate(), v.getFps());
         mIjkMediaPlayer.setGLFilter(s.isFilter());
+        if (s.getBgMusicInfo() != null) {
+            mIjkMediaPlayer.setBgMusic(s.getBgMusicInfo().getMusicPath(), s.getBgMusicInfo().getStartTime(),
+                    s.getBgMusicInfo().getDuration(), s.getBgMusicInfo().getSpeed(), s.getBgMusicInfo().isLoop());
+        }
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
         mIjkMediaPlayer.setDataSource(v.getSrcPath());

@@ -9,6 +9,7 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.Surface;
 
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.muxer.MuxStore;
 import com.meitu.library.videoeditor.util.Tag;
@@ -43,13 +44,16 @@ public class VideoConverter implements Runnable {
     private VideoSaveInfo mVideoSaveInfo;
     private SaveFilters mSaveFilters;
 
+    private OnSaveListener mOnSaveListener; //以视频进度为准
+    private long mDurationUs ;
 
 
-    public VideoConverter(VideoSaveInfo videoSaveInfo, SaveFilters saveFilters, MuxStore muxStore, Object videoWroteLock) {
+    public VideoConverter(VideoSaveInfo videoSaveInfo, SaveFilters saveFilters, MuxStore muxStore, Object videoWroteLock, OnSaveListener onSaveListener) {
         this.VideoWroteLock = videoWroteLock;
         mVideoSaveInfo = videoSaveInfo;
         mSaveFilters = saveFilters;
         mMuxStore = muxStore;
+        mOnSaveListener = onSaveListener;
     }
 
     @Override
@@ -89,6 +93,7 @@ public class VideoConverter implements Runnable {
             Log.d(TAG, "getTrackFormat index=" + i + " (" + mime + "): " + format);
             if (mime.startsWith("video/")) {
                 mTrackIndex = i;
+                mDurationUs = format.getLong(MediaFormat.KEY_DURATION);
                 mDecoder = MediaCodec.createDecoderByType(mime);
                 mCodecOutputSurface = new CodecOutputSurface(
                         mVideoSaveInfo.getOutputWidth(), mVideoSaveInfo.getOutputHeight(),
@@ -148,6 +153,9 @@ public class VideoConverter implements Runnable {
                     mCodecOutputSurface.awaitNewImage();
                     mCodecOutputSurface.drawImage(true);
                     writeVideoData(false);
+                    if (mOnSaveListener != null) {
+                        mOnSaveListener.onProgressUpdate(bufferInfo.presentationTimeUs, mDurationUs);
+                    }
                     mCodecOutputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000);
                     mCodecOutputSurface.swapBuffers();
                 }
@@ -205,7 +213,7 @@ public class VideoConverter implements Runnable {
                     if (!endOfStream) {
                         Log.w(TAG, "reached end of stream unexpectedly");
                     } else {
-                        Log.d(TAG, "end of stream reached");
+                        Log.d(TAG, "写完视频数据");
                     }
                     if (!videoWrote) {
                         synchronized (VideoWroteLock) {

@@ -6,6 +6,8 @@
 #define FFMUX_SOFT_CONFIG_FILTER 1
 
 #include "ff_ffmux_soft.h"
+#include "ff_ffmusic_decode.h"
+#include "ff_audio_converter.h"
 #include <ijkyuv/include/libyuv.h>
 
 static const int VIDEO_TYPE = -1;
@@ -32,6 +34,9 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
 
 int ff_ffmux_flush_encode(const int type);
 
+
+int ff_ffmux_soft_onMusicEncode(AVFrame *frame, enum AVSampleFormat sample_fmt);
+
 #define av_err2str(errnum) \
     av_make_error_string((char[AV_ERROR_MAX_STRING_SIZE]){0}, AV_ERROR_MAX_STRING_SIZE, errnum)
 
@@ -50,6 +55,9 @@ static FilteringContext *filter_ctx;
 
 bool once;
 int ff_ffmux_soft_onVideoEncode_num = 0;
+
+
+static bool ffmux_soft_bgMusic; //有背景音乐
 
 
 static int ff_ffmux_soft_init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx,
@@ -138,7 +146,7 @@ static int ff_ffmux_soft_init_filter(FilteringContext *fctx, AVCodecContext *dec
             goto end;
         }
 
-        //借助avfilter做音频数据格式转换、重采样等操作
+        //转换音频采样格式，见 AVSampleFormat
         ret = av_opt_set_bin(buffersink_ctx, "sample_fmts",
                              (uint8_t *) &enc_ctx->sample_fmt, sizeof(enc_ctx->sample_fmt),
                              AV_OPT_SEARCH_CHILDREN);
@@ -239,7 +247,7 @@ static int ff_ffmux_soft_filter_encode_write_frame(AVFrame *frame, const int typ
     int ret;
     AVFrame *filt_frame;
     int stream_index = type == VIDEO_TYPE ? video_stream_index : audio_stream_index;
-    logd("Pushing decoded frame to filters\n");
+//    logd("Pushing decoded frame to filters\n");
 
     /* push the decoded frame into the filtergraph */
     //todo Changing frame properties on the fly is not supported by all filters
@@ -258,7 +266,7 @@ static int ff_ffmux_soft_filter_encode_write_frame(AVFrame *frame, const int typ
             ret = AVERROR(ENOMEM);
             break;
         }
-        logd("Pulling filtered frame from filters\n");
+//        logd("Pulling filtered frame from filters\n");
         ret = av_buffersink_get_frame(filter_ctx[stream_index].buffersink_ctx,
                                       filt_frame);
         if (ret < 0) {
@@ -315,7 +323,7 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
 
     if (ffmux_soft_print) {
         if (is_video_type) {
-            print_avframe_tag(frame, "即将编码-----视频帧----");
+//            print_avframe_tag(frame, "即将编码-----视频帧----");
         } else {
 //            print_avframe_tag(frame, "即将编码-----音频帧---");
         }
@@ -334,10 +342,10 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
 
     if (ffmux_soft_print) {
         if (is_video_type) {
-            print_avpacket_tag(&encode_pkt, "编码后 视频 包");
-            print_AVRational(enc_ctx->time_base, "编码后视频包开始转换时间基 编码器为:");
-            print_AVRational(out_fmt_ctx->streams[stream_index]->time_base,
-                             "编码后视频包开始转换时间基 视频输出流为:");
+//            print_avpacket_tag(&encode_pkt, "编码后 视频 包");
+//            print_AVRational(enc_ctx->time_base, "编码后视频包开始转换时间基 编码器为:");
+//            print_AVRational(out_fmt_ctx->streams[stream_index]->time_base,
+//                             "编码后视频包开始转换时间基 视频输出流为:");
         } else {
 //            print_avpacket_tag(&encode_pkt, "编码后 音频 包");
 //            print_AVRational(enc_ctx->time_base, "编码后音频包开始转换时间基 编码器为:");
@@ -355,7 +363,7 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
 
     if (ffmux_soft_print) {
         if (is_video_type) {
-            print_avpacket_tag(&encode_pkt, "即将写入的 视频 包");
+//            print_avpacket_tag(&encode_pkt, "即将写入的 视频 包");
         } else {
 //            print_avpacket_tag(&encode_pkt, "即将写入的 音频 包");
         }
@@ -364,14 +372,14 @@ static int ff_ffmux_soft_onFrameEncode(AVFrame *frame, int *got_frame, const int
     ret = av_write_frame(out_fmt_ctx, &encode_pkt);
     if (ret < 0) {
         if (is_video_type) {
-            loge("Failed to muxing 视频 frame ret=%d\n", ret);
+//            loge("Failed to muxing 视频 frame ret=%d\n", ret);
         } else {
 //            loge("Failed to muxing 音频 frame ret=%d\n", ret);
         }
         av_err2str(ret);
     } else {
         if (is_video_type) {
-            logd("成功写入 视频 包");
+//            logd("成功写入 视频 包");
         } else {
 //            logd("成功写入 音频 包");
         }
@@ -511,16 +519,6 @@ static int ffmux_open_output_file(EditorState *es) {
             loge("Failed to allocate the encoder audio_enc_ctx\n");
             return AVERROR(ENOMEM);
         }
-        logd("audio src sample_rate=%d ; output sample_rate=%d",
-             audio_dec_ctx->sample_rate, audio_dec_ctx->sample_rate);
-        logd("audio src channel_layout=%lld ; output channel_layout=%lld",
-             audio_dec_ctx->channel_layout, audio_dec_ctx->channel_layout);
-        logd("audio src channels=%d ; output channels=%d",
-             audio_dec_ctx->channels, audio_dec_ctx->channels);
-        logd("audio src sample_fmt=%d ; output sample_fmt=%d",
-             audio_dec_ctx->sample_fmt, audio_dec_ctx->sample_fmt);
-        logd("audio src time_base=%d ; output time_base=%d",
-             audio_dec_ctx->time_base, audio_dec_ctx->time_base);
 
         audio_enc_ctx->sample_rate = audio_dec_ctx->sample_rate;
         audio_enc_ctx->channel_layout = audio_dec_ctx->channel_layout;
@@ -530,6 +528,11 @@ static int ffmux_open_output_file(EditorState *es) {
 //        audio_enc_ctx->time_base = (AVRational) {1, audio_dec_ctx->sample_rate};
 //
         audio_enc_ctx->time_base = audio_dec_ctx->time_base;
+
+
+        print_audio_codecCtx_tag(audio_dec_ctx, "原音解码器");
+        print_audio_codecCtx_tag(audio_enc_ctx, "原音编码器");
+
 
         ret = avcodec_open2(audio_enc_ctx, encoder, NULL);
 
@@ -575,6 +578,7 @@ void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_d
     logd("ff_ffmux_soft_init");
     ffmux_soft_init = true;
     in_fmt_ctx = p_in_fmt_ctx;
+    ffmux_soft_bgMusic = es->bgMusic;
 
     int i;
     for (i = 0; i < in_fmt_ctx->nb_streams; i++) {
@@ -598,6 +602,14 @@ void ff_ffmux_soft_init(AVFormatContext *p_in_fmt_ctx, AVCodecContext *p_video_d
 #endif
 
     ff_ffmux_soft_onVideoEncode_num = 0;
+
+
+    if (ffmux_soft_bgMusic) {
+        es->sendMusicFramefun = ff_ffmux_soft_onMusicEncode;
+        ffmusic_decode_start(es);
+    }
+
+
 }
 
 void ff_ffmux_soft_close() {
@@ -763,7 +775,7 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
     pYuvFrame->colorspace = space;
     pYuvFrame->chroma_location = location;
 
-    print_avframe_tag(pYuvFrame, "sws_scale 转换后的视频帧：");
+//    print_avframe_tag(pYuvFrame, "sws_scale 转换后的视频帧：");
 
     ff_ffmux_soft_filter_encode_write_frame(pYuvFrame, VIDEO_TYPE);
 
@@ -778,14 +790,87 @@ int ff_ffmux_soft_onVideoFrameEncode(AVFrame *frame) {
     return ff_ffmux_soft_onFrameEncode(frame, NULL, VIDEO_TYPE);
 }
 
-int ff_ffmux_soft_onAudioEncode(AVFrame *frame, int *got_frame) {
+int ff_ffmux_soft_onAudioEncode(AVFrame *frame) {
     if (ffmux_soft_ignoreAudio)
         return 0;
+
+
+    if (ffmux_soft_bgMusic) {
+        print_avframe_tag(frame, "原音：");
+
+
+        return 0;
+    }
+
 #if FFMUX_SOFT_CONFIG_FILTER
     return ff_ffmux_soft_filter_encode_write_frame(frame, AUDIO_TYPE);
 #endif
     return ff_ffmux_soft_onFrameEncode(frame, NULL, AUDIO_TYPE);
 }
+
+
+int ff_ffmux_soft_onMusicEncode(AVFrame *frame, enum AVSampleFormat sample_fmt) {
+    print_avframe_tag(frame, "背景音乐：");
+
+    if (!ff_audio_converter_isOpen()) {
+
+        logd("audio_dec_ctx->channel_layout = %lld", audio_dec_ctx->channel_layout);
+        logd("audio_dec_ctx->sample_fmt = %d", audio_dec_ctx->sample_fmt);
+        logd("audio_dec_ctx->sample_rate = %d", audio_dec_ctx->sample_rate);
+        logd("audio_dec_ctx->frame_size = %d", audio_dec_ctx->frame_size);
+
+        logd("frame->channel_layout = %lld", frame->channel_layout);
+        logd("frame->sample_fmt = %d",sample_fmt);
+        logd("frame->sample_rate = %d", frame->sample_rate);
+
+        if (ff_audio_converter_open(audio_dec_ctx->channel_layout,
+                                    audio_dec_ctx->sample_fmt,
+                                    audio_dec_ctx->sample_rate,
+                                    frame->channel_layout,
+                                    frame->format,
+                                    frame->sample_rate,
+                                    audio_dec_ctx->frame_size) < 0) {
+            loge("Failed to ff_audio_converter_open");
+            return -1;
+        }
+    }
+
+
+    if (ff_audio_converter_isOpen()) {
+        logd("ff_audio_converter_isOpen");
+    }
+
+    int resampled_size;
+//
+
+
+    logd("frame->nb_samples = %d", frame->nb_samples);
+
+
+
+    uint8_t *resampledData = ff_audio_converter_convert(
+            (const uint8_t **) frame->extended_data,
+            frame->nb_samples, &resampled_size);
+//
+//    if (resampled_size <= 0) {
+//        loge("resampled_size <= 0");
+//        return -1;
+//    }
+//
+//    if (resampledData == NULL) {
+//        loge("resampledData == NULL");
+//        return -1;
+//    }
+//
+//
+//    logd("ff_audio_converter_convert resampled_size=%d" , resampled_size);
+    return 0;
+}
+
+int ff_ffmux_soft_onMixAudio() {
+
+}
+
 
 void ff_ffmux_soft_onVideoEncodeDone() {
     if (!ffmux_soft_init) {
