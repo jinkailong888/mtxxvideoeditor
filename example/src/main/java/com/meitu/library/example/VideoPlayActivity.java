@@ -264,7 +264,9 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
         mMediaCodecSwitch.setChecked(true);
 
-//        mFFmpegMediaCodecSwitch.setEnabled(false);
+        //还有遗留问题，暂时屏蔽软解保存
+        mFFmpegMediaCodecSwitch.setEnabled(false);
+        mFFmpegSwitch.setEnabled(false);
     }
 
 
