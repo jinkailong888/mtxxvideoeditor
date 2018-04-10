@@ -2,6 +2,7 @@ package com.meitu.library.example;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -9,6 +10,7 @@ import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.meitu.library.videoeditor.core.VideoEditor;
@@ -41,10 +43,10 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
     private View mVideoPlayerView;
 
-//    private Switch mWaterMarkSwitch;
+    //    private Switch mWaterMarkSwitch;
     private Switch mMusicSwitch;
     private Switch mFilterSwitch;
-//    private Switch mTransFilterSwitch;
+    //    private Switch mTransFilterSwitch;
     private Switch mMediaCodecSwitch;
     private Switch mFFmpegSwitch;
     private Switch mFFmpegMediaCodecSwitch;
@@ -55,6 +57,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     private View mPauseView;
 
     private ProgressBar mProgressBar;
+    private TextView mProgressText;
+    private View mProgress;
 
     private List<FilterInfo> mFilters = ColorFilterMaterialFactory.createFilters();
 
@@ -89,23 +93,26 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mVideoEditor.setOnSaveListener(mOnSaveListener);
     }
 
+    String outputPath;
 
     public void save(View view) {
-        String outputPath = null;
+        String fileName = null;
         switch (SAVE_MODE) {
             case SaveMode.SOFT_SAVE_MODE:
-                outputPath = "softOutput";
+                fileName = "softOutput";
                 break;
             case SaveMode.HARD_SAVE_MODE:
-                outputPath = "hardOutput";
+                fileName = "hardOutput";
                 break;
             case SaveMode.HARD_ENCODE_SAVE_MODE:
-                outputPath = "hardEncodeOutput";
+                fileName = "hardEncodeOutput";
                 break;
         }
 
+        outputPath = FileUtil.getSaveVideoOutputPath(fileName);
+
         mVideoEditor.getSaveBuilder()
-                .setVideoSavePath( FileUtil.getSaveVideoOutputPath(outputPath))
+                .setVideoSavePath(outputPath)
                 .setSaveMode(SAVE_MODE)
                 .save();
     }
@@ -177,21 +184,52 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
     OnSaveListener mOnSaveListener = new OnSaveListenerAdapter() {
         @Override
         public void onStart() {
-            mProgressBar.setVisibility(View.VISIBLE);
-            mSaveTime = System.currentTimeMillis();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mProgressText.setText("0%");
+                    mProgress.setVisibility(View.VISIBLE);
+                    mSaveTime = System.currentTimeMillis();
+                }
+            });
+
         }
 
         @Override
         public void onDone() {
-            mSaveTime = System.currentTimeMillis() - mSaveTime;
-            Toast.makeText(VideoPlayActivity.this, "保存成功，耗时：" + mSaveTime + "ms", Toast.LENGTH_SHORT).show();
-            finish();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mProgressText.setText("0");
+                    mProgress.setVisibility(View.INVISIBLE);
+                    mSaveTime = System.currentTimeMillis() - mSaveTime;
+                    Toast.makeText(VideoPlayActivity.this, "保存成功至 " + outputPath + " ，耗时：" + mSaveTime + "ms", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @Override
+        public void onProgressUpdate(final long currentTime, final long duration) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                    float p = (float) (currentTime * 1.0 / duration * 100);
+                    Log.d(TAG, "onProgressUpdate: " + Math.round(p));
+                    mProgressText.setText(String.valueOf(Math.round(p)) + "%");
+                }
+            });
         }
 
         @Override
         public void onError() {
-            mProgressBar.setVisibility(View.INVISIBLE);
-            Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mProgress.setVisibility(View.INVISIBLE);
+                    Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     };
 
@@ -207,6 +245,8 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         mPauseView = findViewById(R.id.pauseIv);
         mVideoSeekBar = findViewById(R.id.videoVolum);
         mBgMusicSeekBar = findViewById(R.id.bgMusicVolum);
+        mProgressText = findViewById(R.id.progressText);
+        mProgress = findViewById(R.id.progress);
 
         mVideoPlayerView.setOnClickListener(this);
 //        mWaterMarkSwitch.setOnCheckedChangeListener(this);
@@ -224,7 +264,9 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
         mMediaCodecSwitch.setChecked(true);
 
-//        mFFmpegMediaCodecSwitch.setEnabled(false);
+        //还有遗留问题，暂时屏蔽软解保存
+        mFFmpegMediaCodecSwitch.setEnabled(false);
+        mFFmpegSwitch.setEnabled(false);
     }
 
 

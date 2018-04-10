@@ -22,6 +22,17 @@ typedef struct EditorState {
     bool free_overlay_descr;
     bool free_enable_descr;
 
+    //背景音乐相关
+    bool bgMusic;
+    const char *musicPath;
+    int startTime;
+    int duration;
+    float speed;
+    bool loop;
+    SDL_Thread *music_decode_tid;
+    SDL_Thread _music_decode_tid;
+    int (*sendMusicFramefun)(AVFrame *,enum AVSampleFormat);
+
     //原视频信息
     const char *videoPath;
     int videoWidth;
@@ -45,16 +56,10 @@ typedef struct EditorState {
     SDL_Thread *save_tid;
     SDL_Thread _save_tid;
 
-    //是否硬保
-    bool HARD;
+
+
 
 } EditorState;
-
-
-
-
-
-
 
 
 #endif //MTXXVIDEOEDITOR_IJKSDL_DEF_H

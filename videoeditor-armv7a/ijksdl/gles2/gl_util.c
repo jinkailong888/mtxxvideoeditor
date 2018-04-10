@@ -211,3 +211,10 @@ void release() {
     mEGLContext = EGL_NO_CONTEXT;
     mEGLSurface = EGL_NO_SURFACE;
 }
+
+//保存开始时初始化
+void gl_util_init(){
+    mInitRecord = false;
+}
+
+

@@ -4,6 +4,7 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import com.meitu.library.videoeditor.player.listener.OnSaveListener;
 import com.meitu.library.videoeditor.save.bean.SaveFilters;
 import com.meitu.library.videoeditor.save.audio.AudioConverter;
 import com.meitu.library.videoeditor.save.muxer.Mp4MuxStore;
@@ -35,12 +36,14 @@ public class HardSaveTask extends ISaveTask {
 
     private static final boolean ignoreAudio = false;
 
+    private OnSaveListener mOnSaveListener; //以视频进度为准
+
     @Override
     public void prepare() {
         mExecutors = Executors.newCachedThreadPool();
         mMuxStore = new Mp4MuxStore(mVideoSaveInfo.getVideoSavePath(), mVideoSaveInfo.getRotate());
         mMuxStore.setIgnoreAudio(ignoreAudio);
-        mVideoConverter = new VideoConverter(mVideoSaveInfo, mSaveFilters, mMuxStore, VideoWroteLock);
+        mVideoConverter = new VideoConverter(mVideoSaveInfo, mSaveFilters, mMuxStore, VideoWroteLock,mOnSaveListener);
         if (!ignoreAudio) {
             mAudioConverter = new AudioConverter(mVideoSaveInfo, mSaveFilters, mMuxStore, VideoWroteLock);
         }
@@ -67,13 +70,20 @@ public class HardSaveTask extends ISaveTask {
             }
         }
         mMuxStore.close();
+        if (mOnSaveListener != null) {
+            mOnSaveListener.onDone();
+        }
         long time = System.currentTimeMillis() - t;
         Log.d(TAG, "save  cost " + time + " ms");
     }
 
-    public HardSaveTask(VideoSaveInfo videoSaveInfo, SaveFilters saveFilters) {
+    public HardSaveTask(VideoSaveInfo videoSaveInfo, SaveFilters saveFilters, OnSaveListener onSaveListener) {
         mVideoSaveInfo = videoSaveInfo;
         mSaveFilters = saveFilters;
+        mOnSaveListener = onSaveListener;
+        if (mOnSaveListener != null) {
+            mOnSaveListener.onStart();
+        }
     }
 
 }

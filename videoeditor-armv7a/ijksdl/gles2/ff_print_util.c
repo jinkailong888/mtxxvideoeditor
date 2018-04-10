@@ -22,7 +22,7 @@ void print_avframe(AVFrame *frame) {
         logd("frame->linesize[1]=%d", frame->linesize[1]);
         logd("frame->linesize[2]=%d", frame->linesize[2]);
     } else {
-        logd("print_avframe frame is null");
+        loge("print_avframe frame is null");
     }
 }
 
@@ -31,17 +31,18 @@ void print_avframe_tag(AVFrame *frame, char *tag) {
         return;
     }
     if (frame) {
-        logd("%s frame->width=%d", tag, frame->width);
-        logd("%s frame->height=%d", tag, frame->height);
-        logd("%s frame->format=%d", tag, frame->format);
+//        logd("%s frame->width=%d", tag, frame->width);
+//        logd("%s frame->height=%d", tag, frame->height);
+//        logd("%s frame->format=%d", tag, frame->format);
         logd("%s frame->pts=%lld", tag, frame->pts);
-        logd("%s frame->pkt_dts=%lld", tag, frame->pkt_dts);
+        logd("%s frame->nb_samples=%d", tag, frame->nb_samples);
+//        logd("%s frame->pkt_dts=%lld", tag, frame->pkt_dts);
         logd("%s frame->pkt_size=%d", tag, frame->pkt_size);
         logd("%s frame->linesize[0]=%d", tag, frame->linesize[0]);
-        logd("%s frame->linesize[1]=%d", tag, frame->linesize[1]);
-        logd("%s frame->linesize[2]=%d", tag, frame->linesize[2]);
+//        logd("%s frame->linesize[1]=%d", tag, frame->linesize[1]);
+//        logd("%s frame->linesize[2]=%d", tag, frame->linesize[2]);
     } else {
-        logd("%s  print_avframe frame is null", tag);
+        loge("%s  print_avframe frame is null", tag);
     }
 }
 
@@ -56,7 +57,7 @@ void print_avpacket(AVPacket *avPacket) {
         logd("avPacket->dts=%lld", avPacket->dts);
         logd("avPacket->duration=%lld", avPacket->duration);
     } else {
-        logd("print_avpacket avPacket is null");
+        loge("print_avpacket avPacket is null");
     }
 }
 
@@ -70,7 +71,7 @@ void print_avpacket_tag(AVPacket *avPacket, char *tag) {
         logd("%s avPacket->dts=%lld", tag, avPacket->dts);
         logd("%s avPacket->duration=%lld", tag, avPacket->duration);
     } else {
-        logd("%s print_avpacket avPacket is null", tag);
+        loge("%s print_avpacket avPacket is null", tag);
     }
 }
 
@@ -82,6 +83,24 @@ void print_AVRational(AVRational avRational, char *tag) {
     if (&avRational) {
         logd("%s num/den ：%d/%d", tag, avRational.num, avRational.den);
     }else{
-        logd("%s print_AVRational avRational is null", tag);
+        loge("%s print_AVRational avRational is null", tag);
     }
+}
+
+
+void print_audio_codecCtx_tag(AVCodecContext *audio_codec_ctx,char*tag){
+    if (!print) {
+        return;
+    }
+    if (audio_codec_ctx) {
+        logd("%s audio_codec_ctx->sample_rate=%d", tag, audio_codec_ctx->sample_rate);
+        logd("%s audio_codec_ctx->channel_layout=%lld", tag, audio_codec_ctx->channel_layout);
+        logd("%s audio_codec_ctx->sample_fmt=%d", tag, audio_codec_ctx->sample_fmt);
+        print_AVRational(audio_codec_ctx->time_base, tag);
+    }else{
+        loge("%s print_audio_codecCtx_tag , audio_codec_ctx is null", tag);
+    }
+
+
+
 }

@@ -24,4 +24,8 @@ void print_avframe_tag(AVFrame *frame, char *tag);
 
 void print_AVRational(AVRational avRational, char *tag);
 
+
+void print_audio_codecCtx_tag(AVCodecContext *audio_codec_ctx,char*tag);
+
+
 #endif //MTXXVIDEOEDITOR_FF_PRINT_UTIL_H
