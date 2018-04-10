@@ -20,6 +20,7 @@
  */
 
 #include "internal.h"
+#include "ff_print_util.h"
 
 static void IJK_GLES2_printShaderInfo(GLuint shader)
 {
@@ -67,6 +68,7 @@ GLuint IJK_GLES2_loadShader(GLenum shader_type, const char *shader_source)
 
     GLint compile_status = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+    logd("mytest:shader Link status: %d\n", compile_status);
     if (!compile_status)
         goto fail;
 

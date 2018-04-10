@@ -34,18 +34,18 @@ void IJK_GLES2_printString(const char *name, GLenum s) {
 
 void IJK_GLES2_loadRotate(IJK_GLES_Matrix *matrix){
 
-    matrix->m[0] = 1.0f;
-    matrix->m[1] = 0.0f;
-    matrix->m[2] = 0.0f;
+    matrix->m[0] = -1.0f;
+    matrix->m[1] = 0;
+    matrix->m[2] = 0;
     matrix->m[3] = 0.0f;
 
-    matrix->m[4] = 0.0f;
+    matrix->m[4] = 0;
     matrix->m[5] = -1.0f;
     matrix->m[6] = 0.0f;
     matrix->m[7] = 0.0f;
 
-    matrix->m[8] = 0.0f;
-    matrix->m[9] = 0.0f;
+    matrix->m[8] = 0;
+    matrix->m[9] = 0;
     matrix->m[10] = -1.0f;
     matrix->m[11] = 0.0f;
 

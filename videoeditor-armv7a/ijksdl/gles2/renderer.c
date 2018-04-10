@@ -24,6 +24,7 @@
 #include "ff_ffmux_hard.h"
 #include "ff_ffmux_soft.h"
 
+
 #define TAG "VideoEditor"
 #define logd(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
 #define loge(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
@@ -140,10 +141,23 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_base(const char *fragment_shader_s
     IJK_GLES2_checkError("glAttachShader(fragment)");
     glLinkProgram(renderer->program);
     IJK_GLES2_checkError("glLinkProgram");
+
+
     GLint link_status = GL_FALSE;
     glGetProgramiv(renderer->program, GL_LINK_STATUS, &link_status);
-    if (!link_status)
+    logd("mytest:program Link status: %d\n", link_status);
+    if (!link_status) {
+        GLint result;
+        char *log;
+        glGetProgramiv(renderer->program, GL_INFO_LOG_LENGTH, &result);
+        log = av_malloc(result);
+        if (!log)
+            goto fail;
+        glGetProgramInfoLog(renderer->program, result, NULL, log);
+        logd("mytest:program Link error: %s\n", log);
+        av_free(log);
         goto fail;
+    }
 
 
     renderer->av4_position = glGetAttribLocation(renderer->program, "av4_Position");
@@ -152,8 +166,8 @@ IJK_GLES2_Renderer *IJK_GLES2_Renderer_create_base(const char *fragment_shader_s
     IJK_GLES2_checkError_TRACE("glGetAttribLocation(av2_Texcoord)");
     renderer->um4_mvp = glGetUniformLocation(renderer->program, "um4_ModelViewProjection");
     IJK_GLES2_checkError_TRACE("glGetUniformLocation(um4_ModelViewProjection)");
-    renderer->uMatrixLocation = glGetUniformLocation(renderer->program,
-                                                     "uMatrix");
+    renderer->modeLocation = glGetUniformLocation(renderer->program,
+                                                     "mode");
     IJK_GLES2_checkError_TRACE("glGetUniformLocation(uMatrix)");
     return renderer;
 
@@ -372,7 +386,7 @@ static void IJK_GLES2_Renderer_TexCoords_reloadVertex(IJK_GLES2_Renderer *render
 /*
  * Per-Renderer routine
  */
-GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer) {
+GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer, bool isSaveMode) {
     if (!renderer)
         return GL_FALSE;
 
@@ -381,14 +395,17 @@ GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer) {
         return GL_FALSE;
 
     IJK_GLES_Matrix modelViewProj;
+
     IJK_GLES2_loadOrtho(&modelViewProj, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+    //IJK_GLES2_loadRotate(&modelViewProj);
+
     glUniformMatrix4fv(renderer->um4_mvp, 1, GL_FALSE, modelViewProj.m);
     IJK_GLES2_checkError_TRACE("glUniformMatrix4fv(um4_mvp)");
 
-    IJK_GLES_Matrix modelViewProj2;
-    IJK_GLES2_loadRotate(&modelViewProj2);
-    logd("umatrix   :%d,%f",renderer->uMatrixLocation,modelViewProj2.m[0]);
-    glUniformMatrix4fv(renderer->uMatrixLocation, 1, GL_FALSE, modelViewProj2.m);
+    //通过保存标志位来更改vertex脚本，从而解决保存视频左右颠倒问题
+    int mode = isSaveMode ? 1 : 0;
+    glUniform1i(renderer->modeLocation, mode);
+    IJK_GLES2_checkError_TRACE("glUniform1i(modeLocation)");
 
     IJK_GLES2_Renderer_TexCoords_reset(renderer);
     IJK_GLES2_Renderer_TexCoords_reloadVertex(renderer);
@@ -467,10 +484,12 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
 
 //        logd("readDataFromGPU w=%d,h=%d", overlay->w, overlay->h);
         unsigned char *data = readDataFromGPU(overlay->w, overlay->h);
+
         if (data == NULL) {
             loge("readDataFromGPU   !data");
             return GL_TRUE;
         }
+
         int size = overlay->w * overlay->h * 4;
         if (overlay->hard_mux) {
             ff_ffmux_hard_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);

@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 #include "ijksdl/ijksdl_fourcc.h"
 #include "ijksdl/ijksdl_log.h"
 #include "ijksdl/ijksdl_gles2.h"
@@ -50,7 +51,7 @@ typedef struct IJK_GLES2_Renderer
     GLuint um4_mvp;
 
     GLuint um4_ModelViewProjection;
-    GLuint uMatrixLocation;
+    GLuint modeLocation;
     GLuint us2_sampler[IJK_GLES2_MAX_PLANE];
     GLuint um3_color_conversion;
 

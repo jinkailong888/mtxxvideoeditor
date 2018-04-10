@@ -74,7 +74,7 @@ GLboolean IJK_GLES2_Renderer_isValid(IJK_GLES2_Renderer *renderer);
 
 GLboolean IJK_GLES2_Renderer_isFormat(IJK_GLES2_Renderer *renderer, int format);
 
-GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer);
+GLboolean IJK_GLES2_Renderer_use(IJK_GLES2_Renderer *renderer, bool isSaveMode);
 
 GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_VoutOverlay *overlay);
 

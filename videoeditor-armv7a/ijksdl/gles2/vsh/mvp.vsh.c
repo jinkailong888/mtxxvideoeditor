@@ -29,13 +29,15 @@ static const char g_shader[] = IJK_GLES_STRING(
     attribute highp vec4 av4_Position;
     attribute highp vec2 av2_Texcoord;
     uniform         mat4 um4_ModelViewProjection;
-    uniform mat4 uMatrix;
+    uniform int mode;
 
 
     void main()
     {
         gl_Position  = um4_ModelViewProjection  * av4_Position;
         vv2_Texcoord = av2_Texcoord.xy;
+        if(mode == 1)
+            vv2_Texcoord.y = 1.0 - vv2_Texcoord.y;
 
     }
 );
