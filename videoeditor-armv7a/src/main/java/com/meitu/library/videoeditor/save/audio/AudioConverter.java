@@ -17,6 +17,8 @@ import com.meitu.library.videoeditor.save.video.VideoConverter;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -199,6 +201,12 @@ public class AudioConverter {
     }
 
     private void initExtractor() throws IOException {
+        //todo check
+//        File inputFile = new File(videoSaveInfo.getSrcPath());   // must be an absolute path
+//
+//        if (!inputFile.canRead()) {
+//            throw new FileNotFoundException("Unable to read " + inputFile);
+//        }
         mExtractor = new MediaExtractor();
         mExtractor.setDataSource(mVideoSaveInfo.getSrcPath());
         for (int i = 0; i < mExtractor.getTrackCount(); i++) {
@@ -426,6 +434,11 @@ public class AudioConverter {
 
     public void run(ExecutorService executors) {
         t = System.currentTimeMillis();
+        try {
+            prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if (mDecEncFlag) {
             Log.d(TAG, "run: DecEnc");
             executors.execute(mDecodeRunnable);
@@ -466,10 +479,5 @@ public class AudioConverter {
         mMixFlag = mSaveFilters.getBgMusicInfo() != null;
         mDecEncFlag = mMixFlag || mVideoSaveInfo.getVideoVolume() != 1;
         mDecEncFlag = true;
-        try {
-            prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }

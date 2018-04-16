@@ -22,6 +22,7 @@ public class SoftSaveTask extends ISaveTask {
     private IjkMediaPlayer mIjkMediaPlayer;
     private VideoSaveInfo v;
     private SaveFilters s;
+    private boolean mSaveDone;
 
     public SoftSaveTask(VideoSaveInfo v, SaveFilters s, OnSaveListener onSaveListener) {
         super();
@@ -53,6 +54,17 @@ public class SoftSaveTask extends ISaveTask {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        while (true) {
+            if (mSaveDone) {
+                Log.d(TAG, "mSaveDone ");
+                break;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
@@ -65,6 +77,7 @@ public class SoftSaveTask extends ISaveTask {
             new IMediaPlayer.OnCompletionListener() {
                 public void onCompletion(IMediaPlayer mp) {
                     Log.e(TAG, "软件保存 OnCompletionListener\n");
+                    mSaveDone = true;
                 }
             };
 }

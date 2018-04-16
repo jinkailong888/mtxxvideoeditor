@@ -17,30 +17,81 @@ import com.meitu.library.videoeditor.video.VideoSaveInfo;
  */
 
 public class SaveTask {
+
     private static int SAVE_MODE;
+    private static OnSaveListener sCurOnSaveListener;
+    private static boolean sSaving;
 
     public static void save(VideoSaveInfo v, SaveFilters s, OnSaveListener onSaveListener) {
 
         SAVE_MODE = v.getSaveMode();
+        sCurOnSaveListener = onSaveListener;
 
         ISaveTask saveTask = null;
         switch (SAVE_MODE) {
             case SaveMode.SOFT_SAVE_MODE:
-                saveTask = new SoftSaveTask(v, s, onSaveListener);
+                saveTask = new SoftSaveTask(v, s, sOnSaveListener);
                 break;
             case SaveMode.HARD_ENCODE_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    saveTask = new HardMuxTask(v, s, onSaveListener);
+                    saveTask = new HardMuxTask(v, s, sOnSaveListener);
                 }
                 break;
             case SaveMode.HARD_SAVE_MODE:
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    saveTask = new HardSaveTask(v, s, onSaveListener);
+                    saveTask = new HardSaveTask(v, s, sOnSaveListener);
                 }
                 break;
         }
         assert saveTask != null;
         saveTask.start();
+    }
+
+
+    private static final OnSaveListener sOnSaveListener = new OnSaveListener() {
+        @Override
+        public void onStart() {
+            if (sCurOnSaveListener != null) {
+                sCurOnSaveListener.onStart();
+            }
+            sSaving = true;
+        }
+
+        @Override
+        public void onProgressUpdate(long currentTime, long duration) {
+            if (sCurOnSaveListener != null) {
+                sCurOnSaveListener.onProgressUpdate(currentTime, duration);
+            }
+        }
+
+        @Override
+        public void onCancel() {
+            if (sCurOnSaveListener != null) {
+                sCurOnSaveListener.onCancel();
+            }
+            sSaving = false;
+        }
+
+        @Override
+        public void onError() {
+            if (sCurOnSaveListener != null) {
+                sCurOnSaveListener.onError();
+            }
+            sSaving = false;
+
+        }
+
+        @Override
+        public void onDone() {
+            if (sCurOnSaveListener != null) {
+                sCurOnSaveListener.onDone();
+            }
+            sSaving = false;
+        }
+    };
+
+    public static boolean isSaving() {
+        return sSaving;
     }
 
 

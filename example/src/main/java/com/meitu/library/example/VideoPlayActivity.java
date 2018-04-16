@@ -30,8 +30,11 @@ import java.util.List;
  * 视频播放界面
  */
 
-public class VideoPlayActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener,
-        View.OnClickListener, SeekBar.OnSeekBarChangeListener {
+public class VideoPlayActivity extends AppCompatActivity
+        implements
+        CompoundButton.OnCheckedChangeListener,
+        View.OnClickListener,
+        SeekBar.OnSeekBarChangeListener {
 
     private static final String TAG = "VideoPlayActivity";
 
@@ -200,7 +203,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mProgressText.setText("0");
+                    mProgressText.setText("");
                     mProgress.setVisibility(View.INVISIBLE);
                     mSaveTime = System.currentTimeMillis() - mSaveTime;
                     Toast.makeText(VideoPlayActivity.this, "保存成功至 " + outputPath + " ，耗时：" + mSaveTime + "ms", Toast.LENGTH_LONG).show();
@@ -222,12 +225,12 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
         }
 
         @Override
-        public void onError() {
+        public void onError() { //todo 设置错误码
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mProgress.setVisibility(View.INVISIBLE);
-                    Toast.makeText(VideoPlayActivity.this, "保存失败！", Toast.LENGTH_SHORT).show();
+//                    mProgress.setVisibility(View.INVISIBLE);
+                    Toast.makeText(VideoPlayActivity.this, "正在保存！", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -266,7 +269,7 @@ public class VideoPlayActivity extends AppCompatActivity implements CompoundButt
 
         //还有遗留问题，暂时屏蔽软解保存
         mFFmpegMediaCodecSwitch.setEnabled(false);
-        mFFmpegSwitch.setEnabled(false);
+//        mFFmpegSwitch.setEnabled(false);
     }
 
 

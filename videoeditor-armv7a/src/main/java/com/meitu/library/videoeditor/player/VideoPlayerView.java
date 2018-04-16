@@ -256,10 +256,13 @@ public class VideoPlayerView extends FrameLayout implements VideoPlayer {
     public void save(final VideoSaveInfo v, float bgMusicVolume) {
         v.setSrcPath(mIjkMediaPlayer.getDataSource());
         Log.d(TAG, "save VideoSaveInfo:" + v.toString());
-//        if (isSaving()) {
-//            Log.d(TAG, "is saving, do nothing");
-//            return;
-//        }
+        if (SaveTask.isSaving()) {
+            Log.e(TAG, "is saving, do nothing");
+            if (mOnSaveListener != null) {
+                mOnSaveListener.onError();
+            }
+            return;
+        }
 
         SaveFilters saveFilters = new SaveFilters();
         saveFilters.setFilter(filter);

@@ -1,5 +1,7 @@
 package com.meitu.library.videoeditor.video;
 
+import java.util.List;
+
 /**
  * Created by wyh3 on 2018/1/22.
  * 视频保存配置信息
@@ -8,6 +10,7 @@ package com.meitu.library.videoeditor.video;
 public class VideoSaveInfo {
     //原视频地址
     private String mSrcPath;
+    private List<String> mSrcPaths;
     // 视频输出宽度，默认与原视频相同
     private int mOutputWidth;
     // 视频输出高度，默认与原视频相同
@@ -41,6 +44,14 @@ public class VideoSaveInfo {
                 ", mSaveMode=" + mSaveMode +
                 ", mVideoVolume=" + mVideoVolume +
                 '}';
+    }
+
+    public List<String> getSrcPaths() {
+        return mSrcPaths;
+    }
+
+    public void setSrcPaths(List<String> srcPaths) {
+        mSrcPaths = srcPaths;
     }
 
     public float getVideoVolume() {
