@@ -710,6 +710,9 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
         return;
     }
 
+    logd("onVideoEncode rgbSize=%d", size);
+
+
     AVFrame *pYuvFrame = av_frame_alloc();
     int yuvSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
     uint8_t *yuvBuffer = (uint8_t *) av_malloc(yuvSize * sizeof(uint8_t));
@@ -729,14 +732,11 @@ ff_ffmux_soft_onVideoEncode(unsigned char *rgbaData, int64_t pts, int64_t dts, i
         return;
     }
 
-    //todo 镜像
-
     ABGRToI420(rgbaData, width * 4,
                pYuvFrame->data[0], pYuvFrame->linesize[0],
                pYuvFrame->data[1], pYuvFrame->linesize[1],
                pYuvFrame->data[2], pYuvFrame->linesize[2],
                width, height);
-
 
 
     //test frame
@@ -820,7 +820,7 @@ int ff_ffmux_soft_onMusicEncode(AVFrame *frame, enum AVSampleFormat sample_fmt) 
         logd("audio_dec_ctx->frame_size = %d", audio_dec_ctx->frame_size);
 
         logd("frame->channel_layout = %lld", frame->channel_layout);
-        logd("frame->sample_fmt = %d",sample_fmt);
+        logd("frame->sample_fmt = %d", sample_fmt);
         logd("frame->sample_rate = %d", frame->sample_rate);
 
         if (ff_audio_converter_open(audio_dec_ctx->channel_layout,
@@ -845,7 +845,6 @@ int ff_ffmux_soft_onMusicEncode(AVFrame *frame, enum AVSampleFormat sample_fmt) 
 
 
     logd("frame->nb_samples = %d", frame->nb_samples);
-
 
 
     uint8_t *resampledData = ff_audio_converter_convert(

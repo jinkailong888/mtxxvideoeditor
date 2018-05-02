@@ -837,7 +837,7 @@ static Frame *frame_queue_peek_last(FrameQueue *f) {
 }
 
 /**
- *  判断sampq队列是否满了，如果没位置放我们的frame的话
+ *  判断sampq队列是否满了，如果没位置放frame的话
     会调用pthread_cond_wait()方法阻塞队列
     如果有位置放frame的话，就会返回frame应该放置的位置的地址
  */
@@ -3230,6 +3230,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         case AVMEDIA_TYPE_AUDIO:
             sample_rate = avctx->sample_rate;
             nb_channels = avctx->channels;
+            //todo 音频声道切换
             channel_layout = avctx->channel_layout;
 
             // 打开audio output设备
@@ -4089,7 +4090,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         goto fail;
     if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
         goto fail;
-    if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
+    if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0) //todo danwei
         goto fail;
 
     // 创建音视频解码前的数据（AVPacket）存放队列
@@ -4098,6 +4099,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         packet_queue_init(&is->subtitleq) < 0)
         goto fail;
 
+    // 创建条件变量
     if (!(is->continue_read_thread = SDL_CreateCond())) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateCond(): %s\n", SDL_GetError());
         goto fail;

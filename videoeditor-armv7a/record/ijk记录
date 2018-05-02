@@ -9,6 +9,7 @@ h264编码器特有的设置域
 线程相关
 消息机制
 音频输出
+声道切换
 ×××××××××××××××××××××××××××××××××××××××××
 
 
@@ -190,3 +191,8 @@ native_setup 时设置循环读消息函数， mp->msg_loop = msg_loop ，初始
 *****************************************
 新建播放器实例（native_setup）时，根据ffp->opensles 初始化 opensles 或 androidTrack 输出设备
 在 opensles 或 androidTrack 中，通过回调 sdl_audio_callback 方法从音频帧缓冲队列中读取音频数据，播放之
+
+*****************************************
+声道切换
+*****************************************
+ijk不支持：https://github.com/Bilibili/ijkplayer/issues/2339

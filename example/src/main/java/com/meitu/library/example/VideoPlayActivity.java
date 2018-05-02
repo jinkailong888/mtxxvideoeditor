@@ -268,7 +268,7 @@ public class VideoPlayActivity extends AppCompatActivity
         mMediaCodecSwitch.setChecked(true);
 
         //还有遗留问题，暂时屏蔽软解保存
-        mFFmpegMediaCodecSwitch.setEnabled(false);
+//        mFFmpegMediaCodecSwitch.setEnabled(false);
 //        mFFmpegSwitch.setEnabled(false);
     }
 

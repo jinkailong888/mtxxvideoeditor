@@ -86,36 +86,36 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
                width, height);
 
 
-    int yuvSpSize = av_image_get_buffer_size(AV_PIX_FMT_NV12, width, height, 1);
-    uint8_t *yuvSpBuffer = (uint8_t *) av_malloc(yuvSpSize * sizeof(uint8_t));
-    if (!yuvSpBuffer) {
-        loge("%s av_image_get_buffer_size failed\n", __func__);
-        return;
-    }
+//    int yuvSpSize = av_image_get_buffer_size(AV_PIX_FMT_NV12, width, height, 1);
+//    uint8_t *yuvSpBuffer = (uint8_t *) av_malloc(yuvSpSize * sizeof(uint8_t));
+//    if (!yuvSpBuffer) {
+//        loge("%s av_image_get_buffer_size failed\n", __func__);
+//        return;
+//    }
 
 //    yuv420p_to_yuv420sp(yuvBuffer,yuvSpBuffer,width,height);
 
-    AVFrame *pYuvSpFrame = av_frame_alloc();
-    ret = av_image_fill_arrays(pYuvSpFrame->data,
-                               pYuvSpFrame->linesize,
-                               yuvSpBuffer,
-                               AV_PIX_FMT_NV12,
-                               width,
-                               height,
-                               1);
-    if (ret < 0) {
-        loge("%s pYuvSpFrame av_image_fill_arrays failed\n", __func__);
-        return;
-    }
+//    AVFrame *pYuvSpFrame = av_frame_alloc();
+//    ret = av_image_fill_arrays(pYuvSpFrame->data,
+//                               pYuvSpFrame->linesize,
+//                               yuvSpBuffer,
+//                               AV_PIX_FMT_NV12,
+//                               width,
+//                               height,
+//                               1);
+//    if (ret < 0) {
+//        loge("%s pYuvSpFrame av_image_fill_arrays failed\n", __func__);
+//        return;
+//    }
 
-
-    I420ToNV12(pYuvFrame->data[0], pYuvFrame->linesize[0],
-               pYuvFrame->data[1], pYuvFrame->linesize[1],
-               pYuvFrame->data[2], pYuvFrame->linesize[2],
-
-               pYuvSpFrame->data[0], pYuvSpFrame->linesize[0],
-               pYuvSpFrame->data[1], pYuvSpFrame->linesize[1],
-               width, height);
+//
+//    I420ToNV12(pYuvFrame->data[0], pYuvFrame->linesize[0],
+//               pYuvFrame->data[1], pYuvFrame->linesize[1],
+//               pYuvFrame->data[2], pYuvFrame->linesize[2],
+//
+//               pYuvSpFrame->data[0], pYuvSpFrame->linesize[0],
+//               pYuvSpFrame->data[1], pYuvSpFrame->linesize[1],
+//               width, height);
 
 
 
@@ -127,7 +127,7 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
     if (onVideoEncodeMethod != NULL) {
         logd("onVideoEncodeMethod != null");
         jbyteArray array = (*env)->NewByteArray(env, yuvSize);
-        (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) yuvSpBuffer);
+        (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) yuvBuffer);
         if (array == NULL) {
             loge("array = null");
             return;

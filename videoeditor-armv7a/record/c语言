@@ -1,6 +1,7 @@
 ×××××××××××××××××××目录×××××××××××××××××××
 malloc与calloc
 memset
+条件变量
 ×××××××××××××××××××××××××××××××××××××××××
 
 
@@ -26,3 +27,26 @@ void *memset(void *s,int c,size_t n)
 
 将s所指向的某一块内存中的每个字节的内容全部设置为ch指定的ASCII值
 常用于内存空间初始化
+
+××××××××××××××××××
+条件变量
+××××××××××××××××××
+https://blog.csdn.net/ithomer/article/details/6031723
+1.初始化条件变量 pthread_cond_init
+2.阻塞在条件变量上pthread_cond_wait
+3.解除在条件变量上的阻塞pthread_cond_signal
+4.阻塞直到指定时间pthread_cond_timedwait
+5.释放阻塞的所有线程pthread_cond_broadcast
+6.释放条件变量pthread_cond_destroy
+7.唤醒丢失问题
+
+
+
+
+
+
+
+
+
+
+
