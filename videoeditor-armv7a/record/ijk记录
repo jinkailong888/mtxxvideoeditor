@@ -10,6 +10,8 @@ h264编码器特有的设置域
 消息机制
 音频输出
 声道切换
+SDL_CreateCond 与 SDL_CreateThreadEx
+如何暂停
 ×××××××××××××××××××××××××××××××××××××××××
 
 
@@ -191,8 +193,45 @@ native_setup 时设置循环读消息函数， mp->msg_loop = msg_loop ，初始
 *****************************************
 新建播放器实例（native_setup）时，根据ffp->opensles 初始化 opensles 或 androidTrack 输出设备
 在 opensles 或 androidTrack 中，通过回调 sdl_audio_callback 方法从音频帧缓冲队列中读取音频数据，播放之
+比如在 ijksdl_aout_android_opensles.c 中 audio_cblk 就是 sdl_audio_callback 方法
 
 *****************************************
 声道切换
 *****************************************
-ijk不支持：https://github.com/Bilibili/ijkplayer/issues/2339
+ijkplayer如何切换音轨，以及获取音轨信息：https://github.com/Bilibili/ijkplayer/issues/3811
+IjkMediaPlayer.java 跟轨道相关的方法 ：
+   getTrackInfo（获取所有轨道）、getSelectedTrack（获取当前轨道）、selectTrack（选择轨道）
+selectTrack（选择轨道）可实现切换轨道操作
+对应调用 ff_ffplayer.c 的 ffp_set_stream_selected 方法
+此方法中通过调用 stream_component_close、stream_component_open 实现轨道切换
+
+*****************************************
+SDL_CreateCond 与 SDL_CreateThreadEx
+*****************************************
+ff_ffplay.c 中有一句代码： is->continue_read_thread = SDL_CreateCond()
+乍一看变量名会以为 SDL_CreateCond 方法是用来创建线程...  不对! ，SDL_CreateThreadEx 才是用来创建线程的
+SDL_CreateCond 方法调用了 pthread_cond_init 方法，含义为：创建条件变量
+条件变量相关:
+1.初始化条件变量 pthread_cond_init
+2.阻塞在条件变量上pthread_cond_wait
+3.解除在条件变量上的阻塞pthread_cond_signal
+4.阻塞直到指定时间pthread_cond_timedwait
+5.释放阻塞的所有线程pthread_cond_broadcast
+6.释放条件变量pthread_cond_destroy
+详细：https://blog.csdn.net/ithomer/article/details/6031723
+ijksdl_mutex.c 中封装了互斥锁相关操作
+
+*****************************************
+如何暂停
+*****************************************
+IjkMediaPlayer.java 中的 _pause 本地方法调用 ijkplayer_jni.c 中的 IjkMediaPlayer_pause
+然后通过ijk的消息机制发送暂停信号： ffp_notify_msg1(mp->ffplayer, FFP_REQ_PAUSE);
+然后调用到 ff_ffplay.c 的 ffp_pause_l 方法，最后调用到 stream_toggle_pause_l 方法
+其中两个关键操作：1.is->paused 置 true ; 2.调用 SDL_AoutPauseAudio 方法
+其实在读包、解码、渲染/播放这个工作线中，只要有一处停止工作，其他地方自然会阻塞住即可，
+但是看代码发现多处都有根据is->paused来停止工作的逻辑，列一下自认为比较关键的地方：
+对于视频：在视频渲染线程的 video_refresh 方法中：
+  if (is->paused) goto display;
+如果暂停了，就一直显示当前帧，跳过后面的取下一帧操作，不取下一帧，帧队列满后自然就会停止解码、读包操作。
+对于音频： 调用 SDL_AoutPauseAudio 方法后不再回调 sdl_audio_callback 方法（参见上面的《音频输出》）
+

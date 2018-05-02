@@ -3230,7 +3230,6 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
         case AVMEDIA_TYPE_AUDIO:
             sample_rate = avctx->sample_rate;
             nb_channels = avctx->channels;
-            //todo 音频声道切换
             channel_layout = avctx->channel_layout;
 
             // 打开audio output设备
@@ -5216,6 +5215,13 @@ int ffp_get_video_rotate_degrees(FFPlayer *ffp) {
     return theta;
 }
 
+/**
+ * 选择/切换 轨道
+ * @param ffp
+ * @param stream
+ * @param selected  默认为true
+ * @return
+ */
 int ffp_set_stream_selected(FFPlayer *ffp, int stream, int selected) {
     VideoState *is = ffp->is;
     AVFormatContext *ic = NULL;
