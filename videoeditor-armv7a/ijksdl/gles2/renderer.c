@@ -479,7 +479,7 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     IJK_GLES2_checkError_TRACE("glDrawArrays");
 
-//    logd("before readDataFromGPU saveMode:%d,pts=%f", overlay->save_mode, overlay->pts);
+    logd("before readDataFromGPU overlay==NULL:%d", overlay == NULL);
     if (overlay && overlay->save_mode) {
 
 //        logd("readDataFromGPU w=%d,h=%d", overlay->w, overlay->h);
@@ -492,7 +492,7 @@ GLboolean IJK_GLES2_Renderer_renderOverlay(IJK_GLES2_Renderer *renderer, SDL_Vou
 
         int size = overlay->w * overlay->h * 4;
         if (overlay->hard_mux) {
-            ff_ffmux_hard_onVideoEncode(data, overlay->pts, size, overlay->w, overlay->h);
+            ff_ffmux_hard_onVideoEncode(data, overlay->frame_pts, size, overlay->w, overlay->h);
         } else {
             ff_ffmux_soft_onVideoEncode(data, overlay->frame_pts, overlay->frame_pkt_dts,
                                         overlay->frame_format, size, overlay->w, overlay->h,

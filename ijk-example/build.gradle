@@ -37,7 +37,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 
 
-    compile project(path: ':videoeditor-armv7a')
+//    compile project(path: ':videoeditor-armv7a')
+
+    compile 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
+    compile 'tv.danmaku.ijk.media:ijkplayer-armv7a:0.8.8'
 
 
 }

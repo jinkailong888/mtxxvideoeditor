@@ -24,6 +24,7 @@ ffeditor例子屏蔽avfilter后音频杂音问题
 软解软保gl渲染帧模式
 软解硬保音频编码错误
 argb->yuv 色差问题
+软解硬保IJK_GLES2_Renderer_renderOverlay没进行完
 **************************************
 
 
@@ -598,7 +599,10 @@ https://www.tuicool.com/articles/ma2EVrJ
 
 
 
-
+**************************************
+软解硬保 IJK_GLES2_Renderer_renderOverlay 没进行完
+**************************************
+软解硬保6S视频，只读出来2S左右的，原来是 IJK_GLES2_Renderer_renderOverlay 方法到 2S 左右后直接没被调用了
 
 
 

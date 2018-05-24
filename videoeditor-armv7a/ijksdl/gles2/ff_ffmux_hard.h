@@ -19,6 +19,9 @@
 
 void ff_ffmux_hard_init(JavaVM *vm,JNIEnv * env);
 
+void ff_ffmux_hard_init_video_timebase(AVRational time_base);
+
+
 void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject filter);
 
 

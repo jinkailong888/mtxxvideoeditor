@@ -67,13 +67,15 @@ public class Mp4MuxStore implements MuxStore {
         Log.d(TAG, "muxRun");
         while (muxStarted) {
             try {
-                MuxData data = cache.poll(1, TimeUnit.SECONDS);
+                MuxData data = cache.poll(2, TimeUnit.SECONDS);
                 synchronized (Lock) {
                     Log.d(TAG, "data is null?" + (data == null));
                     if (data == null) {
-                        audioTrack = -1;
-                        videoTrack = -1;
-                        muxStarted = false;
+                        //TODO 有风险，最好的结束逻辑为主动调用close，而不是判断数据为空
+//                        audioTrack = -1;
+//                        videoTrack = -1;
+//                        muxStarted = false;
+                        continue;
                     }
                     if (muxStarted) {
                         Log.d(TAG, "muxRun: writeSampleData  data.index = " + data.index);

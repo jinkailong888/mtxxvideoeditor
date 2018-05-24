@@ -86,7 +86,6 @@ public class HardMuxTask extends ISaveTask {
         mIjkMediaPlayer.setOnPreparedListener(mPreparedListener);
         mIjkMediaPlayer.setOnCompletionListener(mCompletionListener);
         mIjkMediaPlayer.setDataSource(v.getSrcPath());
-        mIjkMediaPlayer.setLooping(false);
         mIjkMediaPlayer.prepareAsync();
     }
 

@@ -691,7 +691,9 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
             case AVMEDIA_TYPE_VIDEO: {
                 if (ffp->save_mode) {
                     if (ffp->hard_mux) {
-
+                        av_packet_rescale_ts(&d->pkt_temp,
+                                             ffp->is->video_st->time_base,
+                                             d->avctx->time_base);
                     } else {
                         av_packet_rescale_ts(&d->pkt_temp,
                                              ffp->is->video_st->time_base,
@@ -704,7 +706,7 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                 ret = avcodec_decode_video2(d->avctx, frame, &got_frame, &d->pkt_temp);
                 if (got_frame) {
 
-//                    print_avframe_tag(frame, "播放器 刚解码后的视频帧");
+                    print_avframe_tag(frame, "播放器 刚解码后的视频帧");
                     ffp->stat.vdps = SDL_SpeedSamplerAdd(&ffp->vdps_sampler, FFP_SHOW_VDPS_AVCODEC,
                                                          "vdps[avcodec]");
                     if (ffp->decoder_reorder_pts == -1) {
@@ -1028,6 +1030,7 @@ static void video_image_display2(FFPlayer *ffp) {
         }
         vp->bmp->filter = ffp->gl_filter;
         vp->bmp->pts = vp->pts;
+        logd(" vp->bmp->pts=%f, vp->frame->pts=%lld", vp->pts, vp->frame->pts);
         vp->bmp->save_mode = ffp->save_mode;
         vp->bmp->hard_mux = ffp->hard_mux;
 
@@ -2348,7 +2351,6 @@ static int audio_thread(void *arg) {
             if (ffp->save_mode) {
 //                    print_avframe_tag(frame, "播放器 即将编码的音频帧");
                 if (ffp->hard_mux) {
-
                     frame->pts = (int64_t) (frame->pts * av_q2d(tb) * 1000000);
                     ff_ffmux_hard_onAudioEncode(frame);
                 } else {
@@ -2404,6 +2406,7 @@ static int ffplay_video_thread(void *arg) {
 
     if (ffp->save_mode) {
         if (ffp->hard_mux) {
+            ffp->is->viddec.avctx->framerate = frame_rate;
 
         } else {
             ffp->is->viddec.avctx->framerate = frame_rate;
@@ -3157,6 +3160,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index) {
             forced_codec_name = ffp->video_codec_name;
             if (ffp->save_mode) {
                 if (ffp->hard_mux) {
+                    avctx->framerate = av_guess_frame_rate(ic, ic->streams[stream_index], NULL);
 
                 } else {
                     //在打开编码器之前设置帧率，打开后avctx才会有时间基
@@ -3676,6 +3680,7 @@ static int read_thread(void *arg) {
         gl_util_init();
         if (ffp->hard_mux) {
             //在 JNI_ONLoad 时初始化
+            ff_ffmux_hard_init_video_timebase(is->viddec.avctx->time_base);
         } else {
             av_log(NULL, AV_LOG_DEBUG,
                    "ff_ffmux_soft_init ");

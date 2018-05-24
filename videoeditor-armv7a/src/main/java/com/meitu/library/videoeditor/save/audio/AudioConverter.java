@@ -17,8 +17,6 @@ import com.meitu.library.videoeditor.save.video.VideoConverter;
 import com.meitu.library.videoeditor.util.Tag;
 import com.meitu.library.videoeditor.video.VideoSaveInfo;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -318,10 +316,10 @@ public class AudioConverter {
                     AVDataUtil.putAVData(mMixPcmQueue, new AVData(alignData[0], pts[0]));
                     break;
                 case PcmDataAlign.FLAG_ALIGN_DATA:
-                    byte[] mixVideo = AudioMix.mixRawAudioBytes(alignData,
+                    byte[] mixAudio = AudioMix.mixRawAudioBytes(alignData,
                             mVideoSaveInfo.getVideoVolume(),
                             mSaveFilters.getBgMusicInfo().getBgMusicVolume());
-                    AVDataUtil.putAVData(mMixPcmQueue, new AVData(mixVideo, pts[0]));
+                    AVDataUtil.putAVData(mMixPcmQueue, new AVData(mixAudio, pts[0]));
                     break;
                 case PcmDataAlign.FLAG_AUDIO_POLL_NULL:
                     break;

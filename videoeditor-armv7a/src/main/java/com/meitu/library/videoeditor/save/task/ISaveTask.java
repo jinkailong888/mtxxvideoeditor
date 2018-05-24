@@ -19,6 +19,7 @@ public abstract class ISaveTask extends Thread {
 
     IjkMediaPlayer createSaveModePlayer(boolean hardMux) {
         IjkMediaPlayer ijkMediaPlayer = new IjkMediaPlayer(true, hardMux);
+        ijkMediaPlayer.setLooping(false);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 1);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", "0");

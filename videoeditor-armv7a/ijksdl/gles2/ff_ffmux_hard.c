@@ -13,6 +13,7 @@ static jmethodID onVideoDoneMethod;
 static jmethodID onAudioDoneMethod;
 static JavaVM *g_jvm;
 static JNIEnv *mEnv;
+static AVRational timeBase;
 
 
 void yuv420p_to_yuv420sp(unsigned char *yuv420p, unsigned char *yuv420sp, int width, int height);
@@ -20,6 +21,10 @@ void yuv420p_to_yuv420sp(unsigned char *yuv420p, unsigned char *yuv420sp, int wi
 void ff_ffmux_hard_init(JavaVM *vm, JNIEnv *env) {
     g_jvm = vm;
     mEnv = env;
+}
+
+void ff_ffmux_hard_init_video_timebase(AVRational time_base) {
+    timeBase = time_base;
 }
 
 void ff_ffmux_set_HardMuxJni(JNIEnv *env, jobject instance, jobject hardMuxJni) {
@@ -48,7 +53,7 @@ int dst_pix_fmt = AV_PIX_FMT_YUV420P;
 void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSize, int width,
                                  int height) {
     JNIEnv *env;
-    logd("onVideoEncode rgbSize=%d", rgbSize);
+    logd("onVideoEncode rgbSize=%d,pts=%f", rgbSize, pts);
 
     int status = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
 
@@ -125,7 +130,6 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
     }
 
     if (onVideoEncodeMethod != NULL) {
-        logd("onVideoEncodeMethod != null");
         jbyteArray array = (*env)->NewByteArray(env, yuvSize);
         (*env)->SetByteArrayRegion(env, array, 0, yuvSize, (const jbyte *) yuvBuffer);
         if (array == NULL) {
@@ -133,6 +137,8 @@ void ff_ffmux_hard_onVideoEncode(unsigned char *rgbaData, double pts, int rgbSiz
             return;
         }
         (*env)->CallVoidMethod(env, mHardMuxJni, onVideoEncodeMethod, array, pts);
+    } else {
+        loge("onVideoEncodeMethod == null");
     }
 
     (*g_jvm)->DetachCurrentThread(g_jvm);
